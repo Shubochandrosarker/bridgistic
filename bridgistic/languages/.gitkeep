@@ -1,0 +1,1 @@
+Translation files (.pot/.po/.mo) go here. Run `wp i18n make-pot . languages/bridgistic.pot` from the plugin root to generate the template.

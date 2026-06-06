@@ -1,0 +1,25 @@
+{
+  "name": "wordpressistic/bridgistic",
+  "description": "Give Claude and Claude Cowork production-safe, scoped control of a WordPress site.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "version": "1.0.0",
+  "authors": [
+    { "name": "Shuvo Sarker", "homepage": "https://wordpressistic.com" }
+  ],
+  "homepage": "https://github.com/Shubochandrosarker/bridgistic",
+  "support": {
+    "issues": "https://github.com/Shubochandrosarker/bridgistic/issues",
+    "source": "https://github.com/Shubochandrosarker/bridgistic"
+  },
+  "require": {
+    "php": ">=8.0"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.9",
+    "wp-coding-standards/wpcs": "^3.1"
+  },
+  "scripts": {
+    "lint": "phpcs --standard=WordPress includes/ bridgistic.php uninstall.php"
+  }
+}

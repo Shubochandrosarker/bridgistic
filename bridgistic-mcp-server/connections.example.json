@@ -1,0 +1,12 @@
+{
+  "guns2ammo": {
+    "siteUrl": "https://guns2ammo.com",
+    "keyId": "wpk_xxxxxxxxxxxxxxxxxxxxxxxx",
+    "secret": "wps_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "wordpressistic": {
+    "siteUrl": "https://wordpressistic.com",
+    "keyId": "wpk_yyyyyyyyyyyyyyyyyyyyyyyy",
+    "secret": "wps_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+  }
+}
