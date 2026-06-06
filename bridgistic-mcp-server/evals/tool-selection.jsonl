@@ -1,0 +1,20 @@
+{"task": "Show me the WordPress version and active theme of the site", "expect": "bridgistic_get_site_info"}
+{"task": "List the 10 most recent published posts", "expect": "bridgistic_list_posts"}
+{"task": "Create a new draft page titled 'Pricing'", "expect": "bridgistic_create_post"}
+{"task": "Change the title of post 88 to 'Updated Title'", "expect": "bridgistic_update_post"}
+{"task": "Move post 91 to the trash", "expect": "bridgistic_delete_post"}
+{"task": "Upload this image from https://example.com/hero.jpg to the media library", "expect": "bridgistic_upload_media"}
+{"task": "Set the site tagline (blogdescription) to 'Fast WordPress'", "expect": "bridgistic_update_option"}
+{"task": "Deactivate the Hello Dolly plugin", "expect": "bridgistic_toggle_plugin"}
+{"task": "List all administrator users", "expect": "bridgistic_list_users"}
+{"task": "Read the contents of wp-config-sample.php", "expect": "bridgistic_fs_read"}
+{"task": "Run a SQL query to count rows in wp_posts", "expect": "bridgistic_db_query"}
+{"task": "Roll back the change I just made using snapshot snap_abc", "expect": "bridgistic_snapshot_restore"}
+{"task": "Has approval apr_123 been granted yet?", "expect": "bridgistic_approval_status"}
+{"task": "How many API requests has my key used this month?", "expect": "bridgistic_usage"}
+{"task": "Remember that this site uses ACF for the homepage hero fields", "expect": "bridgistic_memory_set"}
+{"task": "What do you know about this site already?", "expect": "bridgistic_memory_list"}
+{"task": "Save these steps as a reusable playbook called 'launch-page'", "expect": "bridgistic_playbook_save"}
+{"task": "Run the 'launch-page' playbook with title 'Summer Sale'", "expect": "bridgistic_playbook_run"}
+{"task": "Run the weekly-cleanup playbook every Monday automatically", "expect": "bridgistic_schedule_create"}
+{"task": "Pause the scheduled job sch_xyz", "expect": "bridgistic_schedule_toggle"}
