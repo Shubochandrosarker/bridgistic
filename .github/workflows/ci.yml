@@ -21,8 +21,8 @@ jobs:
       - run: npm run build
       - run: npm test
 
-  plugin-lint:
-    name: Plugin — PHP lint
+  plugin:
+    name: Plugin — PHP lint + unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +31,5 @@ jobs:
           php-version: '8.1'
       - name: PHP syntax check
         run: find bridgistic -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
+      - name: PHP unit tests
+        run: php bridgistic/tests/hmac-roundtrip.test.php

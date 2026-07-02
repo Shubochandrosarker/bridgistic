@@ -73,7 +73,8 @@ final class KeyStore {
 			self::table(),
 			array(
 				'key_id'       => $key_id,
-				'secret_hash'  => self::hash_secret( $secret ),
+				// HMAC needs the live secret, so it is encrypted at rest (never hashed).
+				'secret_enc'   => Crypto::encrypt( $secret ),
 				'label'        => $label,
 				'scopes'       => wp_json_encode( Scopes::sanitize( $scopes ) ),
 				'ip_allowlist' => $ip_allowlist ? wp_json_encode( $ip_allowlist ) : null,
