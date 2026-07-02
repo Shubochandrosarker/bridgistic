@@ -138,6 +138,14 @@ final class ExecuteController extends Controller {
 		global $wpdb;
 
 		$sql    = trim( (string) $request->get_param( 'sql' ) );
+
+		// File-access SQL writes/reads the server filesystem regardless of the
+		// leading keyword, so a "SELECT ... INTO OUTFILE" would sneak past the
+		// read/write scope split (and the snapshot/approval path). Block it outright.
+		if ( preg_match( '/\b(into\s+(?:out|dump)file|load_file|load\s+data)\b/i', $sql ) ) {
+			return $this->fail( 'bridgistic_sql_forbidden', 'File-access SQL (INTO OUTFILE / INTO DUMPFILE / LOAD_FILE / LOAD DATA) is not permitted.', 403 );
+		}
+
 		$is_read = (bool) preg_match( '/^\s*\(?\s*(select|show|explain|describe|desc|with)\b/i', $sql );
 
 		$needed = $is_read ? Scopes::DB_READ : Scopes::DB_WRITE;

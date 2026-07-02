@@ -90,11 +90,13 @@ final class FsController extends Controller {
 		if ( ! $path ) {
 			return $this->fail( 'bridgistic_fs_path', 'Path is outside ABSPATH.', 400 );
 		}
-		// PHP guard.
-		if ( $this->is_php( $path ) && ! $this->in_sandbox( $path ) ) {
+		// Execution guard. Block not only PHP but any file that can turn other
+		// files into executable PHP (.htaccess / .user.ini / php.ini / web.config).
+		// Otherwise fs:write silently escalates to arbitrary code execution.
+		if ( ( $this->is_php( $path ) || $this->is_exec_control( $path ) ) && ! $this->in_sandbox( $path ) ) {
 			return $this->fail(
 				'bridgistic_fs_sandbox',
-				'PHP files can only be written inside wp-content/uploads/' . BRIDGISTIC_SANDBOX . '/.',
+				'PHP and execution-control files (.htaccess, .user.ini, php.ini, web.config) can only be written inside wp-content/uploads/' . BRIDGISTIC_SANDBOX . '/.',
 				403
 			);
 		}
@@ -174,7 +176,21 @@ final class FsController extends Controller {
 	}
 
 	private function is_php( string $path ): bool {
-		return (bool) preg_match( '/\.(php|php\d|phtml|phar)$/i', $path );
+		return (bool) preg_match( '/\.(php|php\d|phtml|phps|phar)$/i', $path );
+	}
+
+	/**
+	 * Files that can re-configure the web server to execute otherwise-inert
+	 * files as PHP (Apache/LiteSpeed/IIS). Writing these anywhere in the docroot
+	 * is a sandbox escape, so they are treated like PHP.
+	 */
+	private function is_exec_control( string $path ): bool {
+		$base = strtolower( basename( $path ) );
+		if ( in_array( $base, array( '.htaccess', '.htpasswd', '.user.ini', 'php.ini', 'web.config' ), true ) ) {
+			return true;
+		}
+		// Any Apache .ht* control file.
+		return strpos( $base, '.ht' ) === 0;
 	}
 
 	private function in_sandbox( string $path ): bool {

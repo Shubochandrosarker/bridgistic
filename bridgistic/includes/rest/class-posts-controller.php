@@ -177,7 +177,7 @@ final class PostsController extends Controller {
 				'mutating'    => true,
 				'payload'     => $fields,
 				'summary'     => "Update post {$id}",
-				'snapshot'    => static fn() => Snapshot::create( 'post', array( 'id' => $id ), "pre-update post {$id}", $this->key_id( $request ) ),
+				'snapshot'    => fn() => Snapshot::create( 'post', array( 'id' => $id ), "pre-update post {$id}", $this->key_id( $request ) ),
 				'dry_run'     => static fn() => array( 'update' => $fields ),
 				'execute'     => function () use ( $fields, $id, $request ) {
 					$res = wp_update_post( wp_slash( $fields ), true );
@@ -210,7 +210,7 @@ final class PostsController extends Controller {
 				'mutating'    => true,
 				'payload'     => array( 'id' => $id, 'permanent' => $force ),
 				'summary'     => ( $force ? 'Permanently delete' : 'Trash' ) . " post {$id}",
-				'snapshot'    => static fn() => Snapshot::create( 'post', array( 'id' => $id ), "pre-delete post {$id}", $this->key_id( $request ) ),
+				'snapshot'    => fn() => Snapshot::create( 'post', array( 'id' => $id ), "pre-delete post {$id}", $this->key_id( $request ) ),
 				'dry_run'     => static fn() => array( 'delete' => $id, 'permanent' => $force ),
 				'execute'     => static function () use ( $id, $force ) {
 					$res = wp_delete_post( $id, $force );

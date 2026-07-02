@@ -262,9 +262,15 @@ See [`bridgistic-mcp-server/connections.example.json`](bridgistic-mcp-server/con
 
 ### Remote / Cowork-ready
 ```bash
-TRANSPORT=http PORT=3000 node dist/index.js
+# Set a bearer token to accept remote clients (binds 0.0.0.0).
+TRANSPORT=http PORT=3000 BRIDGISTIC_HTTP_TOKEN="a-long-random-token" node dist/index.js
 # MCP endpoint: POST http://host:3000/mcp   •   health: GET /health
+# Clients must send:  Authorization: Bearer a-long-random-token
 ```
+Because the server holds every connected site's signing secret, the `/mcp`
+endpoint is protected: with `BRIDGISTIC_HTTP_TOKEN` set it requires a matching
+`Authorization: Bearer` header; **without** a token it binds to `127.0.0.1` and
+accepts loopback requests only. Always terminate TLS in front of it.
 
 ---
 
