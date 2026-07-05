@@ -12,6 +12,8 @@ Give Claude and Claude Cowork production-safe, scoped control of your WordPress 
 
 == Description ==
 
+**Note:** this copy of the plugin is no longer actively developed. The current version — with the guided Claude Setup wizard and the one-click Claude Desktop extension — ships from the [bridgistic-claude-marketplace](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace) repository.
+
 Bridgistic is the WordPress side of an MCP (Model Context Protocol) bridge. It lets an AI agent — Claude, Claude Cowork, or any MCP client — operate a real WordPress site safely, instead of handing over a full-admin Application Password and hoping for the best.
 
 Every request is HMAC-signed and tied to a least-privilege key. Destructive actions can be previewed (dry-run), held for human approval, and are snapshotted first so any change is one call away from a rollback. Usage is metered per key, and playbooks can run unattended on a schedule.
@@ -39,7 +41,7 @@ Bridgistic is one of the WordPressistic ecosystem products. It works standalone 
 1. Upload the `bridgistic` folder to `/wp-content/plugins/`, or install the zip via Plugins → Add New → Upload.
 2. Activate the plugin.
 3. Go to **Bridgistic → Connect** and mint a scoped key. Copy the secret — it is shown once.
-4. Configure the Bridgistic MCP server with your site URL, key id, and secret.
+4. Get the Bridgistic MCP server running and give it your site URL, key id, and secret. This requires Node.js 20+ to build and run the server, plus editing your Claude Desktop or Claude Code MCP configuration by hand — there is no one-click installer in this version of the plugin.
 
 For reliable scheduled playbooks, disable WP-Cron and run a real system cron against `wp-cron.php` (the Schedules screen shows the exact line).
 

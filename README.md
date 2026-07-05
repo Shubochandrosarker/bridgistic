@@ -2,6 +2,8 @@
 
 # Bridgistic
 
+> **This repo is no longer where active development happens.** The current, actively maintained Bridgistic — with the guided Claude Setup wizard, the one-click Claude Desktop extension (`.mcpb`), key rotation, and the Claude Code marketplace listing — lives in **[bridgistic-claude-marketplace](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace)**. Please start there; this repo is kept for history and will not receive the newer features.
+
 **Give Claude and Claude Cowork production-safe, scoped control of WordPress.**
 
 *Signed requests. Least-privilege keys. Human approval on destructive ops. One-call rollback. Full audit. Scheduled playbooks.*
