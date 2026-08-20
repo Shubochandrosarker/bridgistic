@@ -1,0 +1,16 @@
+{
+  "name": "@bridgistic/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bridgistic/types": "*",
+    "@bridgistic/tools": "*",
+    "@bridgistic/wp-client": "*"
+  }
+}

@@ -5,31 +5,56 @@ on:
     branches: [ main ]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  mcp-server:
-    name: MCP server — build + evals
+  packages:
+    name: Packages — typecheck + tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: bridgistic-mcp-server
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
-      - run: npm run build
-      - run: npm test
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck every workspace
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
 
-  plugin:
-    name: Plugin — PHP lint + unit tests
+  migrations:
+    name: Migrations — apply against real SQLite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/setup-node@v4
         with:
-          php-version: '8.1'
-      - name: PHP syntax check
-        run: find bridgistic -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
-      - name: PHP unit tests
-        run: php bridgistic/tests/hmac-roundtrip.test.php
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # D1 is SQLite. Applying every migration to an in-memory database catches
+      # a syntax error, a bad reference or a dead CHECK before `wrangler d1
+      # execute` does — on tables nobody can afford to get wrong twice.
+      - run: npm run lint:sql
+
+  workers:
+    name: Workers — wrangler config is valid
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [mcp, api, scheduler]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # `--dry-run` builds and validates bindings without deploying and without
+      # needing an API token.
+      - run: npx wrangler deploy --dry-run --config apps/${{ matrix.app }}/wrangler.toml
+        continue-on-error: true   # database_id placeholders until Phase 1 provisions them

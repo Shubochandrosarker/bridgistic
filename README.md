@@ -1,355 +1,159 @@
 <div align="center">
 
-# Bridgistic
+# Bridgistic.app
 
-> **This repo is no longer where active development happens.** The current, actively maintained Bridgistic — with the guided Claude Setup wizard, the one-click Claude Desktop extension (`.mcpb`), key rotation, and the Claude Code marketplace listing — lives in **[bridgistic-claude-marketplace](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace)**. Please start there; this repo is kept for history and will not receive the newer features.
+**Run every WordPress site you manage from your AI.**
 
-**Give Claude and Claude Cowork production-safe, scoped control of WordPress.**
-
-*Signed requests. Least-privilege keys. Human approval on destructive ops. One-call rollback. Full audit. Scheduled playbooks.*
+*Signed requests. Scoped keys. Approval before anything destructive. A snapshot before every change. A full audit log.*
 
 [![CI](https://github.com/Shubochandrosarker/bridgistic/actions/workflows/ci.yml/badge.svg)](https://github.com/Shubochandrosarker/bridgistic/actions/workflows/ci.yml)
-[![License: GPL v2+](https://img.shields.io/badge/License-GPL_v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4%2B-21759b.svg?logo=wordpress&logoColor=white)](https://wordpress.org/)
-[![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php&logoColor=white)](https://www.php.net/)
-[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-orange.svg)](CHANGELOG.md)
 
-**Part of the [WordPressistic](https://wordpressistic.com) Galaxy** · By [Shuvo Sarker](https://github.com/Shubochandrosarker)
+**Part of the [WordPressistic](https://wordpressistic.com) galaxy**
 
-[Features](#-key-features) · [Quick Start](#-quick-start) · [Architecture](#-architecture) · [Security](#-security-model) · [Tools](#-the-43-tools) · [Docs](#-documentation) · [Contributing](CONTRIBUTING.md)
+[Architecture](docs/ARCHITECTURE.md) · [Scheduler](docs/SCHEDULER.md) · [Pricing](docs/PRICING.md) · [Metering](docs/METERING.md) · [Phases](docs/PHASES.md) · [Hard gates](docs/HARD-GATES.md)
 
 </div>
 
 ---
 
-## What is Bridgistic?
+> **This repository has changed purpose.** It used to hold an early copy of the
+> Bridgistic WordPress plugin and local MCP server, both superseded by
+> [`bridgistic-claude-marketplace`](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace).
+> That code now lives in [`legacy/`](legacy/). This repository is the **hosted
+> platform**: `bridgistic.app`, `api.bridgistic.app`, `app.bridgistic.app`, and
+> the managed cloud scheduler.
 
-Bridgistic is the **safe remote control** that lets an AI assistant — Claude or Claude Cowork — make real changes to a WordPress site without handing it the keys to everything.
+## What this is
 
-It replaces the "hand the AI a full-admin Application Password" pattern with **signed, least-privilege keys, human approval on destructive operations, automatic snapshots, and one-call rollback**. Built for **agencies running many sites**: one MCP server, many installs, each with its own scoped key.
+A hosted, multi-tenant WordPress MCP platform with a managed scheduler, sold as a
+subscription to agencies and site owners.
 
-> **The headline number:** 43 tools across content, admin, files, database, safety, metering, memory, playbooks, and scheduling — but each key only unlocks what its scopes allow.
+The engine already exists and is good: `bridgistic-claude-marketplace` at `v1.2.0`
+ships a WordPress plugin with HMAC-signed requests, 25 scopes, approvals,
+snapshots and an audit log; a 54-tool MCP server; and a Cloudflare Worker relay
+with OAuth 2.1 + PKCE, an SSRF guard and a versioned AES-256-GCM credential
+envelope — 194 tests across 43 suites.
 
----
+What was missing was entirely commercial: accounts, orgs, teams, plans, billing,
+server-side metering, and a scheduler that does not depend on a visitor arriving
+at the site. That is what this repository builds.
 
-## 🎯 Why Bridgistic
+**The free public repo stays free.** No billing code, no account system, no nag
+walls there. Security fixes land there first.
 
-| | App Password bridge | **Bridgistic** |
-|---|---|---|
-| **Sites per server** | 1 | **Many (agency registry)** |
-| **Authentication** | Full-admin bearer | **HMAC-signed + scoped key + nonce/replay guard + IP allowlist** |
-| **Permissions** | All-or-nothing | **Per-key least-privilege scopes** |
-| **Destructive ops** | Immediate | **Dry-run → approval → auto-snapshot → execute** |
-| **Undo** | None | **One-call rollback from any snapshot** |
-| **Audit trail** | None | **Every request logged** |
-| **Billing / metering** | None | **Per-key rate-limit + monthly quota tiers** |
-| **Unattended work** | None | **Scheduled playbooks via cron** |
-| **Transport** | Local stdio only | **stdio *and* remote Streamable HTTP (Cowork-ready)** |
-
----
-
-## ✨ Key Features
-
-### 🔒 Security & Access
-- **HMAC-SHA256 signed requests** — the secret never travels on the wire
-- **Replay protection** — ±300s timestamp window + single-use nonces
-- **Scoped keys** — explicit permission set per key (least privilege by default)
-- **IP allowlist** — optionally restrict keys to specific source IPs
-- **Encrypted secrets at rest** — libsodium / AES-256-GCM (not just hashed)
-
-### 🛟 Safe Changes
-- **Dry-run preview** — see what a write would do before it happens
-- **Human approval queue** — risky actions wait for an admin click in WP Admin
-- **Automatic snapshots** — every destructive op is reversible by default
-- **One-call rollback** — restore any snapshot in a single tool call
-- **Full audit log** — who, what, when, status, source IP — for every request
-
-### 🛠 What Claude Can Do
-| Area | Actions |
-|------|---------|
-| **Content** | List, read, create, update, delete posts / pages / CPTs |
-| **Media** | List, upload (URL or base64), delete attachments |
-| **Users** | List, create, update users (scope-gated) |
-| **Settings** | Read / write options (allowlist-enforced both ways) |
-| **Plugins** | List installed, activate / deactivate (always approval-gated) |
-| **Filesystem** | List, read, write, delete files (ABSPATH-confined; PHP writes sandbox-only) |
-| **Database** | Run SQL (auto-classified read vs write; auto-snapshot on writes) |
-| **PHP** | Execute PHP in the full WordPress runtime (opt-in, isolated) |
-
-### 📈 Scale & Operations
-- **Multi-site registry** — one MCP server, dozens of sites, switch by alias
-- **Rate limits + monthly quotas** — per-key tiered metering for billing
-- **Per-site memory** — Claude remembers durable facts about each site
-- **Playbooks** — save a multi-step task once, replay with new inputs
-- **Scheduled playbooks** — run unattended on cron (5min through weekly)
-
-### 🔌 Connectivity
-Works with **Claude Desktop**, **Claude Code**, and **Claude Cowork** over both transports:
-- **stdio** — the connector runs locally on your machine
-- **Streamable HTTP** — the connector runs on a server, reachable by Cowork
-
----
-
-## 🚀 Quick Start
-
-### 1. Install the plugin
-Upload `bridgistic.zip` via **WordPress Admin → Plugins → Add New → Upload Plugin**, then **Activate**.
-
-### 2. Mint your first key
-Go to **Bridgistic → Connect**, pick the **Read-only** preset, and copy the **Key ID** and **Key Secret** (the secret is shown only once).
-
-### 3. Set up the MCP server
-```bash
-cd bridgistic-mcp-server
-npm install
-npm run build
-```
-
-### 4. Connect Claude
-Add Bridgistic to your Claude Desktop / Claude Code MCP config:
-```json
-{
-  "mcpServers": {
-    "bridgistic": {
-      "command": "node",
-      "args": ["/absolute/path/to/bridgistic-mcp-server/dist/index.js"],
-      "env": {
-        "WP_SITE_URL": "https://your-site.com",
-        "BRIDGISTIC_KEY_ID": "wpk_xxxxxxxx",
-        "BRIDGISTIC_KEY_SECRET": "wps_the-secret-you-copied"
-      }
-    }
-  }
-}
-```
-Restart Claude Desktop.
-
-### 5. Verify
-> *"Using Bridgistic, show me this site's WordPress version and active theme."*
-
-If Claude returns your site details — you're connected.
-
-📖 **For full setup + best practices, see the [Bridgistic User Guide](docs/Bridgistic-User-Guide.pdf).**
-
----
-
-## 🏗 Architecture
+## Layout
 
 ```
-┌──────────────────┐    MCP    ┌──────────────────────────┐    HMAC HTTPS    ┌──────────────┐
-│ Claude / Cowork  │ ────────▶ │   bridgistic-mcp-server  │ ───────────────▶ │  Bridgistic  │ ──▶ WordPress
-│ (natural lang.) │           │  (signs + routes calls)  │                  │   (plugin)   │
-└──────────────────┘           └──────────────────────────┘                  └──────────────┘
+apps/
+  mcp/         Worker  bridgistic.app/mcp     remote MCP endpoint
+  api/         Worker  api.bridgistic.app     accounts, plans, billing, entitlements, meter
+  scheduler/   Worker + Durable Objects + Queues — the managed scheduler
+  web/         bridgistic.app                 marketing site + free tools
+  dashboard/   app.bridgistic.app             sites, jobs, runs, approvals, team, billing
+
+packages/
+  types/           plans, scopes, entities — single source of truth for every enum
+  tools/           the 54-tool catalogue, request digests, metering rules
+  wp-client/       signed WordPress transport (WebCrypto: Workers and Node)
+  scheduler-core/  cron, IANA timezone maths, overlap / catch-up / retry policy
+
+db/migrations/     D1 schema, plus legacy/ for the one-time tenants backfill
+scripts/           migration checker
+legacy/            the superseded 1.0.0 plugin and MCP server
 ```
 
-Two components, one bridge:
-
-| Component | Stack | Role |
-|-----------|-------|------|
-| [`bridgistic/`](bridgistic/) | WordPress plugin · PHP 8+ | Installs on each site. Exposes a hardened, HMAC-authenticated REST API with scoped permissions, audit log, snapshot engine, usage metering, and a PHP sandbox. |
-| [`bridgistic-mcp-server/`](bridgistic-mcp-server/) | MCP server · TypeScript | Bridges Claude to one or many sites. Signs every request, resolves which site to act on, exposes 43 tools. |
-
-### The safety flow (for every destructive operation)
-```
- Scope check  →  Dry-run  →  Approval  →  Snapshot  →  Execute + audit log
- (key allowed?)  (preview)   (human Y/N)  (restore point)
-```
-
----
-
-## 🔐 Security Model
-
-- **Authentication.** Every request is HMAC-SHA256 signed over `METHOD\nPATH\nTIMESTAMP\nNONCE\nsha256(body)`. The signature covers the WordPress route as `get_route()` sees it (no query string); sensitive parameters travel in the signed body. Secrets are encrypted at rest with libsodium / AES-256-GCM.
-- **Replay protection.** ±300-second timestamp window plus single-use nonces.
-- **Least privilege.** Keys carry an explicit scope set (`site:read`, `posts:write`, `php:execute`, `db:read`/`db:write`, `fs:*`, `plugins:manage`, `snapshot:manage`, `memory:*`, `playbook:manage`, `schedule:manage`). Settings are allowlist-enforced both on read *and* write. `php:execute` is opt-in.
-- **PHP sandbox.** Executable PHP can only be written inside `wp-content/uploads/bridgistic-sandbox/` — direct web execution is blocked by `.htaccess`. No backdoors into autoload directories.
-- **Reversibility.** Destructive operations snapshot first and can require human approval. Approvals are bound to an action+payload hash, so changed args can't reuse them.
-- **Internal dispatch.** Playbook steps run through the real REST pipeline via a per-run random token held only in process memory; it cannot be forged from outside.
-- **Full audit log.** Every request: action, status, IP, timestamp — with retention.
-
-> 🔧 **Harden further:** define `BRIDGISTIC_ENC_KEY` in `wp-config.php` so the secret-encryption key lives outside the database.
-
-See [SECURITY.md](SECURITY.md) for the full design notes and the vulnerability disclosure process.
-
----
-
-## 🛠 The 43 Tools
-
-Every write tool accepts three **Guard params**: `dry_run` (preview only), `approval_id` (resubmit after a human approves), and `force` (proceed without a snapshot — irreversible). Destructive writes auto-snapshot first and return a `snapshot_id`.
-
-<details>
-<summary><b>Core</b> (4)</summary>
-
-| Tool | Scope | Notes |
-|------|-------|-------|
-| `bridgistic_list_sites` | — | Lists configured aliases |
-| `bridgistic_get_site_info` | `site:read` | Stack discovery — WP/PHP versions, theme, plugins, frameworks |
-| `bridgistic_execute_php` | `php:execute` | Full WP-context PHP runtime |
-| `bridgistic_db_query` | `db:read` / `db:write` | Auto-classified SQL; writes are Guard-routed (dry-run in a rolled-back txn, auto table snapshot) |
-</details>
-
-<details>
-<summary><b>Content</b> (11)</summary>
-
-- **Posts** — `bridgistic_list_posts`, `bridgistic_get_post`, `bridgistic_create_post`, `bridgistic_update_post`, `bridgistic_delete_post` (`posts:read` / `posts:write`)
-- **Media** — `bridgistic_list_media`, `bridgistic_upload_media`, `bridgistic_delete_media` (`media:write`)
-- **Users** — `bridgistic_list_users`, `bridgistic_create_user`, `bridgistic_update_user` (`users:read` / `users:write`)
-</details>
-
-<details>
-<summary><b>Admin</b> (8)</summary>
-
-- **Options** — `bridgistic_get_option`, `bridgistic_update_option` (`options:*`, allowlisted both ways)
-- **Plugins** — `bridgistic_list_plugins`, `bridgistic_toggle_plugin` (`plugins:manage`, always approval-gated)
-- **Filesystem** — `bridgistic_fs_list`, `bridgistic_fs_read`, `bridgistic_fs_write`, `bridgistic_fs_delete` (`fs:read` / `fs:write`, ABSPATH-confined, PHP writes sandbox-only)
-</details>
-
-<details>
-<summary><b>Safety</b> (5)</summary>
-
-- `bridgistic_snapshot_create`, `bridgistic_snapshot_restore`, `bridgistic_snapshot_list`, `bridgistic_snapshot_delete` (`snapshot:manage`)
-- `bridgistic_approval_status` — poll a queued op's approval state
-</details>
-
-<details>
-<summary><b>Metering & Memory</b> (5)</summary>
-
-- `bridgistic_usage` — tier, rate limit, monthly quota + current usage
-- `bridgistic_memory_set`, `bridgistic_memory_get`, `bridgistic_memory_list`, `bridgistic_memory_delete` (`memory:*`) — durable per-site notes the agent recalls across sessions
-</details>
-
-<details>
-<summary><b>Playbooks</b> (5)</summary>
-
-`bridgistic_playbook_save`, `bridgistic_playbook_list`, `bridgistic_playbook_get`, `bridgistic_playbook_run`, `bridgistic_playbook_delete` (`playbook:manage`) — save and replay parameterised multi-step operations. Steps can reference earlier step results (`{{steps.page.data.result.id}}`) and run-time vars (`{{vars.title}}`).
-</details>
-
-<details>
-<summary><b>Scheduling</b> (5)</summary>
-
-`bridgistic_schedule_create`, `bridgistic_schedule_list`, `bridgistic_schedule_toggle`, `bridgistic_schedule_delete`, `bridgistic_schedule_run_now` (`schedule:manage`) — run playbooks unattended on a recurrence (every 5 / 15 / 30 min, hourly, twice-daily, daily, weekly, or once).
-</details>
-
----
-
-## 🪙 Metering & Monetization
-
-Every authenticated request passes one choke point that enforces **two limits** and meters usage in an atomic counter table (`wp_bridgistic_usage`):
-
-- **Rate limit** — per-minute throttle from the key's `rate_limit`. Over-limit returns HTTP `429` + `Retry-After` and `X-Bridgistic-RateLimit-*` headers.
-- **Monthly quota** — billing cap from the key's `monthly_quota` (0 = unlimited). Over-quota returns HTTP `402`.
-
-Keys are minted against a **tier** (Free / Starter / Pro / Agency / Unlimited / Custom) that sets rate + quota together. See **WP Admin → Bridgistic → Usage** for live per-key counts — this is the hook you bill against.
-
----
-
-## 🎛 Connection Modes
-
-### Single site (local dev)
-Set env vars and run the connector with stdio:
-```bash
-export WP_SITE_URL="https://your-site.com"
-export BRIDGISTIC_KEY_ID="wpk_..."
-export BRIDGISTIC_KEY_SECRET="wps_..."
-node dist/index.js
-```
-
-### Multi-site / Agency (Galaxy Command Center)
-Create a JSON registry and point `BRIDGISTIC_CONNECTIONS` at it:
-```bash
-export BRIDGISTIC_CONNECTIONS="/secure/path/connections.json"
-```
-See [`bridgistic-mcp-server/connections.example.json`](bridgistic-mcp-server/connections.example.json). The agent then passes `site: "client-alias"` to any tool, or omits it when only one site is configured.
-
-### Remote / Cowork-ready
-```bash
-# Set a bearer token to accept remote clients (binds 0.0.0.0).
-TRANSPORT=http PORT=3000 BRIDGISTIC_HTTP_TOKEN="a-long-random-token" node dist/index.js
-# MCP endpoint: POST http://host:3000/mcp   •   health: GET /health
-# Clients must send:  Authorization: Bearer a-long-random-token
-```
-Because the server holds every connected site's signing secret, the `/mcp`
-endpoint is protected: with `BRIDGISTIC_HTTP_TOKEN` set it requires a matching
-`Authorization: Bearer` header; **without** a token it binds to `127.0.0.1` and
-accepts loopback requests only. Always terminate TLS in front of it.
-
----
-
-## ✅ Testing
+## Getting started
 
 ```bash
-cd bridgistic-mcp-server
-npm install
-npm run build
-npm test        # contract + integration evals
+npm install          # Node 22+
+npm run verify       # migrations + typecheck + tests
 ```
 
-- **Contract test** — boots the server over stdio and asserts the full 43-tool surface, guard params, descriptions, and annotations.
-- **Integration test** — exercises a mock WordPress backend end-to-end (HMAC verified on every call, guard params forwarded, routing correct).
-- **Tool-selection eval** — `npm run eval:selection` (requires `ANTHROPIC_API_KEY`) — LLM-judged tool routing accuracy.
+`npm run verify` runs three things:
 
-The plugin is PHP-linted in CI on every push and PR.
+| Command | What it proves |
+|---|---|
+| `npm run lint:sql` | Every migration applies to a real SQLite database, the `tenants` backfill preserves site ids, encrypted secrets and granted scopes, and the CHECK constraints actually bite. |
+| `npm run typecheck` | Every workspace typechecks under `strict` + `noUncheckedIndexedAccess`. |
+| `npm test` | 67 unit tests across the four packages. |
 
----
+The packages are dependency-free and their tests run on Node's own type
+stripping, so `node --test packages/scheduler-core/test/next-run.test.ts` works
+with no build step.
 
-## 📚 Documentation
+## What is real here today
 
-| Document | Purpose |
-|----------|---------|
-| [`README.md`](README.md) | This file — features, architecture, quick start |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history (Semantic Versioning) |
-| [`SECURITY.md`](SECURITY.md) | Security model + responsible disclosure |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to add tools, run evals, ship PRs |
-| Bridgistic User Guide (PDF) | Beginner-friendly walkthrough for end users |
+Real, tested code:
 
----
+- **`packages/scheduler-core`** — a 5-field cron parser and IANA-zone next-run
+  computation. A wall-clock time that a spring-forward skipped is skipped, not
+  shifted; a fall-back hour that happens twice fires once; `Asia/Kathmandu`
+  (+05:45) and `Australia/Adelaide` (+09:30/+10:30) are exact. A 365-iteration
+  test fails if a daily job drifts off its local hour even once.
+- **`packages/tools`** — the 54-tool catalogue with the scope each one needs,
+  the risk class that scope carries, and the metering rule. A test asserts a
+  Free-tier scope set cannot reach `db:write`, and another asserts no scope in
+  the plugin's vocabulary is left orphaned.
+- **`packages/wp-client`** — HMAC-SHA256 request signing on WebCrypto so one
+  implementation runs on Workers, on Node and in a test, checked byte for byte
+  against an independent `node:crypto` implementation of the plugin's algorithm.
+- **`packages/types`** — the plan catalogue, the scope tiering, and the entity
+  shapes the migrations mirror.
+- **`db/migrations`** — five schema migrations plus the legacy backfill and its
+  separate, later, irreversible drop.
+- **`apps/api`** — the `UsageCounter` Durable Object with a reserve/settle
+  protocol, and the WPistic ecosystem-key adapter.
+- **`apps/scheduler`** — the per-job `JobScheduler` Durable Object with a durable
+  alarm, a run lock, overlap and catch-up.
 
-## 🗺 Roadmap
+Declared and honest about not being implemented: API handlers return `501` naming
+the phase that will implement them; the scheduler's queue consumer throws with a
+pointer to the doc; `apps/mcp` serves `/health` until `cloud/src` moves in.
 
-- [x] Snapshot + rollback engine
-- [x] Structured tools: posts, media, users, options (allowlisted), plugins, filesystem
-- [x] Approval queue + dry-run for destructive ops
-- [x] Per-key rate-limit + monthly metering (monetization hook)
-- [x] Per-site memory + reusable playbooks
-- [x] Scheduled playbooks (cron-triggered runs)
-- [ ] MCP tool-selection evaluations (continuous LLM-judged accuracy)
-- [ ] `php:execute` approval gating
-- [ ] Native WP-CLI subcommand
-- [ ] First-party Galaxy Command Center dashboard
+See [docs/PHASES.md](docs/PHASES.md) for the full state.
 
----
+## Before taking money
 
-## 🤝 Contributing
+Four hard gates, all four green, no exceptions —
+[docs/HARD-GATES.md](docs/HARD-GATES.md):
 
-Pull requests are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. In short:
+1. An **independent security review** of the OAuth relay and the tenant store,
+   published. The Worker holds a live root-equivalent credential for every
+   connected site.
+2. **Metering is server-side and billing-grade** — a Durable Object counter, and
+   `KeyStore::create` no longer accepts a customer-supplied `$tier`.
+3. **A real end-to-end test on a live site**, recorded in the docs.
+4. **Load and abuse testing**, including the DNS-rebinding gap the SSRF guard
+   documents as unmitigated.
 
-1. **Server changes** — `npm install && npm run build && npm test` must pass.
-2. **Plugin changes** — follow WordPress coding standards: sanitize on input, escape on output, `$wpdb->prepare()` for SQL, nonces on every admin form.
-3. **HMAC contract is load-bearing** — if you touch `signer.ts` or `class-hmac-verifier.php`, the canonical string must stay byte-identical on both sides.
+## Invariants
 
----
+1. The customer never sets their own limits.
+2. Effective scope = requested ∩ plan ∩ site grant, computed server-side on every call.
+3. Destructive verbs require approval + snapshot + step-up auth, always.
+4. Snapshot before mutate. No snapshot id, no destructive execution.
+5. Unattended runs never auto-approve.
+6. Digests, not bodies.
+7. Idempotency on every mutating call and every scheduled run.
+8. Fail closed.
+9. Revocation is authoritative in the database, not in a cache.
+10. Every scope grant is visible per site, with a last-used time and one-click revoke.
+11. The free public repo stays free.
+12. Never edit a client site directly.
 
-## 🛡 Security
+## Licence — open decision
 
-Found a vulnerability? **Please don't open a public issue.** See [SECURITY.md](SECURITY.md) for the disclosure process.
+[`LICENSE`](LICENSE) is still **GPL-2.0-or-later**, inherited from when this repo
+held the plugin, and the code in [`legacy/`](legacy/) is genuinely GPL and stays
+that way. The hosted platform is a different thing and the brief calls for it to
+live in a private repository, which implies a proprietary licence.
 
----
+**That change has not been made here.** Relicensing a repository is a decision
+for its owner, not for a scaffolding commit, and it interacts with the promise in
+`docs/FREE_VS_PAID.md` on the public side. See
+[docs/LICENSING-DECISION.md](docs/LICENSING-DECISION.md) for what has to be
+settled and in what order.
 
-## 📄 License
-
-**GPL-2.0-or-later** — matches the WordPress ecosystem. See [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-### Part of the WordPressistic Galaxy 🌌
-
-**Bridgistic** is one of several products in the [WordPressistic](https://wordpressistic.com) ecosystem — purpose-built tooling for agencies and creators who run WordPress at scale.
-
-Crafted by **[Shuvo Sarker](https://github.com/Shubochandrosarker)** · © 2026 WordPressistic · Released under GPL-2.0-or-later
-
-[Website](https://wordpressistic.com) · [GitHub](https://github.com/Shubochandrosarker/bridgistic) · [Report an Issue](https://github.com/Shubochandrosarker/bridgistic/issues)
-
-</div>
+The free WordPress plugin and local MCP server remain GPL-2.0-or-later in
+[`bridgistic-claude-marketplace`](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace)
+and that does not change under any option.

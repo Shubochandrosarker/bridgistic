@@ -7,8 +7,15 @@ npm-debug.log*
 # Env / secrets
 .env
 .env.*
+!.env.example
 connections.json
 *.local.json
+.dev.vars
+.dev.vars.*
+
+# Cloudflare
+.wrangler/
+.mf/
 
 # OS / editor
 .DS_Store
@@ -19,3 +26,11 @@ Thumbs.db
 
 # Build artifacts
 *.zip
+coverage/
+
+# Internal briefs — see docs/BRIEFS.md.
+# These stay out of git while this repository is public: the licensing brief
+# names unpatched vulnerabilities in the WPistic platform by finding id.
+MASTER-PROMPT-*.md
+Bridgistic-vs-PostBridge-Teardown.md
+WPistic-Licensing-Deep-Audit.md
