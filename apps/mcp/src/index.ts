@@ -32,9 +32,15 @@
 export interface Env {
   DB: D1Database;
   OAUTH_KV: KVNamespace;
-  MCP_OBJECT: DurableObjectNamespace;
-  USAGE_COUNTER: DurableObjectNamespace;
   TENANT_ENC_KEY: string;
+  /**
+   * Bound once `cloud/src/agent.ts` is migrated in and exported from this file.
+   * Declaring the class in wrangler.toml without exporting it here makes
+   * `wrangler deploy` fail, so the binding and the export land together.
+   */
+  MCP_OBJECT?: DurableObjectNamespace;
+  /** Cross-script binding to `bridgistic-api`; bound after that Worker exists. */
+  USAGE_COUNTER?: DurableObjectNamespace;
 }
 
 export default {

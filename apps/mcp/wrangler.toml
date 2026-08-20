@@ -12,20 +12,32 @@ routes = [
 
 # One Durable Object per active MCP session — carried over from the free repo's
 # BridgisticMcpAgent, not rewritten.
-[[durable_objects.bindings]]
-name = "MCP_OBJECT"
-class_name = "BridgisticMcpAgent"
-
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["BridgisticMcpAgent"]
+#
+# Commented out until `cloud/src/agent.ts` is migrated in (phase 0). Declaring a
+# Durable Object class the entrypoint does not export makes `wrangler deploy`
+# fail outright, so this is uncommented in the SAME commit that adds the export.
+# See docs/MIGRATION-PHASE-0.md.
+#
+# [[durable_objects.bindings]]
+# name = "MCP_OBJECT"
+# class_name = "BridgisticMcpAgent"
+#
+# [[migrations]]
+# tag = "v1"
+# new_sqlite_classes = ["BridgisticMcpAgent"]
 
 # The serialised per-(org, month) action counter. A Durable Object, NOT KV:
-# KV read-then-write is per-colo approximate and inadequate for billing.
-[[durable_objects.bindings]]
-name = "USAGE_COUNTER"
-class_name = "UsageCounter"
-script_name = "bridgistic-api"
+# KV read-then-write is per-colo approximate and inadequate for billing. The
+# class lives in `bridgistic-api`; this is a cross-script binding, so nothing is
+# exported here.
+#
+# Uncommented once `bridgistic-api` has been deployed at least once — a
+# cross-script binding to a Worker that does not exist yet fails to deploy.
+#
+# [[durable_objects.bindings]]
+# name = "USAGE_COUNTER"
+# class_name = "UsageCounter"
+# script_name = "bridgistic-api"
 
 [[d1_databases]]
 binding = "DB"

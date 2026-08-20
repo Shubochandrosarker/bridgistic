@@ -56,5 +56,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       # `--dry-run` builds and validates bindings without deploying and without
       # needing an API token.
+      # A binding declared in wrangler.toml but not exported from the entrypoint
+      # fails `deploy` outright, so this catches it at PR time rather than at
+      # deploy time. The `database_id` placeholders do not affect a dry run.
       - run: npx wrangler deploy --dry-run --config apps/${{ matrix.app }}/wrangler.toml
-        continue-on-error: true   # database_id placeholders until Phase 1 provisions them
