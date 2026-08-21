@@ -37,6 +37,7 @@ Run with `npm run verify`.
 | `packages/contracts` | 55 pass |
 | `packages/identity` | 43 pass |
 | `packages/crypto` | 14 pass |
+| `packages/observability` | 19 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 7 migrations + 2 legacy, 25 assertions |
@@ -45,7 +46,8 @@ Run with `npm run verify`.
 | `scripts/check-engine-pin.mjs` | pass — a9cf564f88ce, v1.2.0, 194 tests at pin |
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
-| **Total unit tests** | **220 pass, 0 fail** |
+| `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
+| **Total unit tests** | **238 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002

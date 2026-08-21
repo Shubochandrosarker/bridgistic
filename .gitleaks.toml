@@ -44,6 +44,16 @@ paths = [
   # Delete packages/crypto and this entry becomes dead — check-placeholders
   # does not police this file, so removing the fixture means removing this too.
   '''packages/crypto/test/engine-fixtures\.json''',
+
+  # Synthetic credential-shaped strings used to prove the redactor removes
+  # them. Testing a redactor requires realistic secrets, and realistic secrets
+  # in source are exactly what this scanner is for — so they live in one small,
+  # single-purpose file and ONLY that file is allowlisted. The test that reads
+  # them stays scanned, so a real credential landing there still fails CI.
+  #
+  # Every value is invented and has never authenticated anything. The file is
+  # small enough that a real credential added to it would be obvious in review.
+  '''packages/observability/test/leak-vectors\.json''',
 ]
 
 # CI scans history, not just the working tree, so a literal that has since been
