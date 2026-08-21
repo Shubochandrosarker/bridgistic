@@ -17,7 +17,7 @@ owned by this build.
 |---|---|---|
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
-| 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model resolved |
+| 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema |
 | 3 | Shared ActionExecutor | not started |
 | 4 | Metering and entitlements | not started |
 | 5 | Scheduler and asynchronous execution | not started |
@@ -34,16 +34,17 @@ Run with `npm run verify`.
 | `packages/types` | 20 pass |
 | `packages/tools` | 24 pass |
 | `packages/wp-client` | 13 pass |
-| `packages/contracts` | 54 pass |
+| `packages/contracts` | 55 pass |
+| `packages/identity` | 26 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
-| `scripts/check-migrations.mjs` | 6 migrations + 2 legacy, 20 assertions |
+| `scripts/check-migrations.mjs` | 7 migrations + 2 legacy, 25 assertions |
 | `scripts/check-placeholders.mjs` | pass — 0 undeclared, 4 declared and tracked |
 | `scripts/check-deploy-env.mjs` | pass — 3 apps, both environments, no top-level fallback |
 | `scripts/check-engine-pin.mjs` | pass — a9cf564f88ce, v1.2.0, 194 tests at pin |
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
-| **Total unit tests** | **163 pass, 0 fail** |
+| **Total unit tests** | **189 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
