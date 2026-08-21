@@ -3,28 +3,84 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# NO top-level `routes`, and no top-level `d1_databases`/`kv_namespaces` with
+# real ids. A bare `wrangler deploy` with no `--env` must not be able to reach
+# a customer. Every real binding lives under an explicit environment below.
+#
+# This is BR-001: the deploy workflow used to take an `environment` input and
+# never pass it to Wrangler, so "deploy to staging" published to the production
+# routes. Fixed in two places — the workflow now passes `--env`, and there is
+# no longer an unnamed environment for it to fall back to.
+
+# ---------------------------------------------------------------- staging ---
+[env.staging]
+name = "bridgistic-api-staging"
+routes = [
+  { pattern = "api-staging.bridgistic.app/*", zone_name = "bridgistic.app" }
+]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+# Paid billing is off until the Level 3 gate in RELEASE_GATES.md is opened.
+BILLING_MODE = "FREE_ONLY"
+WPISTIC_ENTITLEMENTS_ENABLED = "false"
+
+# The meter. One instance per (organization, month), so every increment is
+# serialised through a single writer and 1 000 concurrent calls produce exactly
+# 1 000 counted actions - the Phase 4 gate.
+[[env.staging.durable_objects.bindings]]
+name = "USAGE_COUNTER"
+class_name = "UsageCounter"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app-staging"
+# Set per environment in CI/deploy as CLOUDFLARE_D1_ID_STAGING; wrangler
+# substitutes it. Never a literal id in the repository, and never a bare
+# placeholder string: a placeholder that typechecks is a placeholder that ships.
+database_id = "$CLOUDFLARE_D1_ID_STAGING"
+
+[[env.staging.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "$CLOUDFLARE_KV_OAUTH_STAGING"
+
+# ------------------------------------------------------------- production ---
+[env.production]
+name = "bridgistic-api"
 routes = [
   { pattern = "api.bridgistic.app/*", zone_name = "bridgistic.app" }
 ]
 
-# The meter. One instance per (organization, month), so every increment is
-# serialised through a single writer and 1 000 concurrent calls produce exactly
-# 1 000 counted actions — the Phase 3 gate.
-[[durable_objects.bindings]]
+[env.production.vars]
+ENVIRONMENT = "production"
+BILLING_MODE = "FREE_ONLY"
+WPISTIC_ENTITLEMENTS_ENABLED = "false"
+
+[[env.production.durable_objects.bindings]]
 name = "USAGE_COUNTER"
 class_name = "UsageCounter"
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app"
+database_id = "$CLOUDFLARE_D1_ID_PRODUCTION"
+
+[[env.production.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "$CLOUDFLARE_KV_OAUTH_PRODUCTION"
+
+# Durable Object class migrations are account-wide, not per-environment.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["UsageCounter"]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "bridgistic-app"
-database_id = "REPLACE_ME"
-
-# Secrets:
+# Secrets - never committed, set per environment with
+# `wrangler secret put <NAME> --env <staging|production>`:
 #   TENANT_ENC_KEY        openssl rand -base64 32
-#   STRIPE_SECRET_KEY
+#                         Rotating this does NOT migrate rows. Run the
+#                         decrypt-all / re-encrypt walk in docs/KEY-ROTATION.md
+#                         first, or every connected site is locked out at once.
+#   STRIPE_SECRET_KEY     test mode in staging, live mode in production, never
+#                         the same key in both
 #   STRIPE_WEBHOOK_SECRET
 #   WPISTIC_API_TOKEN     server-to-server call to EntitlementService

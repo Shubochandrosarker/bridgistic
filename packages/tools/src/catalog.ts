@@ -14,7 +14,7 @@
  * platform would otherwise bill and authorise against a stale answer.
  */
 
-import { scopeClass, isKnownScope } from "@bridgistic/types";
+import { scopeClass, isKnownScope, requiresApproval, requiresSnapshot } from "@bridgistic/types";
 import type { ScopeClass } from "@bridgistic/types";
 
 export interface ToolDefinition {
@@ -135,15 +135,28 @@ export function toolClass(name: string): ScopeClass | null {
   return scopeClass(tool.scope) ?? null;
 }
 
-/** Destructive tools are approval + snapshot + step-up gated on every plan. */
+/**
+ * The tool's own class is `destructive`.
+ *
+ * Prefer `requiresApprovalFor` when the question is "is this gated?" — since
+ * the BR-002 reclassification, `credential` and `code_execution` tools are
+ * gated exactly as hard as destructive ones without being in that class, and a
+ * check written against the class name alone silently stops covering them.
+ */
 export function isDestructive(name: string): boolean {
   return toolClass(name) === "destructive";
 }
 
-/** INVARIANT 4: no snapshot id, no destructive execution. */
+/** Approval + step-up before the call reaches the site. Delegates to the scope policy. */
+export function requiresApprovalFor(name: string): boolean {
+  const tool = toolDefinition(name);
+  return tool?.scope !== undefined && tool.scope !== null && requiresApproval(tool.scope);
+}
+
+/** INVARIANT 4: no snapshot id, no gated execution. */
 export function requiresSnapshotBefore(name: string): boolean {
-  const cls = toolClass(name);
-  return cls === "operational" || cls === "destructive";
+  const tool = toolDefinition(name);
+  return tool?.scope !== undefined && tool.scope !== null && requiresSnapshot(tool.scope);
 }
 
 /** Every scope the catalogue references. Used to check the plugin has them all. */

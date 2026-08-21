@@ -1,0 +1,45 @@
+# External engine pin
+#
+# `bridgistic-claude-marketplace` is the free, public, GPL WordPress + local MCP
+# distribution. Its `cloud/` directory holds the OAuth, session, transport and
+# tool code the hosted platform imports. That import must be reproducible, so
+# the source commit is pinned here rather than tracked to a moving branch.
+#
+# Read by scripts/check-engine-pin.mjs (CI). Update this file only in the same
+# commit that re-runs the import and its tests.
+
+repository   = https://github.com/Shubochandrosarker/bridgistic-claude-marketplace
+commit       = a9cf564f88ce2795ce7ea4dac4948fdbda173718
+version      = 1.2.0
+pinned_on    = 2026-08-21
+pinned_by    = phase-0 audit
+
+# Verified at pin time, in a clean checkout of that commit:
+#   cd cloud && npm ci && npm test   ->  194 pass, 0 fail
+tests_at_pin = 194
+
+# What is imported from this commit (Phase 1). Paths are relative to the
+# external repository root.
+[import]
+cloud/src/pkce.ts            = "OAuth 2.1 PKCE challenge/verifier"
+cloud/src/wp-oauth-client.ts = "WordPress OAuth leg"
+cloud/src/default-handler.ts = "authorize/callback HTML flow — SEE BR-003, must be fixed on import"
+cloud/src/url-guard.ts       = "SSRF guard — SEE BR-005, must be hardened on import"
+cloud/src/crypto.ts          = "AES-256-GCM envelope, v2.aes256gcm.{iv}.{ct}"
+cloud/src/services/signer.ts = "HMAC canonical request — packages/wp-client already mirrors this"
+cloud/src/services/wp-client.ts = "signed transport"
+cloud/src/tenant-registry.ts = "tenant lookup"
+cloud/src/tenant-session.ts  = "per-session Durable Object state"
+cloud/src/tenants-db.ts      = "D1 access — rewritten in Phase 2 onto the new tenancy schema"
+cloud/src/observability.ts   = "structured logging + redaction"
+cloud/src/rate-limit.ts      = "KV rate limiting — approximate by design, see SECURITY_MODEL.md"
+cloud/src/agent.ts           = "BridgisticMcpAgent Durable Object"
+cloud/src/tools/            = "54 tool handlers — become thin ActionExecutor adapters in Phase 3"
+
+# What is NOT imported. This code stays free and public.
+[excluded]
+wordpress-plugin/ = "GPL plugin, distributed to sites as tagged builds"
+mcp-server/       = "local stdio MCP server, npm-distributed"
+mcpb/             = "Claude Desktop package"
+plugins/          = "Claude Code marketplace manifest"
+release/          = "release tooling for the free distribution"

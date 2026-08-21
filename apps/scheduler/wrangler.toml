@@ -3,43 +3,93 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# No top-level routes, cron triggers or bindings. A bare `wrangler deploy`
+# must not be able to reach a customer, and must not be able to start firing a
+# production cron (BR-001). Everything is under an explicit environment.
+
+# ---------------------------------------------------------------- staging ---
+[env.staging]
+name = "bridgistic-scheduler-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+BILLING_MODE = "FREE_ONLY"
+
 # The dispatcher wakes every minute, selects due jobs and enqueues them. It does
 # NOT execute anything itself — a minute-long Worker invocation is the wrong
 # place to run a 5-minute playbook.
-[triggers]
+[env.staging.triggers]
 crons = ["* * * * *"]
 
 # One Durable Object per job. It owns the alarm, the run lock and next_run_at.
 # This is what makes overlap policy and exactly-once dispatch correct; a
 # `SELECT … FOR UPDATE` loop over D1 cannot give you either.
-[[durable_objects.bindings]]
+[[env.staging.durable_objects.bindings]]
 name = "JOB"
 class_name = "JobScheduler"
 
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["JobScheduler"]
+[[env.staging.queues.producers]]
+binding = "RUN_QUEUE"
+queue = "bridgistic-job-runs-staging"
 
-[[queues.producers]]
+[[env.staging.queues.consumers]]
+queue = "bridgistic-job-runs-staging"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "bridgistic-job-runs-staging-dlq"
+
+[[env.staging.queues.consumers]]
+queue = "bridgistic-job-runs-staging-dlq"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app-staging"
+database_id = "$CLOUDFLARE_D1_ID_STAGING"
+
+# ------------------------------------------------------------- production ---
+[env.production]
+name = "bridgistic-scheduler"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+BILLING_MODE = "FREE_ONLY"
+
+[env.production.triggers]
+crons = ["* * * * *"]
+
+[[env.production.durable_objects.bindings]]
+name = "JOB"
+class_name = "JobScheduler"
+
+[[env.production.queues.producers]]
 binding = "RUN_QUEUE"
 queue = "bridgistic-job-runs"
 
-[[queues.consumers]]
+[[env.production.queues.consumers]]
 queue = "bridgistic-job-runs"
 max_batch_size = 10
 max_batch_timeout = 5
 max_retries = 3
 dead_letter_queue = "bridgistic-job-runs-dlq"
 
-[[queues.consumers]]
+[[env.production.queues.consumers]]
 queue = "bridgistic-job-runs-dlq"
 max_batch_size = 10
 max_batch_timeout = 30
 
-[[d1_databases]]
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "bridgistic-app"
-database_id = "REPLACE_ME"
+database_id = "$CLOUDFLARE_D1_ID_PRODUCTION"
 
-# Secrets:
+# Durable Object class migrations are account-wide, not per-environment.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["JobScheduler"]
+
+# Secrets — set per environment with
+# `wrangler secret put <NAME> --env <staging|production>`:
 #   TENANT_ENC_KEY
