@@ -85,14 +85,28 @@ export class WordPressTransport implements Transport {
       return { ok: false, kind: "site_error", message: "This tool does not call the site." };
     }
 
+    // A route may name a path parameter — `posts/{id}` — which the plugin
+    // registers as a regex segment. Substituted here, and dropped from the
+    // body: the id is in the path, and the signature covers the path.
+    let route: string;
+    try {
+      route = fillRouteParams(contract.route, request.args);
+    } catch (error) {
+      return {
+        ok: false,
+        kind: "site_error",
+        message: error instanceof Error ? error.message : "The route could not be resolved.",
+      };
+    }
+
     // The arguments that go to WordPress are the tool's own, minus the platform
     // ones. `idempotency_key` and `approval_id` are consumed by the executor
     // and the gate; forwarding them would have the plugin reject an argument it
     // does not know, and would put a platform concern on the site's wire.
-    const body = stripPlatformArgs(request.args);
+    const body = stripPlatformArgs(request.args, routeParams(contract.route));
 
     try {
-      const data = await callBridge(connection, contract.method, contract.route, body, {
+      const data = await callBridge(connection, contract.method, route, body, {
         timeoutMs: request.timeoutMs,
         requestId: request.requestId,
         fetchImpl: this.#guardedFetch(),
@@ -244,8 +258,44 @@ async function readCapped(response: Response, maxBytes: number): Promise<Uint8Ar
 /** Platform arguments the executor consumes and the plugin never sees. */
 const PLATFORM_ARGS = new Set(["idempotency_key", "approval_id", "site"]);
 
-export function stripPlatformArgs(args: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(args).filter(([key]) => !PLATFORM_ARGS.has(key)));
+export function stripPlatformArgs(
+  args: Record<string, unknown>,
+  alsoDrop: readonly string[] = []
+): Record<string, unknown> {
+  const drop = new Set([...PLATFORM_ARGS, ...alsoDrop]);
+  return Object.fromEntries(Object.entries(args).filter(([key]) => !drop.has(key)));
+}
+
+/** The `{name}` placeholders in a route, in order. */
+export function routeParams(route: string): string[] {
+  return [...route.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!);
+}
+
+/**
+ * Substitute a route's path parameters from the call's arguments.
+ *
+ * The values are encoded, and refused if they contain a path separator. A
+ * route parameter is the one place a caller-supplied value becomes part of the
+ * signed path, so an `id` of `1/../../wp-json/wp/v2/users` would otherwise be
+ * a signed request to a route the tool contract never authorised — the tool's
+ * scope was checked, a different endpoint gets called.
+ *
+ * The schema already constrains these to integers or slugs before the executor
+ * gets here. This is the second lock, on the assumption the first one is one
+ * schema edit away from being wrong.
+ */
+export function fillRouteParams(route: string, args: Record<string, unknown>): string {
+  return route.replace(/\{(\w+)\}/g, (_match, name: string) => {
+    const value = args[name];
+    if (typeof value !== "string" && typeof value !== "number") {
+      throw new Error(`This tool needs "${name}".`);
+    }
+    const raw = String(value);
+    if (raw.length === 0 || raw.includes("/") || raw.includes("\\") || raw.includes("..")) {
+      throw new Error(`"${name}" is not a valid identifier.`);
+    }
+    return encodeURIComponent(raw);
+  });
 }
 
 /**

@@ -10,7 +10,13 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { WordPressTransport, stripPlatformArgs, toTransportResult, MAX_RESPONSE_BYTES } from "../src/transport.ts";
+import {
+  WordPressTransport,
+  stripPlatformArgs,
+  toTransportResult,
+  fillRouteParams,
+  MAX_RESPONSE_BYTES,
+} from "../src/transport.ts";
 import { adapt, migratedDatabase } from "./helpers/sqlite.ts";
 import { encryptSecret } from "@bridgistic/crypto";
 import { contractFor } from "@bridgistic/contracts";
@@ -340,4 +346,65 @@ test("the error mapping covers every code the client can raise", () => {
   assert.equal(unknown.ok === false && unknown.kind, "site_error");
   assert.ok(unknown.ok === false && !unknown.message.includes("hunter2"));
   assert.ok(unknown.ok === false && !unknown.message.includes("10.0.0.5"));
+});
+
+// ---------------------------------------------------------- route params ---
+
+test("a route's path parameter is filled from the call's arguments", async () => {
+  // `bridgistic_update_post` is `POST posts/{id}`. Sending it to `posts` would
+  // reach the plugin's CREATE handler and silently make a new post instead of
+  // editing the one asked for (BR-019).
+  let seenUrl = "";
+  let body = "";
+  await transport(async (input, init) => {
+    seenUrl = String(input);
+    body = String(init?.body ?? "");
+    return ok({});
+  }).call(
+    req({
+      contract: contractFor("bridgistic_update_post")!,
+      args: { site: "shop", id: 42, title: "Edited" },
+    })
+  );
+
+  assert.ok(seenUrl.endsWith("/wp-json/bridgistic/v1/posts/42"), `went to ${seenUrl}`);
+  // The id is in the path, and the signature covers the path. Sending it twice
+  // is a second place for the two to disagree.
+  assert.ok(!body.includes('"id"'), "the id was also sent in the body");
+  assert.ok(body.includes("Edited"));
+});
+
+test("a path parameter cannot carry the request to another route", async () => {
+  // This is the one place a caller-supplied value becomes part of the signed
+  // path. An id that walks out of the route would be a signed request to an
+  // endpoint the tool's scope was never checked against.
+  for (const id of ["1/../../wp/v2/users", "../../users", "1/2", "", "a\\b"]) {
+    let called = false;
+    const result = await transport(async () => {
+      called = true;
+      return ok({});
+    }).call(
+      req({ contract: contractFor("bridgistic_get_post")!, args: { site: "shop", id } })
+    );
+
+    assert.equal(result.ok, false, `${id} was accepted`);
+    assert.equal(called, false, `a request went out for ${id}`);
+  }
+});
+
+test("a missing path parameter fails before anything is signed", async () => {
+  let called = false;
+  const result = await transport(async () => {
+    called = true;
+    return ok({});
+  }).call(req({ contract: contractFor("bridgistic_get_post")!, args: { site: "shop" } }));
+
+  assert.equal(result.ok, false);
+  assert.equal(called, false);
+});
+
+test("fillRouteParams leaves a route without parameters alone", () => {
+  assert.equal(fillRouteParams("site-info", {}), "site-info");
+  assert.equal(fillRouteParams("woo/orders/{id}/status", { id: 7 }), "woo/orders/7/status");
+  assert.equal(fillRouteParams("playbooks/{slug}", { slug: "nightly-backup" }), "playbooks/nightly-backup");
 });

@@ -64,6 +64,9 @@ jobs:
       # Contracts here vs tools in the pinned engine. Offline: compares against
       # engine-manifest.json, generated at pin time and committed.
       - run: npm run check:tool-drift
+      # BR-019: every tool's route and method must be one the plugin registers.
+      # Offline: compares against plugin-routes.json, generated at pin time.
+      - run: npm run check:plugin-routes
 
   secrets:
     name: Secrets — nothing committed
