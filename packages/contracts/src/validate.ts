@@ -34,6 +34,14 @@ export interface CallerContext {
   readonly planScopes: readonly string[];
   /** Scopes granted to THIS site. Narrower than the plan, never wider. */
   readonly siteScopes: readonly string[];
+  /**
+   * Scopes the WordPress plugin baked into this site's signed key — the
+   * ceiling the site itself enforces (BR-010).
+   *
+   * Optional only for a site with no key yet. Omitting it for a connected site
+   * means authorising calls the plugin will reject.
+   */
+  readonly keyScopes?: readonly string[];
   /** Tools the organization's policy has switched off. */
   readonly disabledTools?: readonly string[];
   /** True when the actor completed step-up authentication recently enough. */
@@ -100,13 +108,23 @@ export function assertCallable(name: string, args: unknown, caller: CallerContex
   // needs, not what the caller asked for — a caller does not get to nominate
   // the scopes their own call is checked against.
   if (contract.requiredScopes.length > 0) {
-    const effective = effectiveScopes(contract.requiredScopes, caller.planScopes, caller.siteScopes);
+    const effective = effectiveScopes({
+      requested: contract.requiredScopes,
+      planEntitled: caller.planScopes,
+      siteGranted: caller.siteScopes,
+      keyCeiling: caller.keyScopes,
+    });
     const hasFull = contract.requiredScopes.every((s) => effective.includes(s));
 
     const minEffective =
       contract.minScope === undefined
         ? []
-        : effectiveScopes([contract.minScope], caller.planScopes, caller.siteScopes);
+        : effectiveScopes({
+            requested: [contract.minScope],
+            planEntitled: caller.planScopes,
+            siteGranted: caller.siteScopes,
+            keyCeiling: caller.keyScopes,
+          });
     const hasMin = contract.minScope !== undefined && minEffective.includes(contract.minScope);
 
     if (!hasFull && !hasMin) {

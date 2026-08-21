@@ -238,20 +238,43 @@ export function snapshotOperationClass(operation: SnapshotOperation): ScopeClass
   return operation === "create" ? "operational" : "destructive";
 }
 
+/** The four terms of the intersection. Named, because an argument list of four string arrays is unreadable at the call site and dangerous to reorder. */
+export interface ScopeTerms {
+  /** What the operation needs. Never what the caller asked for. */
+  readonly requested: readonly string[];
+  /** What the plan entitles. */
+  readonly planEntitled: readonly string[];
+  /** What the organization granted on this site. Policy; ours; revocable. */
+  readonly siteGranted: readonly string[];
+  /**
+   * What the WordPress plugin baked into the signed key when it was minted —
+   * the ceiling the site itself enforces.
+   *
+   * BR-010. Omitting this term does not fail safe: it authorises calls the
+   * plugin will reject, which is a confusing failure for the customer and a
+   * metering error for us. Optional only so a caller who genuinely has no key
+   * yet (an unconnected site) does not have to invent one; when it is absent
+   * the ceiling is treated as unbounded, and every code path that has a key
+   * must pass it.
+   */
+  readonly keyCeiling?: readonly string[];
+}
+
 /**
- * INVARIANT 2 — effective scope = requested ∩ plan entitlement ∩ site grant,
- * computed server-side on every call. Unknown scopes are dropped rather than
- * passed through, so a client cannot invent a scope name the plugin might
- * later honour.
+ * INVARIANT 2 — the effective scope of a call, computed server-side, every
+ * time.
+ *
+ *     effective = requested ∩ plan ∩ site grant ∩ key ceiling
+ *
+ * Unknown scopes are dropped rather than passed through, so a client cannot
+ * invent a name a future plugin version might honour. Intersection only: no
+ * term can widen another, which is why this takes sets and not rules.
  */
-export function effectiveScopes(
-  requested: readonly string[],
-  planEntitled: readonly string[],
-  siteGranted: readonly string[]
-): string[] {
-  const plan = new Set(planEntitled);
-  const site = new Set(siteGranted);
-  return [...new Set(requested)]
-    .filter((s) => isKnownScope(s) && plan.has(s) && site.has(s))
+export function effectiveScopes(terms: ScopeTerms): string[] {
+  const plan = new Set(terms.planEntitled);
+  const site = new Set(terms.siteGranted);
+  const key = terms.keyCeiling === undefined ? null : new Set(terms.keyCeiling);
+  return [...new Set(terms.requested)]
+    .filter((s) => isKnownScope(s) && plan.has(s) && site.has(s) && (key === null || key.has(s)))
     .sort();
 }

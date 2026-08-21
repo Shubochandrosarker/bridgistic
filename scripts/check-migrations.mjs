@@ -118,8 +118,37 @@ function applyAll(db, label) {
     // 3. Nobody silently gains or loses access.
     check(
       "granted scopes are unchanged",
-      "SELECT COUNT(*) FROM sites s JOIN tenants t ON t.id = s.id WHERE s.scopes_granted = t.scopes",
+      "SELECT COUNT(*) FROM sites s JOIN tenants t ON t.id = s.id WHERE s.key_scopes = t.scopes",
       2
+    );
+    // BR-010. The rename is only safe if the backfill leaves every migrated
+    // site holding exactly the scopes it held before. A migrated site has a
+    // key ceiling and no grant rows; once the executor intersects four terms
+    // instead of three, an empty grants table silently revokes everything on
+    // every migrated site at once.
+    check(
+      "every migrated site got grants matching its key ceiling",
+      `SELECT COUNT(*) FROM sites s
+       WHERE (SELECT COUNT(*) FROM json_each(s.key_scopes))
+           = (SELECT COUNT(*) FROM site_scope_grants g WHERE g.site_id = s.id)`,
+      2
+    );
+    check(
+      "the backfill is attributed to the system, not to an invented person",
+      "SELECT COUNT(DISTINCT granted_by) FROM site_scope_grants",
+      1
+    );
+    check(
+      "effective scope equals the key ceiling immediately after migration",
+      `SELECT COUNT(*) FROM sites s
+       WHERE (SELECT COUNT(*) FROM json_each(s.key_scopes))
+           = (SELECT COUNT(*) FROM site_effective_scopes e WHERE e.site_id = s.id)`,
+      2
+    );
+    check(
+      "the backfill is idempotent — running it twice grants nothing twice",
+      "SELECT COUNT(*) FROM site_scope_grants",
+      3
     );
     check(
       "the legacy table is kept as the rollback path",

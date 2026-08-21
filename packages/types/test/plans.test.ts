@@ -42,13 +42,13 @@ test("effective scope = requested ∩ plan ∩ site grant", () => {
   const requested = ["posts:write", "db:write", "site:read"];
   const plan = planScopes("agency");
   const siteGrant = ["posts:write", "site:read"]; // site narrows below the plan
-  assert.deepEqual(effectiveScopes(requested, plan, siteGrant), ["posts:write", "site:read"]);
+  assert.deepEqual(effectiveScopes({ requested: requested, planEntitled: plan, siteGranted: siteGrant }), ["posts:write", "site:read"]);
 });
 
 test("an unknown scope is dropped, not passed through", () => {
   assert.ok(!isKnownScope("root:everything"));
   assert.deepEqual(
-    effectiveScopes(["root:everything"], ["root:everything"], ["root:everything"]),
+    effectiveScopes({ requested: ["root:everything"], planEntitled: ["root:everything"], siteGranted: ["root:everything"] }),
     []
   );
 });

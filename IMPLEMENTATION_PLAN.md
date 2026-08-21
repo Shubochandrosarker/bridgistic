@@ -68,18 +68,21 @@ plan holds no sensitive scope, proven by test.
 - Each contract carries: `name, version, description, inputSchema,
   outputSchema, requiredScopes, riskClass, requiresApproval, requiresSnapshot,
   supportsIdempotency, timeoutMs, meterUnit, enabledPlans`.
-- Import `cloud/src` into `apps/mcp`, preserving its 194 tests.
-- **Fix BR-003 on import**: escape upstream error text in HTML responses.
-- **Harden BR-005 on import**: DoH pre-resolution, private-IP rejection of
-  resolved addresses, adversarial tests.
+- **Harden BR-005**: `packages/url-guard` — DoH pre-resolution, private-IP
+  rejection of every resolved address, adversarial tests.
+- The `cloud/src` import moves to **Phase 2**. The code left to import —
+  `default-handler.ts`, `tenant-registry.ts`, `tenants-db.ts` — *is* the
+  identity layer, and importing it here would mean importing a tenancy model
+  Phase 2 immediately replaces, then rewriting it. BR-003 lives in the OAuth
+  authorize flow, so its fix belongs with that flow rather than before it.
 - Collapse the duplicate tool definitions (`cloud/src/tools` vs
   `mcp-server/src/tools`) into generated output from the contract registry.
 - Cross-repository drift check in CI: tool names, scopes, plan mapping.
 - MCP discovery and metadata generated from the registry, never hand-written.
 
-**Acceptance.** 194 imported tests plus new ones green in this repo's CI;
-adversarial SSRF/rebinding suite green; drift check fails on an induced drift;
-`legacy/` removed; no tool defined in two places.
+**Acceptance.** Adversarial SSRF/rebinding suite green; drift check fails on
+an induced drift; no tool defined in two places. (`legacy/` removal and the
+194 imported tests move to Phase 2 with the import.)
 
 ---
 
@@ -96,9 +99,12 @@ adversarial SSRF/rebinding suite green; drift check fails on an induced drift;
   claim → explicit grants → health check.
 - Site transfer, claim, reconnection, credential rotation and versioning,
   revocation, suspension, deletion.
-- **Resolve BR-010**: `site_scope_grants` becomes authoritative;
-  `sites.scopes_granted` gets a compatibility migration and then a drop, in
-  two separate, reversible steps.
+- **BR-010, done**: the two models were not duplicates. `sites.key_scopes` is
+  the ceiling the plugin enforces; `site_scope_grants` is the organization's
+  policy. Both are needed, and `effectiveScopes` intersects four terms.
+- Import `cloud/src`, preserving its 194 tests, onto the new tenancy model.
+- **Fix BR-003 on import**: escape upstream error text in HTML responses.
+- Remove `legacy/` once the import is tested.
 - Legacy `tenants` migration preserving `sites.id = tenants.id` (the OAuth
   grant's `userId`) and the encrypted credential verbatim, with a formal claim
   process for a migrated site that has no user.

@@ -17,7 +17,7 @@ owned by this build.
 |---|---|---|
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
-| 2 | Identity, OAuth, tenancy, site connection | not started |
+| 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model resolved |
 | 3 | Shared ActionExecutor | not started |
 | 4 | Metering and entitlements | not started |
 | 5 | Scheduler and asynchronous execution | not started |
@@ -37,13 +37,13 @@ Run with `npm run verify`.
 | `packages/contracts` | 54 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
-| `scripts/check-migrations.mjs` | 5 migrations + 2 legacy apply cleanly |
+| `scripts/check-migrations.mjs` | 6 migrations + 2 legacy, 20 assertions |
 | `scripts/check-placeholders.mjs` | pass — 0 undeclared, 4 declared and tracked |
 | `scripts/check-deploy-env.mjs` | pass — 3 apps, both environments, no top-level fallback |
 | `scripts/check-engine-pin.mjs` | pass — a9cf564f88ce, v1.2.0, 194 tests at pin |
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
-| **Total unit tests** | **160 pass, 0 fail** |
+| **Total unit tests** | **163 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -69,7 +69,7 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-007 | Medium | 27 API routes return `501`. | open, declared | Phases 2–5 by route; `docs/PHASES.md` maps each |
 | BR-008 | Medium | Scheduler queue consumer throws by design. | open, declared | Phase 5 |
 | BR-009 | Medium | `apps/dashboard` and `apps/web` are README-only. | open, declared | Phases 6–7 |
-| BR-010 | Medium | Two competing models for site scope grants: `sites.scopes_granted` (0001) and `site_scope_grants` (0002). | open | Phase 2 picks `site_scope_grants` as authoritative + compatibility migration |
+| BR-010 | Medium | Two competing models for site scope grants: `sites.scopes_granted` (0001) and `site_scope_grants` (0002). Not duplicates — the key's ceiling and the org's grant, wearing names that suggest they are the same thing. | **fixed** (Phase 2) | Renamed to `sites.key_scopes`; `site_scope_grants` authoritative for policy; `effectiveScopes` now intersects four terms; migration 0006 + backfill on both paths |
 | BR-011 | Medium | CI had no secret scanning, no placeholder check, no dependency audit. | **fixed** (Phase 0) | — |
 | BR-012 | Medium | Repository is public under GPL-2.0-or-later while being prepared to hold customer data and hosted-service code. | **decision recorded** (Phase 0) | Owner must action `docs/LICENSING-DECISION.md` before Phase 2 |
 | BR-013 | High | The pinned engine's `guardParams` includes a client-settable `force`, documented as "Bypass the snapshot-required abort (irreversible)". A tool argument that switches off a safety gate — filled in, on the hosted product, by a language model. | **fixed** (Phase 1) | No hosted contract accepts it; bypass is an approval with a reason, made by a person |

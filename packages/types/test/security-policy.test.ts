@@ -34,15 +34,50 @@ test("effective scope is an intersection and can never widen", () => {
   const site = ["posts:read"];
 
   assert.deepEqual(
-    effectiveScopes(requested, plan, site),
+    effectiveScopes({ requested: requested, planEntitled: plan, siteGranted: site }),
     ["posts:read"],
     "the narrowest term wins; asking for more must not produce more"
   );
 
   // Each term alone is enough to deny.
-  assert.deepEqual(effectiveScopes(requested, [], site), []);
-  assert.deepEqual(effectiveScopes(requested, plan, []), []);
-  assert.deepEqual(effectiveScopes([], plan, site), []);
+  assert.deepEqual(effectiveScopes({ requested: requested, planEntitled: [], siteGranted: site }), []);
+  assert.deepEqual(effectiveScopes({ requested: requested, planEntitled: plan, siteGranted: [] }), []);
+  assert.deepEqual(effectiveScopes({ requested: [], planEntitled: plan, siteGranted: site }), []);
+});
+
+test("BR-010: the key ceiling is a fourth term, and it also only narrows", () => {
+  // The plugin baked a scope set into the signed key when the site minted it.
+  // The platform cannot raise that without the site re-minting; it can only
+  // observe it. Leaving it out does not fail safe — it authorises calls the
+  // plugin will reject, which is a confusing failure for the customer and a
+  // metering error for us.
+  const base = {
+    requested: ["posts:read", "posts:write"],
+    planEntitled: ["posts:read", "posts:write"],
+    siteGranted: ["posts:read", "posts:write"],
+  };
+
+  assert.deepEqual(
+    effectiveScopes({ ...base, keyCeiling: ["posts:read"] }),
+    ["posts:read"],
+    "the key ceiling narrows even when plan and grant both allow"
+  );
+
+  assert.deepEqual(
+    effectiveScopes({ ...base, keyCeiling: [] }),
+    [],
+    "a key carrying nothing authorises nothing"
+  );
+
+  // It cannot widen either: a key carrying more than the grant changes nothing.
+  assert.deepEqual(
+    effectiveScopes({ ...base, siteGranted: ["posts:read"], keyCeiling: ["posts:read", "posts:write", "php:execute"] }),
+    ["posts:read"]
+  );
+
+  // Absent means unbounded, for a site with no key yet. That is the ONE case;
+  // every connected site must pass it.
+  assert.deepEqual(effectiveScopes(base), ["posts:read", "posts:write"]);
 });
 
 test("an unknown scope is dropped, never forwarded", () => {
@@ -50,7 +85,7 @@ test("an unknown scope is dropped, never forwarded", () => {
   // naming scopes a future plugin version might honour.
   const invented = "posts:superuser";
   assert.ok(!isKnownScope(invented));
-  assert.deepEqual(effectiveScopes([invented], [invented], [invented]), []);
+  assert.deepEqual(effectiveScopes({ requested: [invented], planEntitled: [invented], siteGranted: [invented] }), []);
 });
 
 test("no plan grants a scope the vocabulary does not define", () => {

@@ -96,6 +96,29 @@ test("the site grant narrows the plan and can never widen it", () => {
   assert.equal(overGrant.ok, false);
 });
 
+test("BR-010: a scope the plugin's key does not carry is refused", () => {
+  // Plan says yes, the organization granted it, and the key the site minted
+  // does not include it. Admitting the call would send a request the plugin
+  // rejects, and meter the customer for it.
+  const verdict = assertCallable(
+    "bridgistic_create_post",
+    { site: "shop", title: "x", idempotency_key: KEY },
+    caller({ keyScopes: ["posts:read"] })
+  );
+  assert.equal(verdict.ok, false);
+  assert.equal(verdict.ok === false && verdict.code, "scope_denied");
+
+  // With the key carrying it, the same call goes through.
+  assert.equal(
+    assertCallable(
+      "bridgistic_create_post",
+      { site: "shop", title: "x", idempotency_key: KEY },
+      caller({ keyScopes: ["posts:read", "posts:write"] })
+    ).ok,
+    true
+  );
+});
+
 test("organization policy can disable a tool the plan and grant both allow", () => {
   const verdict = assertCallable(
     "bridgistic_execute_php",

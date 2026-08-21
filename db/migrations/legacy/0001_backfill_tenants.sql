@@ -10,7 +10,7 @@
 -- Three properties this must preserve, in order of how badly they break things:
 --   1. sites.id = tenants.id           — live OAuth tokens keep resolving.
 --   2. key_secret_enc copied verbatim  — no re-encryption, no reconnect.
---   3. scopes_granted copied verbatim  — nobody silently gains or loses access.
+--   3. key_scopes copied verbatim  — nobody silently gains or loses access.
 --
 -- Ownership is deliberately left unclaimed: a migrated site sits in an
 -- orphan-safe personal org with no member until its owner signs in and claims
@@ -33,7 +33,7 @@ WHERE NOT EXISTS (SELECT 1 FROM organizations o WHERE o.id = 'org_' || t.id);
 
 INSERT INTO sites (
   id, organization_id, site_url, label, key_id, key_secret_enc,
-  enc_key_version, scopes_granted, health, plugin_version, created_at, last_seen_at
+  enc_key_version, key_scopes, health, plugin_version, created_at, last_seen_at
 )
 SELECT
   t.id,
@@ -64,6 +64,25 @@ SELECT
   o.created_at, o.created_at + 2592000, o.created_at, o.created_at
 FROM organizations o
 WHERE NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.organization_id = o.id);
+
+-- BR-010. Every site must hold organization grants matching its key ceiling.
+--
+-- 0006 does this too, for sites that already exist when it runs. It has to be
+-- here as well, because the two run in the other order on a real deployment:
+-- schema migrations first, THEN this file imports the tenants. A site created
+-- here after 0006 has already run would otherwise have a key ceiling and no
+-- grants — and once the executor intersects four terms instead of three, no
+-- grants means no scopes, on every migrated site simultaneously.
+--
+-- Both copies are INSERT OR IGNORE guarded by NOT EXISTS, so whichever runs
+-- second is a no-op and running either twice changes nothing.
+INSERT OR IGNORE INTO users (id, email, name, created_at)
+VALUES ('usr_system_migration', 'system@bridgistic.invalid', 'System (migration)', unixepoch());
+
+INSERT OR IGNORE INTO site_scope_grants (site_id, scope, granted_by, granted_at, last_used_at)
+SELECT s.id, j.value, 'usr_system_migration', unixepoch(), NULL
+FROM sites s, json_each(s.key_scopes) j
+WHERE NOT EXISTS (SELECT 1 FROM site_scope_grants g WHERE g.site_id = s.id);
 
 -- `tenants` is NOT dropped here. It stays as the rollback path until the
 -- Phase 1 gate has been demonstrated on production data.
