@@ -30,3 +30,40 @@ export {
   sessionsToRevoke,
 } from "./session.ts";
 export type { SessionState, SessionVerdict, StepUpReason } from "./session.ts";
+
+export {
+  generateCodeVerifier,
+  deriveCodeChallenge,
+  isValidCodeVerifier,
+  isValidCodeChallenge,
+  verifyCodeChallenge,
+  generateOpaqueToken,
+  isRegisteredRedirectUri,
+  verifyAuthorizationCode,
+  AUTHORIZATION_CODE_TTL_SECONDS,
+  OAUTH_STATE_TTL_SECONDS,
+} from "./pkce.ts";
+export type { PkceRejection, CodeRejection, AuthorizationCodeRecord } from "./pkce.ts";
+
+export {
+  CONNECTION_STATES,
+  SITE_STATES,
+  CONNECTION_CHALLENGE_TTL_SECONDS,
+  OWNERSHIP_CLAIM_TTL_SECONDS,
+  canTransition,
+  verifyConnection,
+  claimConnection,
+  isSiteUsable,
+  canTransferSite,
+  planRotation,
+  canClaimMigratedSite,
+} from "./site-connection.ts";
+export type {
+  ConnectionState,
+  SiteState,
+  Connection,
+  TransitionResult,
+  ClaimContext,
+  TransferContext,
+  RotationEffect,
+} from "./site-connection.ts";
