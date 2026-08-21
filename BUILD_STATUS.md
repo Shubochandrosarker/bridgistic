@@ -18,7 +18,7 @@ owned by this build.
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema, OAuth/PKCE, connection state machine. Engine import remaining |
-| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and **all seven** real ports done (idempotency, metering, transport, audit, approvals, snapshots, locks). Composition behind the HTTP routes remains; BR-020 open |
+| 3 | Shared ActionExecutor | **in progress** — pipeline, policy, all seven real ports and the shared composition root done, with the acceptance criteria run end-to-end through real adapters. **Cannot be closed**: two of the three surfaces that must call it do not exist yet (MCP is blocked on the Phase 2 engine import, the scheduler on Phase 5). BR-020 open |
 | 4 | Metering and entitlements | **in progress** — UsageCounter hardened (BR-004 closed); Stripe adapter and export remain |
 | 5 | Scheduler and asynchronous execution | not started |
 | 6 | Dashboard | not started |
@@ -39,7 +39,7 @@ Run with `npm run verify`.
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 24 pass |
-| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks, snapshots) | 112 pass |
+| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks, snapshots, executor integration) | 119 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 9 migrations + 2 legacy, 25 assertions |
@@ -50,7 +50,7 @@ Run with `npm run verify`.
 | `scripts/check-plugin-routes.mjs` | pass — 53 site-calling tools, every route served by the plugin |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **378 pass, 0 fail** |
+| **Total unit tests** | **385 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
