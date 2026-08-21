@@ -69,10 +69,21 @@ test("policy fields are derived from the scope model, never hand-written", () =>
       assert.equal(contract.meterUnit, "none");
       continue;
     }
-    assert.equal(contract.riskClass, scopeClass(scope), `${contract.name} class`);
-    assert.equal(contract.requiresApproval, requiresApproval(scope), `${contract.name} approval`);
-    assert.equal(contract.requiresSnapshot, requiresSnapshot(scope), `${contract.name} snapshot`);
-    assert.equal(contract.requiresStepUp, requiresStepUp(scope), `${contract.name} step-up`);
+    const tool = TOOLS.find((t) => t.name === contract.name)!;
+    if (tool.readOnlyOperation) {
+      // BR-015: the scope stays, the gate goes. Asserted explicitly so the
+      // exception cannot spread quietly to a tool that writes.
+      assert.equal(tool.method, "GET", `${contract.name} relaxes the gate on a ${tool.method} route`);
+      assert.equal(contract.requiresApproval, false);
+      assert.equal(contract.requiresSnapshot, false);
+      assert.equal(contract.requiresStepUp, false);
+      assert.deepEqual(contract.requiredScopes, [scope], "authorisation still demands the plugin's scope");
+    } else {
+      assert.equal(contract.riskClass, scopeClass(scope), `${contract.name} class`);
+      assert.equal(contract.requiresApproval, requiresApproval(scope), `${contract.name} approval`);
+      assert.equal(contract.requiresSnapshot, requiresSnapshot(scope), `${contract.name} snapshot`);
+      assert.equal(contract.requiresStepUp, requiresStepUp(scope), `${contract.name} step-up`);
+    }
     assert.equal(contract.meterUnit, "action");
   }
 });

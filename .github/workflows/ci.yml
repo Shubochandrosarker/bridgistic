@@ -61,6 +61,9 @@ jobs:
       - run: npm run check:deploy-env
       # The external engine import is reproducible only if its commit is pinned.
       - run: npm run check:engine-pin
+      # Contracts here vs tools in the pinned engine. Offline: compares against
+      # engine-manifest.json, generated at pin time and committed.
+      - run: npm run check:tool-drift
 
   secrets:
     name: Secrets — nothing committed

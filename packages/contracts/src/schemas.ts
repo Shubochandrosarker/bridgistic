@@ -21,6 +21,8 @@ import type { JsonSchema } from "./json-schema.ts";
 import {
   SITE_PARAM,
   GUARD_PARAMS,
+  DRY_RUN_PARAM,
+  IDEMPOTENCY_KEY_PARAM,
   PER_PAGE_PARAM,
   PAGE_PARAM,
   ID_PARAM,
@@ -42,6 +44,20 @@ function siteTool(properties: Record<string, JsonSchema> = {}, required: readonl
 /** A site-targeting write: adds dry_run / approval_id / idempotency_key. */
 function writeTool(properties: Record<string, JsonSchema> = {}, required: readonly string[] = []): JsonSchema {
   return object({ site: SITE_PARAM, ...properties, ...GUARD_PARAMS }, required);
+}
+
+/**
+ * A gated write whose plugin route has no dry-run mode.
+ *
+ * `approval_id` is still here — an approval-gated tool that cannot receive the
+ * approval id has no way to complete its own flow — but `dry_run` is not.
+ * Advertising a preview switch the plugin ignores would mean a caller asking
+ * for a preview and getting the real thing, which is the worst possible way
+ * for that argument to be wrong.
+ */
+function gatedTool(properties: Record<string, JsonSchema> = {}, required: readonly string[] = []): JsonSchema {
+  const { dry_run: _omitted, ...rest } = GUARD_PARAMS;
+  return object({ site: SITE_PARAM, ...properties, ...rest }, required);
 }
 
 const STRING = (max = 1_000, description?: string): JsonSchema => ({
@@ -102,7 +118,7 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
       "Execute PHP on the site and return its value. Highest privilege in the product. " +
       "Scope: `php:execute`. Requires approval, a snapshot and step-up authentication on every call, " +
       "plus a per-site opt-in. Not retried automatically.",
-    inputSchema: writeTool(
+    inputSchema: gatedTool(
       {
         code: {
           type: "string",
@@ -345,10 +361,17 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
     description:
       "Run a saved playbook. Scope: `playbook:manage`. Every step is gated individually — a playbook cannot " +
       "reach a tool the caller could not call directly, and a destructive step still needs its own approval.",
-    inputSchema: writeTool(
+    // No single `approval_id` here: a playbook is not gated as a unit, its
+    // steps are gated individually, and `approvals` carries one id per step.
+    // A lone approval_id would be ambiguous about which step it authorised —
+    // and an ambiguous approval is one that gets applied to the wrong thing.
+    inputSchema: object(
       {
+        site: SITE_PARAM,
         slug: STRING(64),
         vars: FREE_OBJECT,
+        dry_run: DRY_RUN_PARAM,
+        idempotency_key: IDEMPOTENCY_KEY_PARAM,
         approvals: {
           type: "object",
           maxProperties: 50,
@@ -386,7 +409,7 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
       "Restore a snapshot. Scope: `snapshot:manage`. Destructive: this discards every change made since the " +
       "snapshot was taken. Requires approval and step-up authentication, and takes a snapshot of the current " +
       "state first so the restore itself can be undone.",
-    inputSchema: writeTool({ snapshot_id: STRING(128) }, ["snapshot_id"]),
+    inputSchema: gatedTool({ snapshot_id: STRING(128) }, ["snapshot_id"]),
     timeoutMs: 300_000,
     supportsIdempotency: false,
   },
@@ -398,7 +421,7 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
     description:
       "Delete a snapshot. Scope: `snapshot:manage`. Destructive: it removes a rollback path that other gated " +
       "operations depend on. Requires approval and step-up.",
-    inputSchema: writeTool({ snapshot_id: STRING(128) }, ["snapshot_id"]),
+    inputSchema: gatedTool({ snapshot_id: STRING(128) }, ["snapshot_id"]),
   },
   bridgistic_approval_status: {
     description: "Check whether a pending approval has been granted, rejected, or has expired.",
@@ -472,7 +495,7 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
         sale_price: STRING(20),
         stock_quantity: { type: "integer", minimum: 0 },
         manage_stock: { type: "boolean" },
-        categories: { type: "array", items: STRING(200), maxItems: 50 },
+        stock_status: { type: "string", enum: ["instock", "outofstock", "onbackorder"] },
       },
       ["name"]
     ),
@@ -491,6 +514,7 @@ export const SCHEMAS: Readonly<Record<string, SchemaEntry>> = {
         sale_price: STRING(20),
         stock_quantity: { type: "integer", minimum: 0 },
         manage_stock: { type: "boolean" },
+        stock_status: { type: "string", enum: ["instock", "outofstock", "onbackorder"] },
       },
       ["id"]
     ),

@@ -6,6 +6,7 @@ import {
   toolClass,
   isDestructive,
   requiresApprovalFor,
+  operationClass,
   requiresSnapshotBefore,
   referencedScopes,
   toolsForScopes,
@@ -60,9 +61,33 @@ test("every dangerous tool is approval-gated, whatever class it sits in", () => 
   ]);
   assert.deepEqual(
     TOOLS.filter((t) => isDestructive(t.name)).map((t) => t.name).sort(),
-    ["bridgistic_db_query", "bridgistic_toggle_plugin"],
+    ["bridgistic_db_query", "bridgistic_list_plugins", "bridgistic_toggle_plugin"],
     "the `destructive` class itself is now narrower than the set of gated tools"
   );
+});
+
+test("BR-015: a read route behind a writing scope keeps the scope and drops the gate", () => {
+  // The plugin enforces Scopes::PLUGINS_MANAGE on GET /plugins, which lists
+  // plugin names and versions. The caller must genuinely hold that scope — we
+  // would otherwise admit calls the site rejects — but asking a human to
+  // approve, and taking a snapshot before, reading a list is not a safety
+  // control, it is a reason to stop using the product.
+  assert.equal(toolDefinition("bridgistic_list_plugins")?.scope, "plugins:manage");
+  assert.equal(toolClass("bridgistic_list_plugins"), "destructive", "the SCOPE is destructive");
+  assert.equal(operationClass("bridgistic_list_plugins"), "sensitive_read", "the OPERATION is a read");
+  assert.ok(!requiresApprovalFor("bridgistic_list_plugins"), "no approval to read a list");
+  assert.ok(!requiresSnapshotBefore("bridgistic_list_plugins"), "nothing to roll back");
+
+  // The relaxation must never reach a tool that actually writes.
+  assert.ok(requiresApprovalFor("bridgistic_toggle_plugin"));
+  assert.ok(requiresSnapshotBefore("bridgistic_toggle_plugin"));
+
+  // And it must never be settable on a non-GET route.
+  for (const tool of TOOLS) {
+    if (tool.readOnlyOperation) {
+      assert.equal(tool.method, "GET", `${tool.name} marks a ${tool.method} route as read-only`);
+    }
+  }
 });
 
 test("db_query is catalogued at its higher scope so a write cannot arrive as a read", () => {

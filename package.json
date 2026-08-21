@@ -16,10 +16,11 @@
     "test": "npm run test --workspaces --if-present",
     "test:packages": "npm run test --workspace packages/types --workspace packages/tools --workspace packages/contracts --workspace packages/wp-client --workspace packages/scheduler-core",
     "lint:sql": "node scripts/check-migrations.mjs",
-    "verify": "npm run lint:sql && npm run check:placeholders && npm run check:deploy-env && npm run check:engine-pin && npm run typecheck && npm test",
+    "verify": "npm run lint:sql && npm run check:placeholders && npm run check:deploy-env && npm run check:engine-pin && npm run check:tool-drift && npm run typecheck && npm test",
     "check:placeholders": "node scripts/check-placeholders.mjs",
     "check:deploy-env": "node scripts/check-deploy-env.mjs",
-    "check:engine-pin": "node scripts/check-engine-pin.mjs"
+    "check:engine-pin": "node scripts/check-engine-pin.mjs",
+    "check:tool-drift": "node scripts/check-tool-drift.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260815.1",

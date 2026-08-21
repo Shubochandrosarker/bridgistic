@@ -104,6 +104,18 @@ function build(tool: ToolDefinition): ToolContract {
 
   const scopes = tool.scope === null ? [] : [tool.scope];
 
+  // BR-015. A GET route the plugin gates behind a writing scope is still a
+  // read: the caller must hold that scope, but nothing is going to change, so
+  // there is nothing to approve, snapshot or re-authenticate for. Guarded so
+  // the flag can only ever relax, and only on a GET.
+  if (tool.readOnlyOperation && tool.method !== "GET") {
+    throw new Error(
+      `${tool.name}: readOnlyOperation is set on a ${tool.method} route. It may only mark a GET, or it becomes ` +
+        `a way to switch a gate off — which is exactly what BR-013 removed.`
+    );
+  }
+  const readOnly = tool.readOnlyOperation === true;
+
   return Object.freeze({
     name: tool.name,
     version: CONTRACT_VERSION,
@@ -112,13 +124,15 @@ function build(tool: ToolDefinition): ToolContract {
     outputSchema: TOOL_OUTPUT_SCHEMA,
     requiredScopes: Object.freeze(scopes),
     ...(tool.minScope !== undefined ? { minScope: tool.minScope } : {}),
-    riskClass: cls,
+    // The class the OPERATION carries, which is what pricing and the MCP
+    // read-only hint should reflect. Authorisation still uses `requiredScopes`.
+    riskClass: readOnly ? "sensitive_read" : cls,
     // Derived, every one of them. Nothing here is a per-tool judgement call.
-    requiresApproval: tool.scope !== null && requiresApproval(tool.scope),
-    requiresSnapshot: tool.scope !== null && requiresSnapshot(tool.scope),
-    requiresStepUp: tool.scope !== null && requiresStepUp(tool.scope),
+    requiresApproval: !readOnly && tool.scope !== null && requiresApproval(tool.scope),
+    requiresSnapshot: !readOnly && tool.scope !== null && requiresSnapshot(tool.scope),
+    requiresStepUp: !readOnly && tool.scope !== null && requiresStepUp(tool.scope),
     supportsIdempotency: entry.supportsIdempotency ?? true,
-    timeoutMs: entry.timeoutMs ?? DEFAULT_TIMEOUT_MS[cls] ?? 30_000,
+    timeoutMs: entry.timeoutMs ?? DEFAULT_TIMEOUT_MS[readOnly ? "sensitive_read" : cls] ?? 30_000,
     meterUnit: tool.scope === null ? "none" : "action",
     enabledPlans: Object.freeze(plansFor(tool)),
     route: tool.route,

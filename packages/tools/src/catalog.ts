@@ -38,6 +38,26 @@ export interface ToolDefinition {
   /** Route under `bridgistic/v1`, or `null` for platform-local tools. */
   readonly route: string | null;
   readonly method: "GET" | "POST" | "DELETE" | null;
+  /**
+   * The route is a read, even though the scope it demands is a writing one.
+   *
+   * BR-015. `GET /plugins` is enforced by the plugin at `Scopes::PLUGINS_MANAGE`
+   * — a destructive scope — for an operation that lists plugin names and
+   * versions and changes nothing. The platform has to authorise against what
+   * the plugin actually checks, or it admits calls the site will reject; but
+   * applying destructive gating to a listing would mean asking a human to
+   * approve, and taking a snapshot before, reading a list.
+   *
+   * So the two are separated: `scope` is what the plugin demands and what
+   * authorisation uses; this flag says what the operation does and what the
+   * gate should therefore be. It may ONLY be set on a GET route, and it only
+   * ever relaxes the gate — it can never widen who is allowed to call.
+   *
+   * The real fix belongs in the plugin: a read-only scope for the listing
+   * route. Until that ships, this keeps the platform honest in both
+   * directions rather than picking one to be wrong about.
+   */
+  readonly readOnlyOperation?: true;
   /** Grouping used by the dashboard and the docs. */
   readonly group:
     | "core"
@@ -76,7 +96,7 @@ export const TOOLS: readonly ToolDefinition[] = [
   // ---- admin --------------------------------------------------------------
   { name: "bridgistic_get_option", scope: "options:read", route: "options", method: "GET", group: "admin" },
   { name: "bridgistic_update_option", scope: "options:write", route: "options", method: "POST", group: "admin" },
-  { name: "bridgistic_list_plugins", scope: "site:read", route: "plugins", method: "GET", group: "admin" },
+  { name: "bridgistic_list_plugins", scope: "plugins:manage", readOnlyOperation: true, route: "plugins", method: "GET", group: "admin" },
   { name: "bridgistic_toggle_plugin", scope: "plugins:manage", route: "plugins/toggle", method: "POST", group: "admin" },
   { name: "bridgistic_fs_list", scope: "fs:read", route: "fs/list", method: "GET", group: "admin" },
   { name: "bridgistic_fs_read", scope: "fs:read", route: "fs/read", method: "GET", group: "admin" },
@@ -129,6 +149,18 @@ export function toolDefinition(name: string): ToolDefinition | undefined {
   return BY_NAME.get(name);
 }
 
+/**
+ * The class the OPERATION carries — what pricing and read-only hints use.
+ * `toolClass` gives the class of the SCOPE, which is what authorisation uses.
+ * BR-015 is the one place these differ.
+ */
+export function operationClass(name: string): ScopeClass | null {
+  const tool = toolDefinition(name);
+  if (!tool) return null;
+  if (tool.readOnlyOperation) return "sensitive_read";
+  return toolClass(name);
+}
+
 export function toolClass(name: string): ScopeClass | null {
   const tool = BY_NAME.get(name);
   if (!tool || tool.scope === null) return null;
@@ -147,16 +179,25 @@ export function isDestructive(name: string): boolean {
   return toolClass(name) === "destructive";
 }
 
-/** Approval + step-up before the call reaches the site. Delegates to the scope policy. */
+/**
+ * Approval + step-up before the call reaches the site.
+ *
+ * Honours `readOnlyOperation` (BR-015) for the same reason the contract
+ * registry does: if these two functions and the contract could give different
+ * answers about the same tool, there would be two security policies, and the
+ * one that got consulted would depend on which surface the call arrived on.
+ */
 export function requiresApprovalFor(name: string): boolean {
   const tool = toolDefinition(name);
-  return tool?.scope !== undefined && tool.scope !== null && requiresApproval(tool.scope);
+  if (!tool || tool.scope === null || tool.readOnlyOperation) return false;
+  return requiresApproval(tool.scope);
 }
 
 /** INVARIANT 4: no snapshot id, no gated execution. */
 export function requiresSnapshotBefore(name: string): boolean {
   const tool = toolDefinition(name);
-  return tool?.scope !== undefined && tool.scope !== null && requiresSnapshot(tool.scope);
+  if (!tool || tool.scope === null || tool.readOnlyOperation) return false;
+  return requiresSnapshot(tool.scope);
 }
 
 /** Every scope the catalogue references. Used to check the plugin has them all. */

@@ -17,7 +17,7 @@
  */
 
 import type { ActionOutcome, ScopeClass } from "@bridgistic/types";
-import { toolClass, effectiveToolClass } from "./catalog.ts";
+import { operationClass, effectiveToolClass } from "./catalog.ts";
 
 /**
  * Cost in actions, by risk class. The shape mirrors SCOPE_CLASSES exactly — a
@@ -67,7 +67,7 @@ export function actionsConsumed(
     case "failed":
       return FAILED_CALL_WEIGHT;
     case "success": {
-      const cls = grantedScopes ? effectiveToolClass(tool, grantedScopes) : toolClass(tool);
+      const cls = grantedScopes ? effectiveToolClass(tool, grantedScopes) : operationClass(tool);
       return cls === null ? ACTION_WEIGHTS.local : ACTION_WEIGHTS[cls];
     }
   }
