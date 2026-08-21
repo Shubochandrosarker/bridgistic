@@ -19,7 +19,7 @@ owned by this build.
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema, OAuth/PKCE, connection state machine. Engine import remaining |
 | 3 | Shared ActionExecutor | **in progress** — pipeline + policy done; real ports (D1, DO, transport) remain |
-| 4 | Metering and entitlements | not started |
+| 4 | Metering and entitlements | **in progress** — UsageCounter hardened (BR-004 closed); Stripe adapter and export remain |
 | 5 | Scheduler and asynchronous execution | not started |
 | 6 | Dashboard | not started |
 | 7 | Marketing, documentation, integrations | not started |
@@ -39,7 +39,7 @@ Run with `npm run verify`.
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 23 pass |
-| `apps/api` (isolation + auth, real SQLite) | 24 pass |
+| `apps/api` (isolation, auth, meter) | 44 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 7 migrations + 2 legacy, 25 assertions |
@@ -49,7 +49,7 @@ Run with `npm run verify`.
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **285 pass, 0 fail** |
+| **Total unit tests** | **305 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -69,7 +69,7 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-001 | Critical | Deploy workflow never passed `--env` to Wrangler, and no `wrangler.toml` declared environments, so a "staging" deploy would have published to the production routes. | **fixed** (Phase 0) | — |
 | BR-002 | Critical | The Free plan's `read` class included `db:read`, `fs:read`, `users:read`, `options:read`, `woo:orders:read`, `woo:customers:read`. `fs:read` covers `ABSPATH`, which contains `wp-config.php` (DB credentials + auth salts). A free account could exfiltrate site credentials and customer PII. | **fixed** (Phase 0) | Enforcement lands with the executor in Phase 3 |
 | BR-003 | High | `cloud/src/default-handler.ts:203` interpolates an upstream error into an HTML response without escaping. The upstream is a host the visitor chose, so its error text is attacker-controlled: reflected XSS on the connector origin. | open (external repo) | Fix on import, Phase 1 |
-| BR-004 | High | `UsageCounter` takes `limit` and `periodEndMs` from the request body, does not validate `cost`/`actual` (a negative cost decrements the meter), and has no reservation expiry, so a crash between reserve and settle burns quota permanently. | open | Phase 4 |
+| BR-004 | High | `UsageCounter` takes `limit` and `periodEndMs` from the request body, does not validate `cost`/`actual` (a negative cost decrements the meter), and has no reservation expiry, so a crash between reserve and settle burns quota permanently. | **fixed** (Phase 3) | No limit parameter exists — the limit is derived from the plan catalogue inside the object; cost and actual are validated; reservations expire on an alarm |
 | BR-005 | High | `checkSiteUrl` cannot see DNS. A hostname that passes validation and then resolves to a private address at fetch time is not caught. | **mitigated** (Phase 1) | `packages/url-guard` pre-resolves over DoH and refuses unless EVERY A/AAAA record is globally reachable, failing closed. The TOCTOU race is not winnable from a Worker; the control that closes it is response-signature binding, Phase 3 |
 | BR-006 | High | `database_id` / KV `id` were `REPLACE_ME` in all three `wrangler.toml`. | **fixed** (Phase 0) | Real ids are set per environment as CI/deploy variables |
 | BR-007 | Medium | 27 API routes return `501`. | open, declared | Phases 2–5 by route; `docs/PHASES.md` maps each |
