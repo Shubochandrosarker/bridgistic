@@ -254,6 +254,7 @@ export class ActionExecutor {
 
       // --- 7. Call ----------------------------------------------------------
       const result = await this.#ports.transport.call({
+        organizationId: request.caller.organizationId,
         siteId: request.siteId ?? "",
         contract,
         args: request.args,

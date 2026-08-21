@@ -95,6 +95,26 @@ test("unreachable is not denied", async () => {
   );
 });
 
+test("a refusal raised by the caller's own fetch keeps its classification", async () => {
+  // The hosted transport injects a `fetchImpl` that refuses redirects and
+  // oversized bodies. Those are site errors — the site answered — and folding
+  // them into "network" would tell the executor the call never happened, so a
+  // customer would go unbilled for it and see an outage instead of a refusal.
+  const impl = (async () => {
+    throw new BridgeRequestError("refused by the guard", 302, "redirect_refused");
+  }) as unknown as typeof fetch;
+
+  await assert.rejects(
+    () => callBridge(conn, "GET", "site-info", undefined, { fetchImpl: impl }),
+    (err: unknown) => {
+      assert.ok(err instanceof BridgeRequestError);
+      assert.equal(err.code, "redirect_refused");
+      assert.equal(err.isTransportFailure, false);
+      return true;
+    }
+  );
+});
+
 test("site URLs normalise to one canonical form per site", () => {
   assert.equal(normalizeSiteUrl("https://Example.com/"), "https://example.com");
   assert.equal(normalizeSiteUrl("example.com"), "https://example.com");

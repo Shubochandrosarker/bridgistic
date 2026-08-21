@@ -117,6 +117,14 @@ export interface ConcurrencyLock {
 // ---------------------------------------------------------------- transport --
 
 export interface TransportRequest {
+  /**
+   * Carried so the transport can scope its own credential lookup rather than
+   * trusting that `siteId` was authorised upstream. A transport holds a
+   * root-equivalent credential for every connected site, so one missed check on
+   * one caller path would be cross-tenant code execution — the one failure the
+   * threat model opens with. Cheap to pass; not cheap to omit.
+   */
+  readonly organizationId: string;
   readonly siteId: string;
   readonly contract: ToolContract;
   readonly args: Record<string, unknown>;

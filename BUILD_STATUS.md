@@ -18,7 +18,7 @@ owned by this build.
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema, OAuth/PKCE, connection state machine. Engine import remaining |
-| 3 | Shared ActionExecutor | **in progress** — pipeline + policy done; real ports (D1, DO, transport) remain |
+| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and all four real ports done (D1 idempotency, DO metering, signed transport); composition into a wired executor remains |
 | 4 | Metering and entitlements | **in progress** — UsageCounter hardened (BR-004 closed); Stripe adapter and export remain |
 | 5 | Scheduler and asynchronous execution | not started |
 | 6 | Dashboard | not started |
@@ -31,15 +31,15 @@ Run with `npm run verify`.
 
 | Suite | Result |
 |---|---|
-| `packages/types` | 20 pass |
-| `packages/tools` | 24 pass |
-| `packages/wp-client` | 13 pass |
+| `packages/types` | 21 pass |
+| `packages/tools` | 25 pass |
+| `packages/wp-client` | 14 pass |
 | `packages/contracts` | 55 pass |
 | `packages/identity` | 43 pass |
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 23 pass |
-| `apps/api` (isolation, auth, meter, idempotency) | 59 pass |
+| `apps/api` (isolation, auth, meter, idempotency, transport) | 77 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 8 migrations + 2 legacy, 25 assertions |
@@ -49,7 +49,7 @@ Run with `npm run verify`.
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **320 pass, 0 fail** |
+| **Total unit tests** | **339 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -80,6 +80,8 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-012 | Medium | Repository is public under GPL-2.0-or-later while being prepared to hold customer data and hosted-service code. | **decision recorded** (Phase 0) | Owner must action `docs/LICENSING-DECISION.md` before Phase 2 |
 | BR-013 | High | The pinned engine's `guardParams` includes a client-settable `force`, documented as "Bypass the snapshot-required abort (irreversible)". A tool argument that switches off a safety gate — filled in, on the hosted product, by a language model. | **fixed** (Phase 1) | No hosted contract accepts it; bypass is an approval with a reason, made by a person |
 | BR-014 | Medium | `bridgistic_create_user` accepted a `password` argument, so a credential would travel through the model's context window, the MCP transport and client-side logging. | **fixed** (Phase 1) | Removed; WordPress generates and emails the password directly |
+| BR-016 | High | The transport authenticates the REQUEST leg only. The plugin verifies request signatures and does not sign responses, so a response cannot be bound to the site's credential — which is the control `SECURITY_MODEL.md` §6 relies on to close the DNS-rebinding residual risk in BR-005. An earlier revision of that document described the control as implemented; it was not. | **open — needs a plugin change** | Add response signing to the WordPress plugin (upstream, free repo), then verify before parse in `packages/wp-client`. Blocks the BR-005 closure and Level 3 gate 9 |
+| BR-017 | Medium | `callBridge` wrapped **every** exception from its injected `fetchImpl` in a `network` error. The hosted transport refuses redirects and oversized bodies by throwing from that hook, so a response the site really sent would have been reported as "could not reach the site" — the executor releases the reservation on `unreachable`, so those calls would have gone unbilled and shown to the customer as an outage rather than a refusal. | **fixed** (Phase 3) | A `BridgeRequestError` from the fetch hook is now rethrown with its own classification; regression test in `packages/wp-client/test/client.test.ts` |
 | BR-015 | Medium | The plugin enforces `Scopes::PLUGINS_MANAGE` — a destructive scope — on `GET /plugins`, which only lists names and versions. The catalogue said `site:read`, so the platform would have authorised calls the site rejects and advertised the tool on Free, where it always fails. | **fixed here** (Phase 1) | Platform now authorises on `plugins:manage` and gates on the operation. The real fix is a read-only scope for that route in the **plugin**; raise upstream |
 
 ## Owner decisions required

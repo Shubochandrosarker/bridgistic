@@ -75,9 +75,16 @@ export interface ToolContract {
   /** Plans on which the tool is offered at all. Derived, never hand-written. */
   readonly enabledPlans: readonly PlanId[];
 
-  /** HTTP verb and route on the WordPress plugin. `null` for platform-local tools. */
+  /**
+   * HTTP verb and route on the WordPress plugin. `null` for platform-local tools.
+   *
+   * The verbs are exactly the three the plugin's controllers register, and the
+   * three `packages/wp-client` can sign and send. Widening this without
+   * widening both of those produces a contract nothing can call — which the
+   * type system would then no longer catch.
+   */
   readonly route: string | null;
-  readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | null;
+  readonly method: "GET" | "POST" | "DELETE" | null;
 
   /** Grouping for docs and the dashboard. */
   readonly group: "core" | "content" | "admin" | "intel" | "safety" | "schedule" | "woo";

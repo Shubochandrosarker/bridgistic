@@ -117,13 +117,15 @@ row.
 
 Required properties:
 
-- HMAC-SHA256 over `METHOD\nPATH\nTIMESTAMP\nNONCE\nsha256(body)`
-- constant-time signature comparison
-- timestamp window + nonce replay rejection, both sides
-- response signature validated before the body is parsed
-- timeout and response-size ceilings, enforced by the client
-- redirects not followed to a different origin
-- SSRF guard on every connection attempt, not only at onboarding
+- HMAC-SHA256 over `METHOD\nPATH\nTIMESTAMP\nNONCE\nsha256(body)` — **live**
+- constant-time signature comparison — **live**
+- timestamp window + nonce replay rejection — **live on the request leg**
+- timeout and response-size ceilings, enforced by the client — **live**
+- redirects not followed at all — **live**
+- SSRF guard on every connection attempt, not only at onboarding — **live**
+- response signature validated before the body is parsed — **NOT LIVE.
+  BR-016.** The plugin verifies request signatures and does not sign its
+  responses. Until it does, the transport authenticates one direction only.
 
 ### SSRF and DNS rebinding (BR-005)
 
@@ -133,16 +135,31 @@ The layered mitigation, landing across Phases 1 and 3:
 
 1. **Pre-resolve** the hostname over DoH at connection time and reject if any
    A/AAAA record is private. Closes the static case.
-2. **Response-signature binding.** Every response must carry a valid HMAC from
-   the site's stored credential. An internal service reached by a rebind cannot
-   produce one, so a rebind yields an error, not a disclosure. This is the
-   control that actually holds, because it does not depend on winning a race
-   with DNS.
-3. **Origin pinning.** A site's origin is fixed at connection time; later calls
-   never take a caller-supplied URL.
+2. **Origin pinning.** A site's origin is fixed at connection time; later calls
+   never take a caller-supplied URL. Live.
 
-Residual risk after all three: a blind request to an internal address whose
-side effect matters. Documented, accepted, monitored.
+3. **Response-signature binding — BR-016, not yet live.** Every response should
+   carry a valid HMAC from the site's stored credential, so an internal service
+   reached by a rebind cannot produce one and a rebind yields a signature
+   failure rather than a disclosure.
+
+   This is the control that would actually hold, because it does not depend on
+   winning a race with DNS. It requires a change to the WordPress plugin, which
+   today verifies request signatures and signs nothing on the way back. **An
+   earlier revision of this document described it as though it were
+   implemented. It is not.**
+
+Residual risk as things stand, stated plainly: the transport authenticates the
+request leg only. A hostname that passes `checkSiteUrl`, passes DoH
+pre-resolution, and then resolves to an internal address at fetch time will
+have a signed request sent to that address, and whatever it returns will be
+parsed as though the site had said it. Pre-resolution makes that require a
+deliberately-timed rebind rather than static misconfiguration, and the tool
+contracts bound what a response can do — but it is not closed, and it does not
+close until the plugin signs.
+
+Until then: this is why `RELEASE_GATES.md` Level 3 gate 9 exists, and why the
+independent security review is a gate rather than a formality.
 
 ## 7. Tenancy
 
