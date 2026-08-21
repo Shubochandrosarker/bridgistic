@@ -4,7 +4,7 @@
   "private": true,
   "description": "bridgistic.app — hosted, multi-tenant WordPress MCP platform with a managed cloud scheduler.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "GPL-2.0-or-later",
   "workspaces": [
     "packages/*",
     "apps/mcp",
