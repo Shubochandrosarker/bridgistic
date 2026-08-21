@@ -35,6 +35,24 @@ export interface ToolDefinition {
    * tool would ever accept — which is exactly what the catalogue test caught.
    */
   readonly minScope?: string;
+  /**
+   * Which snapshot operation this tool performs, for the three tools that share
+   * `snapshot:manage`.
+   *
+   * SECURITY_MODEL §4: that one scope name covers three different risks.
+   * Creating a snapshot costs storage and can destroy nothing. Restoring one
+   * silently discards every change made since it was taken. Deleting one
+   * removes the rollback path that the destructive and code_execution gates
+   * depend on being there. Gating all three as `operational` — which is what
+   * the scope's own class says — leaves the two destructive ones with no
+   * approval and no step-up.
+   *
+   * Declared rather than inferred from the tool name, and the class still comes
+   * from `snapshotOperationClass` in the scope model, so this names which
+   * operation a tool is and never what gate it gets.
+   */
+  readonly snapshotOperation?: "create" | "restore" | "list" | "delete";
+
   /** Route under `bridgistic/v1`, or `null` for platform-local tools. */
   readonly route: string | null;
   readonly method: "GET" | "POST" | "DELETE" | null;
@@ -104,10 +122,10 @@ export const TOOLS: readonly ToolDefinition[] = [
   { name: "bridgistic_fs_delete", scope: "fs:write", route: "fs/delete", method: "POST", group: "admin" },
 
   // ---- safety -------------------------------------------------------------
-  { name: "bridgistic_snapshot_create", scope: "snapshot:manage", route: "snapshots", method: "POST", group: "safety" },
-  { name: "bridgistic_snapshot_restore", scope: "snapshot:manage", route: "snapshots/restore", method: "POST", group: "safety" },
-  { name: "bridgistic_snapshot_list", scope: "snapshot:manage", route: "snapshots", method: "GET", group: "safety" },
-  { name: "bridgistic_snapshot_delete", scope: "snapshot:manage", route: "snapshots", method: "DELETE", group: "safety" },
+  { name: "bridgistic_snapshot_create", scope: "snapshot:manage", snapshotOperation: "create", route: "snapshots", method: "POST", group: "safety" },
+  { name: "bridgistic_snapshot_restore", scope: "snapshot:manage", snapshotOperation: "restore", route: "snapshots/restore", method: "POST", group: "safety" },
+  { name: "bridgistic_snapshot_list", scope: "snapshot:manage", snapshotOperation: "list", readOnlyOperation: true, route: "snapshots", method: "GET", group: "safety" },
+  { name: "bridgistic_snapshot_delete", scope: "snapshot:manage", snapshotOperation: "delete", route: "snapshots", method: "DELETE", group: "safety" },
   { name: "bridgistic_approval_status", scope: "site:read", route: "approvals", method: "GET", group: "safety" },
 
   // ---- intel --------------------------------------------------------------

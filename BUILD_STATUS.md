@@ -34,7 +34,7 @@ Run with `npm run verify`.
 | `packages/types` | 21 pass |
 | `packages/tools` | 25 pass |
 | `packages/wp-client` | 14 pass |
-| `packages/contracts` | 55 pass |
+| `packages/contracts` | 58 pass |
 | `packages/identity` | 43 pass |
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
@@ -49,7 +49,7 @@ Run with `npm run verify`.
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **353 pass, 0 fail** |
+| **Total unit tests** | **356 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -82,6 +82,7 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-014 | Medium | `bridgistic_create_user` accepted a `password` argument, so a credential would travel through the model's context window, the MCP transport and client-side logging. | **fixed** (Phase 1) | Removed; WordPress generates and emails the password directly |
 | BR-016 | High | The transport authenticates the REQUEST leg only. The plugin verifies request signatures and does not sign responses, so a response cannot be bound to the site's credential — which is the control `SECURITY_MODEL.md` §6 relies on to close the DNS-rebinding residual risk in BR-005. An earlier revision of that document described the control as implemented; it was not. | **open — needs a plugin change** | Add response signing to the WordPress plugin (upstream, free repo), then verify before parse in `packages/wp-client`. Blocks the BR-005 closure and Level 3 gate 9 |
 | BR-017 | Medium | `callBridge` wrapped **every** exception from its injected `fetchImpl` in a `network` error. The hosted transport refuses redirects and oversized bodies by throwing from that hook, so a response the site really sent would have been reported as "could not reach the site" — the executor releases the reservation on `unreachable`, so those calls would have gone unbilled and shown to the customer as an outage rather than a refusal. | **fixed** (Phase 3) | A `BridgeRequestError` from the fetch hook is now rethrown with its own classification; regression test in `packages/wp-client/test/client.test.ts` |
+| BR-018 | High | `bridgistic_snapshot_restore` and `bridgistic_snapshot_delete` were gated as `operational` — scope only, no approval, no step-up — because both derive their gate from `snapshot:manage`, which is classed operational. `SECURITY_MODEL.md` §4 requires both to be destructive: a restore silently discards every change made since the snapshot, and a delete removes the rollback path the destructive and code_execution gates depend on being there. `snapshotOperationClass` existed and returned `destructive` for both; the contract registry never called it. Also found alongside: `snapshot_create` took a snapshot before creating a snapshot, and `snapshot_list` (a GET) gated as a write. | **fixed** (Phase 3) | Gates now derive from the operation's class, guarded so a snapshot operation can only raise the class its scope carries. Pinned by tests in `packages/contracts/test/registry.test.ts` |
 | BR-015 | Medium | The plugin enforces `Scopes::PLUGINS_MANAGE` — a destructive scope — on `GET /plugins`, which only lists names and versions. The catalogue said `site:read`, so the platform would have authorised calls the site rejects and advertised the tool on Free, where it always fails. | **fixed here** (Phase 1) | Platform now authorises on `plugins:manage` and gates on the operation. The real fix is a read-only scope for that route in the **plugin**; raise upstream |
 
 ## Owner decisions required

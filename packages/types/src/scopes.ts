@@ -25,6 +25,11 @@ export type ScopeClass = (typeof SCOPE_CLASSES)[number];
 
 const CLASS_RANK = new Map<ScopeClass, number>(SCOPE_CLASSES.map((c, i) => [c, i]));
 
+/** The riskier of two classes. Used where an operation may raise, never lower, the class its scope carries. */
+export function maxClass(a: ScopeClass, b: ScopeClass): ScopeClass {
+  return atLeastAsRisky(a, b) ? a : b;
+}
+
 /** True when `a` is at least as dangerous as `b`. */
 export function atLeastAsRisky(a: ScopeClass, b: ScopeClass): boolean {
   return (CLASS_RANK.get(a) ?? 0) >= (CLASS_RANK.get(b) ?? 0);
@@ -150,19 +155,39 @@ const HUMAN_ONLY_CLASSES = new Set<ScopeClass>(["credential"]);
  */
 export function requiresApproval(scope: string): boolean {
   const cls = scopeClass(scope);
-  return cls !== undefined && APPROVAL_CLASSES.has(cls);
+  return cls !== undefined && requiresApprovalForClass(cls);
+}
+
+/**
+ * The same gate, decided from a class rather than a scope.
+ *
+ * Needed where the operation is riskier than its scope name says — the three
+ * snapshot operations sharing `snapshot:manage`, see §4 — so the gate can be
+ * taken from the operation's class without inventing a second gate table that
+ * could drift from this one.
+ */
+export function requiresApprovalForClass(cls: ScopeClass): boolean {
+  return APPROVAL_CLASSES.has(cls);
 }
 
 /** Snapshot first (INVARIANT 4), so every gated change has a way back. */
 export function requiresSnapshot(scope: string): boolean {
   const cls = scopeClass(scope);
-  return cls !== undefined && SNAPSHOT_CLASSES.has(cls);
+  return cls !== undefined && requiresSnapshotForClass(cls);
+}
+
+export function requiresSnapshotForClass(cls: ScopeClass): boolean {
+  return SNAPSHOT_CLASSES.has(cls);
 }
 
 /** Re-authenticate at the moment of the call, not at the start of the session. */
 export function requiresStepUp(scope: string): boolean {
   const cls = scopeClass(scope);
-  return cls !== undefined && STEP_UP_CLASSES.has(cls);
+  return cls !== undefined && requiresStepUpForClass(cls);
+}
+
+export function requiresStepUpForClass(cls: ScopeClass): boolean {
+  return STEP_UP_CLASSES.has(cls);
 }
 
 /**

@@ -17,9 +17,15 @@
 
 import { TOOLS } from "@bridgistic/tools";
 import type { ToolDefinition } from "@bridgistic/tools";
+import type { ScopeClass } from "@bridgistic/types";
 import {
   scopeClass,
   requiresApproval,
+  requiresApprovalForClass,
+  requiresSnapshotForClass,
+  requiresStepUpForClass,
+  snapshotOperationClass,
+  maxClass,
   requiresSnapshot,
   requiresStepUp,
   PLAN_IDS,
@@ -116,6 +122,25 @@ function build(tool: ToolDefinition): ToolContract {
   }
   const readOnly = tool.readOnlyOperation === true;
 
+  // SECURITY_MODEL §4. `snapshot:manage` is classed `operational`, which is
+  // right for creating and listing and wrong for the two operations that
+  // destroy something. `restore` discards every change since the snapshot was
+  // taken; `delete` removes the rollback path the destructive and
+  // code_execution gates rely on. Without this the gate for both is "hold the
+  // scope", with no approval and no step-up.
+  //
+  // Guarded so it can only ever tighten: a snapshot operation may raise the
+  // class the scope carries, never lower it.
+  // `null` for platform-local tools, which have no scope and therefore no gate.
+  const scopedClass: ScopeClass | null = tool.scope === null || cls === "local" ? null : cls;
+  const operationClass: ScopeClass | null =
+    scopedClass === null || tool.snapshotOperation === undefined
+      ? scopedClass
+      : maxClass(
+          scopedClass,
+          snapshotOperationClass(tool.snapshotOperation === "list" ? "create" : tool.snapshotOperation)
+        );
+
   return Object.freeze({
     name: tool.name,
     version: CONTRACT_VERSION,
@@ -126,11 +151,21 @@ function build(tool: ToolDefinition): ToolContract {
     ...(tool.minScope !== undefined ? { minScope: tool.minScope } : {}),
     // The class the OPERATION carries, which is what pricing and the MCP
     // read-only hint should reflect. Authorisation still uses `requiredScopes`.
-    riskClass: readOnly ? "sensitive_read" : cls,
-    // Derived, every one of them. Nothing here is a per-tool judgement call.
-    requiresApproval: !readOnly && tool.scope !== null && requiresApproval(tool.scope),
-    requiresSnapshot: !readOnly && tool.scope !== null && requiresSnapshot(tool.scope),
-    requiresStepUp: !readOnly && tool.scope !== null && requiresStepUp(tool.scope),
+    riskClass: readOnly ? "sensitive_read" : (operationClass ?? "local"),
+    // Derived, every one of them. Nothing here is a per-tool judgement call:
+    // the gates come from the class, and the class comes from the scope model.
+    requiresApproval: !readOnly && operationClass !== null && requiresApprovalForClass(operationClass),
+    // Of the snapshot operations only `restore` takes one first, and §4 says
+    // why: it discards every change since the snapshot, so the current state
+    // has to be recoverable or a mistaken restore is unrecoverable. Snapshotting
+    // before `create` would snapshot the site in order to snapshot the site;
+    // before `delete` it would preserve the site, which is not the thing being
+    // destroyed. Both are cost with no rollback value.
+    requiresSnapshot:
+      tool.snapshotOperation !== undefined
+        ? tool.snapshotOperation === "restore"
+        : !readOnly && operationClass !== null && requiresSnapshotForClass(operationClass),
+    requiresStepUp: !readOnly && operationClass !== null && requiresStepUpForClass(operationClass),
     supportsIdempotency: entry.supportsIdempotency ?? true,
     timeoutMs: entry.timeoutMs ?? DEFAULT_TIMEOUT_MS[readOnly ? "sensitive_read" : cls] ?? 30_000,
     meterUnit: tool.scope === null ? "none" : "action",

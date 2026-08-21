@@ -4,7 +4,19 @@ import { allContracts, contractFor, contractsFor, CONTRACT_VERSION } from "../sr
 import { FORBIDDEN_PARAM_NAMES } from "../src/params.ts";
 import { compileSchema } from "../src/json-schema.ts";
 import { TOOLS } from "@bridgistic/tools";
-import { PLAN_IDS, planScopes, scopeClass, requiresApproval, requiresSnapshot, requiresStepUp } from "@bridgistic/types";
+import {
+  PLAN_IDS,
+  planScopes,
+  scopeClass,
+  requiresApproval,
+  requiresSnapshot,
+  requiresStepUp,
+  requiresApprovalForClass,
+  requiresStepUpForClass,
+  snapshotOperationClass,
+  atLeastAsRisky,
+} from "@bridgistic/types";
+import type { ScopeClass } from "@bridgistic/types";
 
 test("every catalogued tool has a contract, and nothing extra does", () => {
   const contracts = allContracts();
@@ -78,6 +90,26 @@ test("policy fields are derived from the scope model, never hand-written", () =>
       assert.equal(contract.requiresSnapshot, false);
       assert.equal(contract.requiresStepUp, false);
       assert.deepEqual(contract.requiredScopes, [scope], "authorisation still demands the plugin's scope");
+    } else if (tool.snapshotOperation !== undefined) {
+      // SECURITY_MODEL §4: one scope name, three risks. The gate comes from
+      // the OPERATION's class, and that class still comes from the scope model
+      // via snapshotOperationClass — so this is a different derivation, not a
+      // hand-written exception. Asserted against the same function the registry
+      // uses, and separately asserted to only ever tighten.
+      const operationClass = snapshotOperationClass(
+        tool.snapshotOperation === "list" ? "create" : tool.snapshotOperation
+      );
+      const expected = atLeastAsRisky(operationClass, scopeClass(scope)!) ? operationClass : scopeClass(scope)!;
+
+      assert.equal(contract.riskClass, expected, `${contract.name} class`);
+      assert.equal(contract.requiresApproval, requiresApprovalForClass(expected), `${contract.name} approval`);
+      assert.equal(contract.requiresStepUp, requiresStepUpForClass(expected), `${contract.name} step-up`);
+      assert.ok(
+        atLeastAsRisky(expected, scopeClass(scope)!),
+        `${contract.name} lowered the class its scope carries`
+      );
+      // Only a restore snapshots first; see the dedicated test for why.
+      assert.equal(contract.requiresSnapshot, tool.snapshotOperation === "restore", `${contract.name} snapshot`);
     } else {
       assert.equal(contract.riskClass, scopeClass(scope), `${contract.name} class`);
       assert.equal(contract.requiresApproval, requiresApproval(scope), `${contract.name} approval`);
@@ -196,4 +228,53 @@ test("every contract carries a version and a description a model can act on", ()
       );
     }
   }
+});
+
+// ------------------------------------------------- snapshot operations ------
+
+test("the three snapshot operations are gated separately, per SECURITY_MODEL §4", () => {
+  // `snapshot:manage` is classed `operational`, and for two of the operations
+  // that is wrong. Restoring silently discards every change made since the
+  // snapshot was taken; deleting removes the rollback path the destructive and
+  // code_execution gates depend on being there. Gating both as `operational`
+  // leaves them behind nothing but holding the scope.
+  const restore = contractFor("bridgistic_snapshot_restore")!;
+  const remove = contractFor("bridgistic_snapshot_delete")!;
+
+  for (const contract of [restore, remove]) {
+    assert.equal(contract.riskClass, "destructive", `${contract.name} is not destructive`);
+    assert.equal(contract.requiresApproval, true, `${contract.name} runs without approval`);
+    assert.equal(contract.requiresStepUp, true, `${contract.name} runs without step-up`);
+  }
+
+  // Restore takes a snapshot of the CURRENT state first, so a mistaken restore
+  // is itself reversible. §4 requires exactly this.
+  assert.equal(restore.requiresSnapshot, true, "a restore is not itself reversible");
+});
+
+test("creating and listing snapshots do not snapshot first", () => {
+  // Snapshotting before `create` would snapshot the site in order to snapshot
+  // the site. Before `delete` it would preserve the site, which is not the
+  // thing being destroyed. Both are storage cost with no rollback value.
+  assert.equal(contractFor("bridgistic_snapshot_create")!.requiresSnapshot, false);
+  assert.equal(contractFor("bridgistic_snapshot_delete")!.requiresSnapshot, false);
+
+  // Listing is a GET behind a writing scope — the BR-015 shape. The caller
+  // must hold the scope, but nothing changes, so there is nothing to approve,
+  // snapshot or re-authenticate for.
+  const list = contractFor("bridgistic_snapshot_list")!;
+  assert.equal(list.requiresApproval, false);
+  assert.equal(list.requiresSnapshot, false);
+  assert.equal(list.requiresStepUp, false);
+});
+
+test("a snapshot operation can only raise the class its scope carries", () => {
+  // The override exists to tighten a gate that the scope name under-states. If
+  // it could lower one, it would be the per-tool judgement call BR-013 removed
+  // — a field that turns a gate off for one tool.
+  const create = contractFor("bridgistic_snapshot_create")!;
+  assert.ok(
+    atLeastAsRisky(create.riskClass as ScopeClass, scopeClass("snapshot:manage")!),
+    "the create operation lowered its scope's class"
+  );
 });
