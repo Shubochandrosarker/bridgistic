@@ -39,6 +39,7 @@ function harness(overrides: {
   claim?: () => Promise<ClaimOutcome>;
   admit?: boolean;
   lockAvailable?: boolean;
+  snapshotUnavailable?: boolean;
 } = {}): Harness {
   const audit: AuditEntry[] = [];
   const reserved: { id: string; cost: number }[] = [];
@@ -84,8 +85,11 @@ function harness(overrides: {
     },
     snapshots: {
       async create() {
+        if (overrides.snapshotUnavailable) {
+          return { ok: false as const, reason: "no target for this tool" };
+        }
         snapshots++;
-        return `snap_${snapshots}`;
+        return { ok: true as const, id: `snap_${snapshots}` };
       },
     },
     locks: {
@@ -275,6 +279,46 @@ test("a granted approval lets the call through, and it snapshots first", async (
   assert.equal(result.ok, true);
   assert.equal(h.snapshots, 1, "a destructive call ran without a snapshot");
   assert.equal(result.ok && result.snapshotId, "snap_1");
+});
+
+test("a call whose snapshot cannot be targeted is refused, not run unprotected", async () => {
+  // The plugin captures one post, one user, one option, a list of named tables
+  // or one file — and nothing else. For several gated tools no target can be
+  // built from the call's own arguments. Running anyway would have the gate
+  // report a rollback path that does not exist, to the approver who cleared
+  // the call on exactly that basis.
+  let calls = 0;
+  const h = harness({
+    snapshotUnavailable: true,
+    transport: async () => {
+      calls++;
+      return { ok: true, data: {} };
+    },
+  });
+
+  const result = await h.executor.execute(
+    request({
+      tool: "bridgistic_toggle_plugin",
+      args: {
+        site: "shop",
+        plugin: "w/w.php",
+        state: "activate",
+        approval_id: "approval-granted-1",
+        idempotency_key: KEY,
+      },
+      caller: { ...request().caller, role: "admin", grantedApprovals: ["approval-granted-1"] },
+    })
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.ok === false && result.error, "snapshot_required");
+  assert.equal(calls, 0, "the site was changed with no way back");
+
+  // And it costs nothing: the reservation taken before the snapshot is
+  // released, so a refusal here does not quietly bill for a call that never
+  // happened.
+  assert.deepEqual(h.settledReservations, []);
+  assert.deepEqual(h.releasedReservations, ["res_1"]);
 });
 
 // ------------------------------------------------------------ idempotency --

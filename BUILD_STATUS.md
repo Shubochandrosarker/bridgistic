@@ -18,7 +18,7 @@ owned by this build.
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema, OAuth/PKCE, connection state machine. Engine import remaining |
-| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and six of seven real ports done (idempotency, metering, transport, audit, approvals; snapshots and the concurrency lock remain, then composition) |
+| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and **all seven** real ports done (idempotency, metering, transport, audit, approvals, snapshots, locks). Composition behind the HTTP routes remains; BR-020 open |
 | 4 | Metering and entitlements | **in progress** — UsageCounter hardened (BR-004 closed); Stripe adapter and export remain |
 | 5 | Scheduler and asynchronous execution | not started |
 | 6 | Dashboard | not started |
@@ -38,8 +38,8 @@ Run with `npm run verify`.
 | `packages/identity` | 43 pass |
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
-| `packages/executor` | 23 pass |
-| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks) | 103 pass |
+| `packages/executor` | 24 pass |
+| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks, snapshots) | 112 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 9 migrations + 2 legacy, 25 assertions |
@@ -50,7 +50,7 @@ Run with `npm run verify`.
 | `scripts/check-plugin-routes.mjs` | pass — 53 site-calling tools, every route served by the plugin |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **368 pass, 0 fail** |
+| **Total unit tests** | **378 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -85,6 +85,7 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-017 | Medium | `callBridge` wrapped **every** exception from its injected `fetchImpl` in a `network` error. The hosted transport refuses redirects and oversized bodies by throwing from that hook, so a response the site really sent would have been reported as "could not reach the site" — the executor releases the reservation on `unreachable`, so those calls would have gone unbilled and shown to the customer as an outage rather than a refusal. | **fixed** (Phase 3) | A `BridgeRequestError` from the fetch hook is now rethrown with its own classification; regression test in `packages/wp-client/test/client.test.ts` |
 | BR-018 | High | `bridgistic_snapshot_restore` and `bridgistic_snapshot_delete` were gated as `operational` — scope only, no approval, no step-up — because both derive their gate from `snapshot:manage`, which is classed operational. `SECURITY_MODEL.md` §4 requires both to be destructive: a restore silently discards every change made since the snapshot, and a delete removes the rollback path the destructive and code_execution gates depend on being there. `snapshotOperationClass` existed and returned `destructive` for both; the contract registry never called it. Also found alongside: `snapshot_create` took a snapshot before creating a snapshot, and `snapshot_list` (a GET) gated as a write. | **fixed** (Phase 3) | Gates now derive from the operation's class, guarded so a snapshot operation can only raise the class its scope carries. Pinned by tests in `packages/contracts/test/registry.test.ts` |
 | BR-019 | Critical | 23 of 54 tools declared a route or HTTP method the WordPress plugin does not serve that way. 15 would have returned 404 or 405. The other 8 named a **collection** where they meant one item, which is worse because nothing errors: `bridgistic_update_post` was `POST posts`, which is the plugin's CREATE handler — an edit would have silently made a new post — and `bridgistic_update_user` (credential class) was `POST users`, which creates a WordPress user. Nothing compared routes to the plugin: `check-tool-drift.mjs` compares tool names and arguments to the engine manifest, a different question, so the drift passed typecheck, every test and every hygiene check. | **fixed** (Phase 3) | All 23 corrected against the plugin at the pinned commit. `plugin-routes.json` is generated from the plugin's own `register_rest_route` calls by `scripts/build-plugin-routes.mjs`; `scripts/check-plugin-routes.mjs` runs offline in `verify` and CI and rejects both shapes. Routes now support `{id}` path parameters, substituted by the transport |
+| BR-020 | High | 11 tools require a snapshot under `SECURITY_MODEL.md` §3 and **cannot have one taken**. The plugin captures exactly five things — one post, one user, one option, a list of named tables, one file — and has no whole-site capture. `execute_php` has no bounded target; `db_query` would need the platform to parse SQL to know the affected tables (the plugin's own Guard already snapshots them, on the site, where the statement is understood); `create_user` has nothing to capture yet; `snapshot_restore` needs the target of the snapshot being restored, which only the site knows; and the seven playbook/schedule write tools live in `{prefix}bridgistic_playbooks` / `_schedules`, where `Snapshot::safe_table` needs the exact table name and `site-info` does not report the site's table prefix. | **open — needs an owner decision** | Mechanism implemented and default-deny: those calls are refused with `snapshot_required` and a reason, never run unprotected. That makes 11 declared tools unusable, which is a product decision, not an engineering one. Closing it needs plugin changes — a table prefix in `site-info`, a snapshot type for the plugin's own tables, and a snapshot's type/target reported on read. Raise upstream with BR-016 |
 | BR-015 | Medium | The plugin enforces `Scopes::PLUGINS_MANAGE` — a destructive scope — on `GET /plugins`, which only lists names and versions. The catalogue said `site:read`, so the platform would have authorised calls the site rejects and advertised the tool on Free, where it always fails. | **fixed here** (Phase 1) | Platform now authorises on `plugins:manage` and gates on the operation. The real fix is a read-only scope for that route in the **plugin**; raise upstream |
 
 ## Owner decisions required
@@ -100,6 +101,27 @@ These block later phases and cannot be made in code.
    response signing. Until it is closed, the adapter stays behind
    `WPISTIC_ENTITLEMENTS_ENABLED=false`.
 4. **Production release gate** (blocks any paid billing). `RELEASE_GATES.md`.
+
+### Snapshot coverage on the current plugin (BR-020)
+
+Eleven gated tools cannot have the snapshot their risk class requires, because
+the plugin captures five specific things and none of them fits. They are
+refused rather than run unprotected, which is the correct default and also
+means eleven advertised tools do not work.
+
+Three ways forward, and the choice is yours:
+
+1. **Leave them denied.** Safest, and the tools stay in `tools/list` returning
+   `snapshot_required` with a reason. Honest, but a customer meets it at the
+   call rather than in the catalogue.
+2. **Feature-gate them out of the catalogue** until the plugin can support
+   them, so they are not advertised at all.
+3. **Extend the plugin** — report the table prefix in `site-info`, add a
+   capture type for the plugin's own tables, and report a snapshot's type and
+   target on read. This closes it properly and is upstream work in the free
+   repo, alongside BR-016.
+
+Until you choose, option 1 is what the code does.
 
 ## Migration boundary
 

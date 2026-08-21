@@ -135,14 +135,14 @@ export const TOOLS: readonly ToolDefinition[] = [
   { name: "bridgistic_memory_list", scope: "memory:read", route: "memory", method: "GET", group: "intel" },
   { name: "bridgistic_memory_delete", scope: "memory:write", route: "memory/delete", method: "POST", group: "intel" },
   { name: "bridgistic_playbook_save", scope: "playbook:manage", route: "playbooks", method: "POST", group: "intel" },
-  { name: "bridgistic_playbook_list", scope: "playbook:manage", route: "playbooks", method: "GET", group: "intel" },
-  { name: "bridgistic_playbook_get", scope: "playbook:manage", route: "playbooks/{slug}", method: "GET", group: "intel" },
+  { name: "bridgistic_playbook_list", scope: "playbook:manage", readOnlyOperation: true, route: "playbooks", method: "GET", group: "intel" },
+  { name: "bridgistic_playbook_get", scope: "playbook:manage", readOnlyOperation: true, route: "playbooks/{slug}", method: "GET", group: "intel" },
   { name: "bridgistic_playbook_run", scope: "playbook:manage", route: "playbooks/run", method: "POST", group: "intel" },
   { name: "bridgistic_playbook_delete", scope: "playbook:manage", route: "playbooks/delete", method: "POST", group: "intel" },
 
   // ---- schedule -----------------------------------------------------------
   { name: "bridgistic_schedule_create", scope: "schedule:manage", route: "schedules", method: "POST", group: "schedule" },
-  { name: "bridgistic_schedule_list", scope: "schedule:manage", route: "schedules", method: "GET", group: "schedule" },
+  { name: "bridgistic_schedule_list", scope: "schedule:manage", readOnlyOperation: true, route: "schedules", method: "GET", group: "schedule" },
   { name: "bridgistic_schedule_toggle", scope: "schedule:manage", route: "schedules/toggle", method: "POST", group: "schedule" },
   { name: "bridgistic_schedule_delete", scope: "schedule:manage", route: "schedules/delete", method: "POST", group: "schedule" },
   { name: "bridgistic_schedule_run_now", scope: "schedule:manage", route: "schedules/run-now", method: "POST", group: "schedule" },

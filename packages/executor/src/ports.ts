@@ -120,8 +120,24 @@ export interface ApprovalStore {
 // --------------------------------------------------------------- snapshots --
 
 export interface SnapshotStore {
-  /** Take a snapshot before a gated change. Returns its id. */
-  create(input: { organizationId: string; siteId: string; tool: string; reason: string }): Promise<string>;
+  /**
+   * Take a snapshot before a gated change.
+   *
+   * `args` is passed because the snapshot has to name what it captures, and
+   * only the call's own arguments say which post, user, option or file that is.
+   * The plugin captures exactly five things and there is no whole-site capture,
+   * so for some tools no target can be constructed at all — those come back
+   * `ok: false`, and the executor must refuse the call rather than run it
+   * unprotected. A gate that reports "rollback available" over a snapshot of
+   * nothing is worse than no gate, because it is the thing an approver checks.
+   */
+  create(input: {
+    organizationId: string;
+    siteId: string;
+    tool: string;
+    args: Record<string, unknown>;
+    reason: string;
+  }): Promise<{ readonly ok: true; readonly id: string } | { readonly ok: false; readonly reason: string }>;
 }
 
 // ------------------------------------------------------------- concurrency --

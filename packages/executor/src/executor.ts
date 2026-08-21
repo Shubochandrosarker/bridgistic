@@ -244,12 +244,26 @@ export class ActionExecutor {
             ? snapshotOperationClass(request.tool.endsWith("restore") ? "restore" : "delete")
             : contract.riskClass;
 
-        snapshotId = await this.#ports.snapshots.create({
+        const snapshot = await this.#ports.snapshots.create({
           organizationId: request.caller.organizationId,
           siteId: request.siteId,
           tool: request.tool,
+          args: request.args,
           reason: `${operationClass} operation`,
         });
+
+        if (!snapshot.ok) {
+          // The tool's class requires a way back and there is none. Running
+          // anyway would be the gate reporting a rollback path that does not
+          // exist — to the approver who cleared the call on that basis. Refused,
+          // and everything taken so far is released by the normal path.
+          await this.#settleClaim(idempotencyKey, "failed");
+          await this.#release(request.caller.organizationId, reservation);
+          reservation = null;
+          return this.#deny(request, "snapshot_required", snapshot.reason, startedAt, log);
+        }
+
+        snapshotId = snapshot.id;
       }
 
       // --- 7. Call ----------------------------------------------------------
