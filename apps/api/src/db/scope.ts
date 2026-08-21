@@ -34,7 +34,15 @@ export interface SqlStatement {
   bind(...values: unknown[]): SqlStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
   all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
-  run(): Promise<unknown>;
+  /**
+   * Returns how many rows the write changed.
+   *
+   * D1 reports it as `meta.changes`, node:sqlite as `changes`. Both are
+   * accepted because this is the ONLY race-free way to know whether an
+   * `INSERT … ON CONFLICT DO NOTHING` actually inserted — and therefore
+   * whether this caller owns the row it was competing for.
+   */
+  run(): Promise<{ changes?: number; meta?: { changes?: number } }>;
 }
 
 /** A caller, resolved from a token. Never from a request body. */

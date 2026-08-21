@@ -9,38 +9,11 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { readdirSync, readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { authenticate, sessionTokenFrom, resolveOrganization } from "../src/auth.ts";
-import type { SqlDatabase, SqlStatement, Caller } from "../src/db/scope.ts";
+import type { SqlDatabase, Caller } from "../src/db/scope.ts";
+import { adapt, migratedDatabase } from "./helpers/sqlite.ts";
 import { generateApiKey } from "@bridgistic/identity";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-
-function adapt(db: DatabaseSync): SqlDatabase {
-  return {
-    prepare(sql: string): SqlStatement {
-      let bound: unknown[] = [];
-      const statement: SqlStatement = {
-        bind(...values: unknown[]) {
-          bound = values;
-          return statement;
-        },
-        async first<T>() {
-          return (db.prepare(sql).get(...(bound as never[])) as T) ?? null;
-        },
-        async all<T>() {
-          return { results: db.prepare(sql).all(...(bound as never[])) as T[] };
-        },
-        async run() {
-          return db.prepare(sql).run(...(bound as never[]));
-        },
-      };
-      return statement;
-    },
-  };
-}
 
 const NOW = 1_800_000_000;
 const SESSION_TOKEN = "s".repeat(48);
@@ -62,11 +35,7 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 before(async () => {
-  db = new DatabaseSync(":memory:");
-  const dir = join(root, "db", "migrations");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
-    db.exec(readFileSync(join(dir, file), "utf8"));
-  }
+  db = migratedDatabase();
   sql = adapt(db);
 
   db.exec(`
