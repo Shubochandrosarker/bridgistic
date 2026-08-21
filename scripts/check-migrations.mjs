@@ -118,8 +118,37 @@ function applyAll(db, label) {
     // 3. Nobody silently gains or loses access.
     check(
       "granted scopes are unchanged",
-      "SELECT COUNT(*) FROM sites s JOIN tenants t ON t.id = s.id WHERE s.scopes_granted = t.scopes",
+      "SELECT COUNT(*) FROM sites s JOIN tenants t ON t.id = s.id WHERE s.key_scopes = t.scopes",
       2
+    );
+    // BR-010. The rename is only safe if the backfill leaves every migrated
+    // site holding exactly the scopes it held before. A migrated site has a
+    // key ceiling and no grant rows; once the executor intersects four terms
+    // instead of three, an empty grants table silently revokes everything on
+    // every migrated site at once.
+    check(
+      "every migrated site got grants matching its key ceiling",
+      `SELECT COUNT(*) FROM sites s
+       WHERE (SELECT COUNT(*) FROM json_each(s.key_scopes))
+           = (SELECT COUNT(*) FROM site_scope_grants g WHERE g.site_id = s.id)`,
+      2
+    );
+    check(
+      "the backfill is attributed to the system, not to an invented person",
+      "SELECT COUNT(DISTINCT granted_by) FROM site_scope_grants",
+      1
+    );
+    check(
+      "effective scope equals the key ceiling immediately after migration",
+      `SELECT COUNT(*) FROM sites s
+       WHERE (SELECT COUNT(*) FROM json_each(s.key_scopes))
+           = (SELECT COUNT(*) FROM site_effective_scopes e WHERE e.site_id = s.id)`,
+      2
+    );
+    check(
+      "the backfill is idempotent — running it twice grants nothing twice",
+      "SELECT COUNT(*) FROM site_scope_grants",
+      3
     );
     check(
       "the legacy table is kept as the rollback path",
@@ -162,10 +191,14 @@ function applyAll(db, label) {
   db.exec("PRAGMA foreign_keys = ON");
   const now = 1_750_000_000;
   db.exec(`
-    INSERT INTO organizations VALUES ('org_1','Acme','acme',NULL,${now},${now});
-    INSERT INTO users VALUES ('usr_1','a@example.com','A',${now},NULL);
-    INSERT INTO memberships VALUES ('org_1','usr_1','owner',${now});
-    INSERT INTO sites VALUES ('site_1','org_1','https://acme.example',NULL,'wpk_1','enc',1,'[]','unknown',NULL,${now},NULL);
+    INSERT INTO organizations (id,name,slug,wpistic_org_id,created_at,updated_at)
+      VALUES ('org_1','Acme','acme',NULL,${now},${now});
+    INSERT INTO users (id,email,name,created_at,last_seen_at)
+      VALUES ('usr_1','a@example.com','A',${now},NULL);
+    INSERT INTO memberships (organization_id,user_id,role,created_at)
+      VALUES ('org_1','usr_1','owner',${now});
+    INSERT INTO sites (id,organization_id,site_url,label,key_id,key_secret_enc,enc_key_version,key_scopes,health,plugin_version,created_at,last_seen_at)
+      VALUES ('site_1','org_1','https://acme.example',NULL,'wpk_1','enc',1,'[]','unknown',NULL,${now},NULL);
   `);
 
   const rejects = (label, sql) => {
@@ -184,16 +217,51 @@ function applyAll(db, label) {
   );
   rejects(
     "an unknown membership role is rejected",
-    `INSERT INTO memberships VALUES ('org_1','usr_1','superuser',${now})`
+    `INSERT INTO memberships (organization_id,user_id,role,created_at) VALUES ('org_1','usr_1','superuser',${now})`
   );
   rejects(
     "a second site cannot claim the same URL",
-    `INSERT INTO sites VALUES ('site_2','org_1','https://acme.example',NULL,'wpk_2','enc',1,'[]','unknown',NULL,${now},NULL)`
+    `INSERT INTO sites (id,organization_id,site_url,label,key_id,key_secret_enc,enc_key_version,key_scopes,health,plugin_version,created_at,last_seen_at)
+     VALUES ('site_2','org_1','https://acme.example',NULL,'wpk_2','enc',1,'[]','unknown',NULL,${now},NULL)`
+  );
+  rejects(
+    "an API key cannot be minted with a role that needs step-up",
+    // A key has nobody to challenge. Letting one hold `admin` or `approver`
+    // would mean a gate that depends on a person is held by something that
+    // is not one.
+    `INSERT INTO api_keys (id,organization_id,prefix,key_hash,label,created_by,created_at,role,environment)
+     VALUES ('key_1','org_1','brg_live_aaa','hash','k','usr_1',${now},'admin','live')`
+  );
+  rejects(
+    "a session cannot expire before it was created",
+    `INSERT INTO sessions (id,user_id,organization_id,token_hash,created_at,expires_at)
+     VALUES ('ses_1','usr_1','org_1','h',${now},${now - 1})`
+  );
+  rejects(
+    "a site connection cannot be created in an unknown state",
+    `INSERT INTO site_connections (id,organization_id,site_url,challenge_hash,state,created_by,created_at,expires_at)
+     VALUES ('con_1','org_1','https://x.example','h','probably','usr_1',${now},${now + 600})`
+  );
+  rejects(
+    "a user cannot be created in an unknown status",
+    `INSERT INTO users (id,email,name,created_at,status)
+     VALUES ('usr_9','z@example.com','Z',${now},'pending-ish')`
   );
   rejects(
     "an unknown action outcome is rejected",
     `INSERT INTO action_log (id,organization_id,site_id,actor_type,actor_id,tool,request_digest,outcome,duration_ms,created_at)
      VALUES ('act_1','org_1','site_1','user','usr_1','bridgistic_list_posts','deadbeef','maybe',5,${now})`
+  );
+
+  // Exactly one live credential per site is a database rule, not something
+  // application code has to remember. Rotation writes a new row and retires
+  // the old one; two live rows would mean two valid signing keys at once.
+  db.exec(`INSERT INTO site_credentials (site_id,version,key_id,key_secret_enc,created_at,retired_at)
+           VALUES ('site_1',1,'wpk_1','enc1',${now},NULL)`);
+  rejects(
+    "a site cannot have two live credential versions",
+    `INSERT INTO site_credentials (site_id,version,key_id,key_secret_enc,created_at,retired_at)
+     VALUES ('site_1',2,'wpk_2','enc2',${now},NULL)`
   );
 
   db.exec(`

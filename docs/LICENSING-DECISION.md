@@ -3,6 +3,42 @@
 This is flagged rather than decided, because it is the owner's call and because
 getting it wrong is expensive to undo.
 
+## Update, Phase 3 — two things have changed since this was written
+
+This document was written during the Phase 0 scaffold and said the visibility
+flip had to happen **before Phase 1 starts**. Phases 1 through 3 have since
+landed. Two facts are now true that the text below assumes are not, and both
+raise the cost of Option A.
+
+**1. `package.json` and `LICENSE` disagree.** `package.json` declared
+`"license": "UNLICENSED"` while `LICENSE` is the GPL-2.0-or-later text. A
+recipient of a public repository relies on the LICENSE file, so the metadata was
+simply wrong; it now says `GPL-2.0-or-later` to match. That records what this
+repository already is. **It does not decide what it should be** — if the answer
+is proprietary, both change together, along with point 2.
+
+**2. Five platform files are derived from the GPL engine.** They carry a
+`Ported from…` header naming the source:
+
+| File | Ported from |
+|---|---|
+| `packages/crypto/src/envelope.ts` | `cloud/src/crypto.ts` |
+| `packages/identity/src/pkce.ts` | `cloud/src/pkce.ts` |
+| `packages/url-guard/src/url.ts` | `cloud/src/url-guard.ts` |
+| `packages/wp-client/src/client.ts` | `cloud/src/services/wp-client.ts` |
+| `packages/wp-client/src/signer.ts` | `cloud/src/services/signer.ts` |
+
+The engine is `GPL-2.0-or-later`. Derived work carries the same terms, so these
+five are GPL regardless of what this repository declares. Under Option A they
+would have to be removed, independently rewritten, or accepted as keeping the
+platform GPL. `packages/wp-client/src/signer.ts` is the awkward one: it must
+match the plugin's HMAC canonicalisation byte for byte, and a rewrite that
+avoided the original would still have to produce the same bytes.
+
+None of this is an argument for either option. It is the part of the bill that
+was not on the table when the recommendation below was made, and it grows with
+every phase that ports more.
+
 ## The situation
 
 - `LICENSE` in this repository is **GPL-2.0-or-later**, inherited from when the

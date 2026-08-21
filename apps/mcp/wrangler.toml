@@ -3,53 +3,87 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# No top-level routes or bindings. See the note in apps/api/wrangler.toml —
+# a bare `wrangler deploy` must not be able to reach a customer (BR-001).
+#
+# One Durable Object per active MCP session — carried over from the free repo's
+# BridgisticMcpAgent, not rewritten. The binding and its [[migrations]] entry
+# are commented out until `cloud/src/agent.ts` is imported in Phase 1:
+# declaring a Durable Object class the entrypoint does not export makes
+# `wrangler deploy` fail outright, so they are uncommented in the SAME commit
+# that adds the export. See docs/MIGRATION-PHASE-0.md.
+#
+# The USAGE_COUNTER cross-script binding to `bridgistic-api` is likewise
+# commented out until that Worker has been deployed once in the same
+# environment — a cross-script binding to a Worker that does not exist fails
+# to deploy.
+
+# ---------------------------------------------------------------- staging ---
+[env.staging]
+name = "bridgistic-mcp-staging"
+routes = [
+  { pattern = "staging.bridgistic.app/mcp*", zone_name = "bridgistic.app" }
+]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+BILLING_MODE = "FREE_ONLY"
+
+# [[env.staging.durable_objects.bindings]]
+# name = "MCP_OBJECT"
+# class_name = "BridgisticMcpAgent"
+#
+# [[env.staging.durable_objects.bindings]]
+# name = "USAGE_COUNTER"
+# class_name = "UsageCounter"
+# script_name = "bridgistic-api-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app-staging"
+database_id = "$CLOUDFLARE_D1_ID_STAGING"
+
+[[env.staging.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "$CLOUDFLARE_KV_OAUTH_STAGING"
+
+# ------------------------------------------------------------- production ---
+[env.production]
+name = "bridgistic-mcp"
 # The one URL customers paste:  https://bridgistic.app/mcp
-# `mcp.wpistic.cloud` keeps routing to the free repo's Worker until Phase 7
+# `mcp.wpistic.cloud` keeps routing to the free repo's Worker until Phase 8
 # cuts over, so an existing beta connection is never broken by a deploy here.
 routes = [
   { pattern = "bridgistic.app/mcp*", zone_name = "bridgistic.app" }
 ]
 
-# One Durable Object per active MCP session — carried over from the free repo's
-# BridgisticMcpAgent, not rewritten.
-#
-# Commented out until `cloud/src/agent.ts` is migrated in (phase 0). Declaring a
-# Durable Object class the entrypoint does not export makes `wrangler deploy`
-# fail outright, so this is uncommented in the SAME commit that adds the export.
-# See docs/MIGRATION-PHASE-0.md.
-#
-# [[durable_objects.bindings]]
+[env.production.vars]
+ENVIRONMENT = "production"
+BILLING_MODE = "FREE_ONLY"
+
+# [[env.production.durable_objects.bindings]]
 # name = "MCP_OBJECT"
 # class_name = "BridgisticMcpAgent"
 #
-# [[migrations]]
-# tag = "v1"
-# new_sqlite_classes = ["BridgisticMcpAgent"]
-
-# The serialised per-(org, month) action counter. A Durable Object, NOT KV:
-# KV read-then-write is per-colo approximate and inadequate for billing. The
-# class lives in `bridgistic-api`; this is a cross-script binding, so nothing is
-# exported here.
-#
-# Uncommented once `bridgistic-api` has been deployed at least once — a
-# cross-script binding to a Worker that does not exist yet fails to deploy.
-#
-# [[durable_objects.bindings]]
+# [[env.production.durable_objects.bindings]]
 # name = "USAGE_COUNTER"
 # class_name = "UsageCounter"
 # script_name = "bridgistic-api"
 
-[[d1_databases]]
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "bridgistic-app"
-database_id = "REPLACE_ME"   # `wrangler d1 create bridgistic-app`
+database_id = "$CLOUDFLARE_D1_ID_PRODUCTION"
 
-[[kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "OAUTH_KV"
-id = "REPLACE_ME"            # `wrangler kv namespace create OAUTH_KV`
+id = "$CLOUDFLARE_KV_OAUTH_PRODUCTION"
 
-# Secrets — never committed, set with `wrangler secret put <NAME>`:
+# [[migrations]]
+# tag = "v1"
+# new_sqlite_classes = ["BridgisticMcpAgent"]
+
+# Secrets — set per environment with
+# `wrangler secret put <NAME> --env <staging|production>`:
 #   TENANT_ENC_KEY   openssl rand -base64 32
-#                    Rotating this does NOT migrate rows. Run the decrypt-all /
-#                    re-encrypt walk in docs/KEY-ROTATION.md first, or every
-#                    connected site is locked out at once.
+#                    See docs/KEY-ROTATION.md before rotating.

@@ -55,7 +55,11 @@ export const PLANS: Readonly<Record<PlanId, PlanDefinition>> = {
     snapshotRetentionDays: 7,
     auditRetentionDays: 30,
     teamSeats: 1,
-    scopeClasses: ["read"],
+    // BR-002: Free holds safe_read ONLY. It does not get `fs:read`
+    // (wp-config.php), `db:read`, `users:read`, `options:read`, or the
+    // WooCommerce order/customer reads. An unverified free signup must not be
+    // able to read a connected site's credentials or its customer list.
+    scopeClasses: ["safe_read"],
     whiteLabel: false,
   },
   starter: {
@@ -70,7 +74,7 @@ export const PLANS: Readonly<Record<PlanId, PlanDefinition>> = {
     snapshotRetentionDays: 30,
     auditRetentionDays: 90,
     teamSeats: 1,
-    scopeClasses: ["read", "content_write", "operational"],
+    scopeClasses: ["safe_read", "sensitive_read", "content_write", "operational"],
     whiteLabel: false,
   },
   agency: {
@@ -85,7 +89,19 @@ export const PLANS: Readonly<Record<PlanId, PlanDefinition>> = {
     snapshotRetentionDays: 90,
     auditRetentionDays: 365,
     teamSeats: 5,
-    scopeClasses: ["read", "content_write", "operational", "destructive"],
+    // `code_execution` is on Agency because the published catalogue puts it
+    // there. Moving it to Scale would be a pricing decision, not a security
+    // fix, and is not one to make in a hardening pass. The control that makes
+    // it safe is the per-site opt-in in SECURITY_MODEL.md §3, not the price.
+    scopeClasses: [
+      "safe_read",
+      "sensitive_read",
+      "content_write",
+      "operational",
+      "destructive",
+      "credential",
+      "code_execution",
+    ],
     whiteLabel: false,
   },
   scale: {
@@ -100,7 +116,15 @@ export const PLANS: Readonly<Record<PlanId, PlanDefinition>> = {
     snapshotRetentionDays: 365,
     auditRetentionDays: 730,
     teamSeats: null,
-    scopeClasses: ["read", "content_write", "operational", "destructive"],
+    scopeClasses: [
+      "safe_read",
+      "sensitive_read",
+      "content_write",
+      "operational",
+      "destructive",
+      "credential",
+      "code_execution",
+    ],
     whiteLabel: true,
   },
 } as const;

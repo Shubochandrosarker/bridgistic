@@ -1,6 +1,6 @@
 name: Deploy
 
-# Deploys are manual until the four hard gates in docs/HARD-GATES.md are green.
+# Deploys are manual until the Level 3 gates in RELEASE_GATES.md are green.
 # A platform that holds a root-equivalent credential for every connected site
 # does not get a push-to-deploy pipeline before it has been reviewed.
 on:
@@ -18,10 +18,17 @@ on:
         type: choice
         options: [staging, production]
 
+# One deploy per (app, environment) at a time. Two concurrent deploys of the
+# same Worker race on the Durable Object migration tag.
+concurrency:
+  group: deploy-${{ inputs.app }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy ${{ inputs.app }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    # Requires the GitHub environment's protection rules (reviewers, secrets).
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
@@ -30,11 +37,56 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run lint:sql
-      - name: Deploy
-        run: npx wrangler deploy --config apps/${{ inputs.app }}/wrangler.toml
+
+      # Level 1 gates, re-run on the exact commit being deployed. A green CI
+      # run on an older commit is not evidence about this one.
+      - run: npm run verify
+
+      # BR-001: the environment chosen in the UI has to be the environment
+      # Wrangler receives. It previously was not, and nothing failed.
+      - name: Assert the workflow passes the selected environment to Wrangler
+        run: node scripts/check-deploy-env.mjs
+
+      - name: Confirm required secrets are present for this environment
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            eval "value=\${$name}"
+            if [ -z "$value" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets for ${{ inputs.environment }}:$missing"
+            exit 1
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Dry run against the SAME --env the real deploy uses. This resolves
+      # every binding; a missing D1 id or an unexported Durable Object class
+      # fails here rather than half-way through a production rollout.
+      - name: Dry run
+        run: >-
+          npx wrangler deploy --dry-run
+          --env ${{ inputs.environment }}
+          --config apps/${{ inputs.app }}/wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_ID_STAGING: ${{ secrets.CLOUDFLARE_D1_ID_STAGING }}
+          CLOUDFLARE_D1_ID_PRODUCTION: ${{ secrets.CLOUDFLARE_D1_ID_PRODUCTION }}
+          CLOUDFLARE_KV_OAUTH_STAGING: ${{ secrets.CLOUDFLARE_KV_OAUTH_STAGING }}
+          CLOUDFLARE_KV_OAUTH_PRODUCTION: ${{ secrets.CLOUDFLARE_KV_OAUTH_PRODUCTION }}
+
+      - name: Deploy
+        run: >-
+          npx wrangler deploy
+          --env ${{ inputs.environment }}
+          --config apps/${{ inputs.app }}/wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_ID_STAGING: ${{ secrets.CLOUDFLARE_D1_ID_STAGING }}
+          CLOUDFLARE_D1_ID_PRODUCTION: ${{ secrets.CLOUDFLARE_D1_ID_PRODUCTION }}
+          CLOUDFLARE_KV_OAUTH_STAGING: ${{ secrets.CLOUDFLARE_KV_OAUTH_STAGING }}
+          CLOUDFLARE_KV_OAUTH_PRODUCTION: ${{ secrets.CLOUDFLARE_KV_OAUTH_PRODUCTION }}

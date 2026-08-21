@@ -16,14 +16,27 @@
  * inadequate as a billing-grade counter", and it is right.
  */
 
-import type { ActionOutcome } from "@bridgistic/types";
-import { toolClass, effectiveToolClass } from "./catalog.ts";
+import type { ActionOutcome, ScopeClass } from "@bridgistic/types";
+import { operationClass, effectiveToolClass } from "./catalog.ts";
 
-export const ACTION_WEIGHTS = {
-  read: 1,
+/**
+ * Cost in actions, by risk class. The shape mirrors SCOPE_CLASSES exactly — a
+ * class added there without a weight here is a compile error, which is the
+ * point: an unpriced class would meter as `undefined` and bill as NaN.
+ */
+export const ACTION_WEIGHTS: Readonly<Record<ScopeClass, number>> & { readonly local: 0 } = {
+  safe_read: 1,
+  /**
+   * A sensitive read costs more than a safe one because it is worth more to
+   * the person taking it. Pricing exfiltration at the same rate as fetching a
+   * post list gives an attacker a quota, not a deterrent.
+   */
+  sensitive_read: 2,
   content_write: 2,
   operational: 2,
   destructive: 5,
+  credential: 5,
+  code_execution: 5,
   /** Platform-local tools (e.g. listing sites) never touch a site. */
   local: 0,
 } as const;
@@ -54,7 +67,7 @@ export function actionsConsumed(
     case "failed":
       return FAILED_CALL_WEIGHT;
     case "success": {
-      const cls = grantedScopes ? effectiveToolClass(tool, grantedScopes) : toolClass(tool);
+      const cls = grantedScopes ? effectiveToolClass(tool, grantedScopes) : operationClass(tool);
       return cls === null ? ACTION_WEIGHTS.local : ACTION_WEIGHTS[cls];
     }
   }

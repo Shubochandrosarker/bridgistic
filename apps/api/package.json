@@ -6,11 +6,17 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.ts"
   },
   "dependencies": {
     "@bridgistic/types": "*",
     "@bridgistic/tools": "*",
+    "@bridgistic/contracts": "*",
+    "@bridgistic/identity": "*",
+    "@bridgistic/crypto": "*",
+    "@bridgistic/observability": "*",
+    "@bridgistic/url-guard": "*",
     "@bridgistic/wp-client": "*"
   }
 }

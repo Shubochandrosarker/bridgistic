@@ -113,6 +113,12 @@ export async function callBridge<T = unknown>(
       signal: controller.signal,
     });
   } catch (err) {
+    // A caller-supplied `fetchImpl` may itself refuse a response — the hosted
+    // transport refuses redirects and oversized bodies that way. Those already
+    // carry an accurate classification, and re-labelling them "network" would
+    // tell the executor we never reached the site, so a call the site really
+    // answered would go unbilled and be reported as an outage.
+    if (err instanceof BridgeRequestError) throw err;
     if (err instanceof Error && err.name === "AbortError") {
       throw new BridgeRequestError(
         `Request to ${conn.alias} timed out after ${timeoutMs}ms.`,

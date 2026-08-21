@@ -4,7 +4,7 @@
   "private": true,
   "description": "bridgistic.app — hosted, multi-tenant WordPress MCP platform with a managed cloud scheduler.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "GPL-2.0-or-later",
   "workspaces": [
     "packages/*",
     "apps/mcp",
@@ -14,9 +14,15 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "test:packages": "npm run test --workspace packages/types --workspace packages/tools --workspace packages/wp-client --workspace packages/scheduler-core",
+    "test:packages": "npm run test --workspace packages/types --workspace packages/tools --workspace packages/contracts --workspace packages/identity --workspace packages/crypto --workspace packages/observability --workspace packages/url-guard --workspace packages/wp-client --workspace packages/scheduler-core",
     "lint:sql": "node scripts/check-migrations.mjs",
-    "verify": "npm run lint:sql && npm run typecheck && npm test"
+    "verify": "npm run lint:sql && npm run check:placeholders && npm run check:deploy-env && npm run check:engine-pin && npm run check:tool-drift && npm run check:plugin-routes && npm run typecheck && npm test",
+    "check:placeholders": "node scripts/check-placeholders.mjs",
+    "check:deploy-env": "node scripts/check-deploy-env.mjs",
+    "check:engine-pin": "node scripts/check-engine-pin.mjs",
+    "check:tool-drift": "node scripts/check-tool-drift.mjs",
+    "check:plugin-routes": "node scripts/check-plugin-routes.mjs",
+    "check:secrets": "gitleaks dir . --config .gitleaks.toml --no-banner || echo \"gitleaks not installed locally; CI runs it\""
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260815.1",

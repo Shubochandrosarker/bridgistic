@@ -56,7 +56,7 @@ export default {
     return new Response(
       JSON.stringify({
         error: "not_implemented",
-        message: "The hosted MCP endpoint lands in phase 0 by migrating cloud/src. See docs/MIGRATION-PHASE-0.md.",
+        message: "The hosted MCP endpoint lands in phase 1 by importing cloud/src. See docs/MIGRATION-PHASE-0.md and IMPLEMENTATION_PLAN.md.",
       }),
       { status: 501, headers }
     );

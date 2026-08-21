@@ -9,7 +9,7 @@
 --        LEFT JOIN sites s ON s.id = t.id
 --        WHERE s.id IS NULL
 --           OR s.key_secret_enc <> t.key_secret_enc
---           OR s.scopes_granted <> t.scopes;      -- must be 0
+--           OR s.key_scopes <> t.scopes;      -- must be 0
 --
 --   2. Every previously-connected site has made at least one successful signed
 --      call since the backfill ran:

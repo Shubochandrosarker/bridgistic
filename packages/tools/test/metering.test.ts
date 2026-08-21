@@ -15,7 +15,7 @@ test("a call that reached the site and failed still costs the read rate", () => 
 });
 
 test("writes cost more than reads because they cost us more", () => {
-  assert.equal(actionsConsumed("bridgistic_list_posts", "success"), ACTION_WEIGHTS.read);
+  assert.equal(actionsConsumed("bridgistic_list_posts", "success"), ACTION_WEIGHTS.safe_read);
   assert.equal(actionsConsumed("bridgistic_create_post", "success"), ACTION_WEIGHTS.content_write);
   assert.equal(actionsConsumed("bridgistic_update_option", "success"), ACTION_WEIGHTS.operational);
   assert.equal(actionsConsumed("bridgistic_execute_php", "success"), ACTION_WEIGHTS.destructive);
@@ -26,9 +26,21 @@ test("a platform-local tool is free", () => {
 });
 
 test("a SELECT on a read-only key is priced as a read, not as a destructive write", () => {
-  assert.equal(actionsConsumed("bridgistic_db_query", "success", planScopes("free")), ACTION_WEIGHTS.read);
+  // Starter is the cheapest plan that holds `db:read` at all — BR-002 took the
+  // sensitive reads off Free — so it is the plan that exercises this path.
+  assert.equal(
+    actionsConsumed("bridgistic_db_query", "success", ["db:read"]),
+    ACTION_WEIGHTS.sensitive_read
+  );
   assert.equal(actionsConsumed("bridgistic_db_query", "success", planScopes("agency")), ACTION_WEIGHTS.destructive);
   assert.equal(actionsConsumed("bridgistic_db_query", "success"), ACTION_WEIGHTS.destructive, "worst case when unknown");
+});
+
+test("a sensitive read costs more than a safe one", () => {
+  assert.ok(
+    ACTION_WEIGHTS.sensitive_read > ACTION_WEIGHTS.safe_read,
+    "pricing exfiltration at the safe-read rate hands an attacker a quota rather than a deterrent"
+  );
 });
 
 test("quota soft-limits at 80% and hard-limits at 100%", () => {

@@ -9,6 +9,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   packages:
     name: Packages — typecheck + tests
@@ -40,6 +43,58 @@ jobs:
       # execute` does — on tables nobody can afford to get wrong twice.
       - run: npm run lint:sql
 
+  hygiene:
+    name: Hygiene — placeholders, deploy env, engine pin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # No REPLACE_ME, no unfinished throw, no undeclared 501 on a path that
+      # can be deployed.
+      - run: npm run check:placeholders
+      # BR-001: the environment selected in the deploy UI must be the one
+      # Wrangler receives, and there must be no top-level config to fall back to.
+      - run: npm run check:deploy-env
+      # The external engine import is reproducible only if its commit is pinned.
+      - run: npm run check:engine-pin
+      # Contracts here vs tools in the pinned engine. Offline: compares against
+      # engine-manifest.json, generated at pin time and committed.
+      - run: npm run check:tool-drift
+      # BR-019: every tool's route and method must be one the plugin registers.
+      # Offline: compares against plugin-routes.json, generated at pin time.
+      - run: npm run check:plugin-routes
+
+  secrets:
+    name: Secrets — nothing committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs history to scan the commits a PR introduces, not
+          # only the tree at its head. A secret added and then removed in the
+          # same branch is still a leaked secret.
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    name: Dependencies — no high or critical advisory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --audit-level=high
+
   workers:
     name: Workers — wrangler config is valid
     runs-on: ubuntu-latest
@@ -47,6 +102,10 @@ jobs:
       fail-fast: false
       matrix:
         app: [mcp, api, scheduler]
+        # Both environments are validated. Validating only one lets a binding
+        # that exists in staging and not in production pass CI and fail at
+        # deploy time, on the environment where failing costs the most.
+        environment: [staging, production]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,8 +114,19 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       # `--dry-run` builds and validates bindings without deploying and without
-      # needing an API token.
-      # A binding declared in wrangler.toml but not exported from the entrypoint
-      # fails `deploy` outright, so this catches it at PR time rather than at
-      # deploy time. The `database_id` placeholders do not affect a dry run.
-      - run: npx wrangler deploy --dry-run --config apps/${{ matrix.app }}/wrangler.toml
+      # needing an API token. A binding declared in wrangler.toml but not
+      # exported from the entrypoint fails `deploy` outright, so this catches it
+      # at PR time rather than at deploy time.
+      #
+      # The id variables are placeholders here on purpose: a dry run resolves
+      # the shape of a binding, not the resource behind it, and CI has no
+      # business holding production resource ids.
+      - run: >-
+          npx wrangler deploy --dry-run
+          --env ${{ matrix.environment }}
+          --config apps/${{ matrix.app }}/wrangler.toml
+        env:
+          CLOUDFLARE_D1_ID_STAGING: 00000000-0000-0000-0000-000000000000
+          CLOUDFLARE_D1_ID_PRODUCTION: 00000000-0000-0000-0000-000000000000
+          CLOUDFLARE_KV_OAUTH_STAGING: '00000000000000000000000000000000'
+          CLOUDFLARE_KV_OAUTH_PRODUCTION: '00000000000000000000000000000000'
