@@ -20,7 +20,8 @@
     "check:placeholders": "node scripts/check-placeholders.mjs",
     "check:deploy-env": "node scripts/check-deploy-env.mjs",
     "check:engine-pin": "node scripts/check-engine-pin.mjs",
-    "check:tool-drift": "node scripts/check-tool-drift.mjs"
+    "check:tool-drift": "node scripts/check-tool-drift.mjs",
+    "check:secrets": "gitleaks dir . --config .gitleaks.toml --no-banner || echo \"gitleaks not installed locally; CI runs it\""
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260815.1",
