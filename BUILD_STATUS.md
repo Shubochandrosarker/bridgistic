@@ -18,7 +18,7 @@ owned by this build.
 | 0 | Repository and release hardening | **done** |
 | 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | **in progress** — scope model, RBAC, keys, sessions, schema, OAuth/PKCE, connection state machine. Engine import remaining |
-| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and all four real ports done (D1 idempotency, DO metering, signed transport); composition into a wired executor remains |
+| 3 | Shared ActionExecutor | **in progress** — pipeline, policy and six of seven real ports done (idempotency, metering, transport, audit, approvals; snapshots and the concurrency lock remain, then composition) |
 | 4 | Metering and entitlements | **in progress** — UsageCounter hardened (BR-004 closed); Stripe adapter and export remain |
 | 5 | Scheduler and asynchronous execution | not started |
 | 6 | Dashboard | not started |
@@ -39,7 +39,7 @@ Run with `npm run verify`.
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 23 pass |
-| `apps/api` (isolation, auth, meter, idempotency, transport) | 77 pass |
+| `apps/api` (isolation, auth, meter, idempotency, transport, ports) | 91 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
 | `scripts/check-migrations.mjs` | 8 migrations + 2 legacy, 25 assertions |
@@ -49,7 +49,7 @@ Run with `npm run verify`.
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **339 pass, 0 fail** |
+| **Total unit tests** | **353 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002

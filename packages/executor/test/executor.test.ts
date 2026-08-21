@@ -24,8 +24,9 @@ interface Harness {
   executor: ActionExecutor;
   audit: AuditEntry[];
   reserved: { id: string; cost: number }[];
-  settledReservations: { id: string; actual: number }[];
+  settledReservations: { id: string; actual: number; organizationId: string }[];
   releasedReservations: string[];
+  releasedOrganizations: string[];
   claims: { key: string; state: string }[];
   snapshots: number;
   approvals: number;
@@ -41,8 +42,9 @@ function harness(overrides: {
 } = {}): Harness {
   const audit: AuditEntry[] = [];
   const reserved: { id: string; cost: number }[] = [];
-  const settledReservations: { id: string; actual: number }[] = [];
+  const settledReservations: { id: string; actual: number; organizationId: string }[] = [];
   const releasedReservations: string[] = [];
+  const releasedOrganizations: string[] = [];
   const claims: { key: string; state: string }[] = [];
   const locksHeld: string[] = [];
   const locksReleased: string[] = [];
@@ -66,11 +68,12 @@ function harness(overrides: {
         reserved.push(reservation);
         return { admitted: true, reservation };
       },
-      async settle(id, actual) {
-        settledReservations.push({ id, actual });
+      async settle({ organizationId, reservationId, actual }) {
+        settledReservations.push({ id: reservationId, actual, organizationId });
       },
-      async release(id) {
-        releasedReservations.push(id);
+      async release({ organizationId, reservationId }) {
+        releasedReservations.push(reservationId);
+        releasedOrganizations.push(organizationId);
       },
     },
     approvals: {
@@ -115,6 +118,7 @@ function harness(overrides: {
     reserved,
     settledReservations,
     releasedReservations,
+    releasedOrganizations,
     claims,
     get snapshots() {
       return snapshots;
@@ -160,7 +164,7 @@ test("a permitted read runs, settles its reservation and is audited", async () =
 
   assert.equal(result.ok, true);
   assert.equal(h.reserved.length, 1);
-  assert.deepEqual(h.settledReservations, [{ id: "res_1", actual: 1 }]);
+  assert.deepEqual(h.settledReservations, [{ id: "res_1", actual: 1, organizationId: "org_1" }]);
   assert.deepEqual(h.releasedReservations, []);
   assert.equal(h.audit[0]!.outcome, "success");
   assert.equal(h.audit[0]!.requestDigest.length, 64, "the digest is recorded, not the arguments");
@@ -380,7 +384,7 @@ test("a site that answered and failed is charged at the read rate", async () => 
   const result = await h.executor.execute(request());
 
   assert.equal(result.ok === false && result.error, "site_error");
-  assert.deepEqual(h.settledReservations, [{ id: "res_1", actual: 1 }]);
+  assert.deepEqual(h.settledReservations, [{ id: "res_1", actual: 1, organizationId: "org_1" }]);
   assert.equal(h.audit[0]!.outcome, "failed");
 });
 

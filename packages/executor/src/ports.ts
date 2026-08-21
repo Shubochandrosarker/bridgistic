@@ -73,10 +73,18 @@ export interface MeteringStore {
     cost: number;
     idempotencyKey: string;
   }): Promise<AdmissionOutcome>;
-  /** The call finished. `actual` may be lower than reserved. */
-  settle(reservationId: string, actual: number): Promise<void>;
+  /**
+   * The call finished. `actual` may be lower than reserved.
+   *
+   * The organization is passed rather than recovered from the reservation id.
+   * A store may shard per organization — the Durable Object one does — and an
+   * adapter that had to remember which shard issued which id would be holding
+   * state between two calls that can be separated by a crash. Explicit here
+   * costs one field; implicit costs a leaked reservation.
+   */
+  settle(input: { organizationId: string; reservationId: string; actual: number }): Promise<void>;
   /** The call never happened. Costs nothing. */
-  release(reservationId: string): Promise<void>;
+  release(input: { organizationId: string; reservationId: string }): Promise<void>;
 }
 
 // --------------------------------------------------------------- approvals --
@@ -92,9 +100,18 @@ export interface ApprovalStore {
    */
   request(input: {
     organizationId: string;
+    /**
+     * Approval-gated classes are destructive and code_execution, and both act
+     * on a site. A null site here is a caller that reached the gate by a path
+     * that should not exist, and the store refuses it rather than recording an
+     * approval nobody can act on.
+     */
     siteId: string | null;
     actorId: string;
+    actorType: "user" | "api_key" | "service_account" | "scheduler" | "system";
     tool: string;
+    /** The scope being asked for, so the approval screen can name it. */
+    scopeRequested: string;
     requestHash: string;
     summary: string;
   }): Promise<string>;

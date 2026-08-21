@@ -27,7 +27,7 @@
  * ends.
  */
 
-import { assertCallable } from "@bridgistic/contracts";
+import { assertCallable, contractFor } from "@bridgistic/contracts";
 import type { CallerContext, ToolContract, ErrorCode } from "@bridgistic/contracts";
 import { requestDigest, actionsConsumed, FAILED_CALL_WEIGHT } from "@bridgistic/tools";
 import { snapshotOperationClass } from "@bridgistic/types";
@@ -220,7 +220,7 @@ export class ActionExecutor {
       if (request.siteId !== null && !dryRun) {
         releaseLock = await this.#ports.locks.acquire(`site:${request.siteId}`, contract.timeoutMs + 5_000);
         if (releaseLock === null) {
-          await this.#release(reservation);
+          await this.#release(request.caller.organizationId, reservation);
           reservation = null;
           await this.#settleClaim(idempotencyKey, "failed");
           return this.#deny(
@@ -267,7 +267,11 @@ export class ActionExecutor {
 
       if (result.ok) {
         // --- 8. Settle ------------------------------------------------------
-        if (reservation) await this.#ports.metering.settle(reservation.id, reservation.cost);
+        if (reservation) await this.#ports.metering.settle({
+            organizationId: request.caller.organizationId,
+            reservationId: reservation.id,
+            actual: reservation.cost,
+          });
         settled = true;
         await this.#settleClaim(idempotencyKey, "succeeded", result.data);
 
@@ -305,8 +309,18 @@ export class ActionExecutor {
       const charged = reachedSite ? FAILED_CALL_WEIGHT : 0;
 
       if (reservation) {
-        if (charged > 0) await this.#ports.metering.settle(reservation.id, charged);
-        else await this.#ports.metering.release(reservation.id);
+        if (charged > 0) {
+          await this.#ports.metering.settle({
+            organizationId: request.caller.organizationId,
+            reservationId: reservation.id,
+            actual: charged,
+          });
+        } else {
+          await this.#ports.metering.release({
+            organizationId: request.caller.organizationId,
+            reservationId: reservation.id,
+          });
+        }
       }
       settled = true;
       await this.#settleClaim(idempotencyKey, "failed");
@@ -344,7 +358,7 @@ export class ActionExecutor {
       // The reservation is released rather than settled: we do not know
       // whether the site was reached, and charging for a call we cannot
       // account for is the wrong side to err on.
-      if (reservation && !settled) await this.#release(reservation);
+      if (reservation && !settled) await this.#release(request.caller.organizationId, reservation);
       await this.#settleClaim(idempotencyKey, "failed");
 
       log.error("executor threw", error, { outcome: "failed" });
@@ -370,7 +384,11 @@ export class ActionExecutor {
       organizationId: request.caller.organizationId,
       siteId: request.siteId,
       actorId: request.caller.actorId,
+      actorType: request.caller.actorType,
       tool: request.tool,
+      // The conjunction, recorded as it was asked for. An approver reading
+      // "db:write" needs to see every scope the call will use, not the first.
+      scopeRequested: (contractFor(request.tool)?.requiredScopes ?? []).join(" "),
       requestHash: digest,
       // What is about to happen, not the arguments. An approver needs to know
       // "run SQL against this site"; the statement itself would put customer
@@ -443,8 +461,12 @@ export class ActionExecutor {
     };
   }
 
-  async #release(reservation: Reservation | null): Promise<void> {
-    if (reservation) await this.#ports.metering.release(reservation.id).catch(() => undefined);
+  async #release(organizationId: string, reservation: Reservation | null): Promise<void> {
+    if (reservation) {
+      await this.#ports.metering
+        .release({ organizationId, reservationId: reservation.id })
+        .catch(() => undefined);
+    }
   }
 
   async #settleClaim(key: string | null, state: "succeeded" | "failed", result?: unknown): Promise<void> {
