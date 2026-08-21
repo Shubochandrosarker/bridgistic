@@ -1,0 +1,45 @@
+name = "bridgistic-scheduler"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# The dispatcher wakes every minute, selects due jobs and enqueues them. It does
+# NOT execute anything itself — a minute-long Worker invocation is the wrong
+# place to run a 5-minute playbook.
+[triggers]
+crons = ["* * * * *"]
+
+# One Durable Object per job. It owns the alarm, the run lock and next_run_at.
+# This is what makes overlap policy and exactly-once dispatch correct; a
+# `SELECT … FOR UPDATE` loop over D1 cannot give you either.
+[[durable_objects.bindings]]
+name = "JOB"
+class_name = "JobScheduler"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["JobScheduler"]
+
+[[queues.producers]]
+binding = "RUN_QUEUE"
+queue = "bridgistic-job-runs"
+
+[[queues.consumers]]
+queue = "bridgistic-job-runs"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "bridgistic-job-runs-dlq"
+
+[[queues.consumers]]
+queue = "bridgistic-job-runs-dlq"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app"
+database_id = "REPLACE_ME"
+
+# Secrets:
+#   TENANT_ENC_KEY

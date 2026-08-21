@@ -1,30 +1,49 @@
-# Security Policy
+# Security policy
 
 ## Reporting a vulnerability
 
-Do not open a public issue for security reports. Email the maintainer at
-security@wordpressistic.com with details and reproduction steps. You will get an
-acknowledgement within 72 hours.
+Email **security@wordpressistic.com** with a description, reproduction steps and
+the impact you believe it has. Do not open a public issue.
 
-## Design notes for reviewers
+You will get an acknowledgement within 72 hours and an assessment within seven
+days. If the issue affects the free plugin or the local MCP server, the fix
+lands in
+[`bridgistic-claude-marketplace`](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace)
+**first** — security fixes always land in the free version.
 
-- **Authentication.** Every request is HMAC-SHA256 signed over
-  `METHOD\nPATH\nTIMESTAMP\nNONCE\nSHA256(body)`. Keys are scoped and stored
-  encrypted (libsodium / AES-256-GCM). There is no Application Password path.
-- **Replay protection.** A ±300s timestamp window plus a single-use nonce.
-- **Transport.** HTTPS is required; query-string read parameters rely on TLS for
-  integrity. All sensitive and mutating parameters travel in the signed body.
-- **Least privilege.** Keys carry an explicit scope set; the options tool is
-  allowlist-enforced on both read and write; PHP can only be written to a
-  quarantined sandbox with web execution blocked.
-- **Reversibility.** Destructive operations snapshot first and can require human
-  approval; approvals are bound to an action+payload hash.
-- **Internal dispatch.** Playbook steps run through the real REST pipeline using
-  a per-run random token held only in process memory; it cannot be forged by an
-  external request.
+## What this platform holds
 
-## Supported versions
+Be blunt about it, because it shapes what counts as severe:
 
-| Version | Supported |
-|---------|-----------|
-| 1.0.x   | ✅        |
+- An **encrypted, live Bridgistic key for every connected WordPress site**. That
+  key can be scoped down to read-only, but on an Agency plan it can also carry
+  `php:execute`. Treat anything touching `TENANT_ENC_KEY`, the `sites` table, or
+  the credential envelope as critical by default.
+- OAuth grants and refresh tokens for the dashboard and the hosted MCP endpoint.
+- An audit trail of what was done to each site. It stores **digests, never
+  request bodies** — that is deliberate, and a change that starts storing bodies
+  is itself a security bug.
+
+It does **not** hold WordPress passwords or application passwords, and it never
+will.
+
+## Known, documented, unmitigated
+
+Stated rather than buried:
+
+- **DNS rebinding.** The SSRF guard rejects private addresses, IP literals,
+  obfuscated IPv4 forms and internal-only hostname suffixes, but a hostname that
+  resolves to a private address *at fetch time* cannot be caught before the
+  fetch, because Cloudflare Workers cannot resolve a name first. This is
+  documented in the guard's own docblock and is in scope for the phase-8 abuse
+  testing.
+- **No independent security review yet.** This is the first of four hard gates
+  and nothing ships to a paying customer until it is done and published — see
+  [docs/HARD-GATES.md](docs/HARD-GATES.md).
+
+## Scope
+
+In scope: everything under `apps/`, `packages/`, `db/` and `scripts/`.
+
+Out of scope: `legacy/`, which is superseded code that is not built or shipped;
+report anything you find there against `bridgistic-claude-marketplace` instead.

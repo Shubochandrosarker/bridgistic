@@ -1,0 +1,36 @@
+{
+  "name": "bridgistic-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "bridgistic.app — hosted, multi-tenant WordPress MCP platform with a managed cloud scheduler.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "packages/*",
+    "apps/mcp",
+    "apps/api",
+    "apps/scheduler"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:packages": "npm run test --workspace packages/types --workspace packages/tools --workspace packages/wp-client --workspace packages/scheduler-core",
+    "lint:sql": "node scripts/check-migrations.mjs",
+    "verify": "npm run lint:sql && npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260815.1",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.107.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "author": "WordPressistic",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shubochandrosarker/bridgistic.git"
+  }
+}

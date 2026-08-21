@@ -1,0 +1,30 @@
+name = "bridgistic-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+  { pattern = "api.bridgistic.app/*", zone_name = "bridgistic.app" }
+]
+
+# The meter. One instance per (organization, month), so every increment is
+# serialised through a single writer and 1 000 concurrent calls produce exactly
+# 1 000 counted actions — the Phase 3 gate.
+[[durable_objects.bindings]]
+name = "USAGE_COUNTER"
+class_name = "UsageCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UsageCounter"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bridgistic-app"
+database_id = "REPLACE_ME"
+
+# Secrets:
+#   TENANT_ENC_KEY        openssl rand -base64 32
+#   STRIPE_SECRET_KEY
+#   STRIPE_WEBHOOK_SECRET
+#   WPISTIC_API_TOKEN     server-to-server call to EntitlementService

@@ -1,0 +1,23 @@
+-- legacy/0002_drop_tenants.sql — irreversible. Do not run early.
+--
+-- Preconditions, all of which must be checked by hand and recorded in
+-- docs/MIGRATION-PHASE-0.md before this runs:
+--
+--   1. Every `tenants` row has a matching `sites` row with the same id, the
+--      same key_secret_enc and the same scopes:
+--        SELECT COUNT(*) FROM tenants t
+--        LEFT JOIN sites s ON s.id = t.id
+--        WHERE s.id IS NULL
+--           OR s.key_secret_enc <> t.key_secret_enc
+--           OR s.scopes_granted <> t.scopes;      -- must be 0
+--
+--   2. Every previously-connected site has made at least one successful signed
+--      call since the backfill ran:
+--        SELECT COUNT(*) FROM sites WHERE last_seen_at IS NULL;   -- investigate each
+--
+--   3. A full D1 export has been taken and stored outside Cloudflare.
+--
+-- Until all three hold, `tenants` is the rollback path and dropping it removes
+-- the only way back.
+
+DROP TABLE tenants;
