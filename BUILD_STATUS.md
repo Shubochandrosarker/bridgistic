@@ -39,10 +39,10 @@ Run with `npm run verify`.
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 23 pass |
-| `apps/api` (isolation, auth, meter, idempotency, transport, ports) | 95 pass |
+| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks) | 103 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
-| `scripts/check-migrations.mjs` | 8 migrations + 2 legacy, 25 assertions |
+| `scripts/check-migrations.mjs` | 9 migrations + 2 legacy, 25 assertions |
 | `scripts/check-placeholders.mjs` | pass — 0 undeclared, 4 declared and tracked |
 | `scripts/check-deploy-env.mjs` | pass — 3 apps, both environments, no top-level fallback |
 | `scripts/check-engine-pin.mjs` | pass — a9cf564f88ce, v1.2.0, 194 tests at pin |
@@ -50,7 +50,7 @@ Run with `npm run verify`.
 | `scripts/check-plugin-routes.mjs` | pass — 53 site-calling tools, every route served by the plugin |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **360 pass, 0 fail** |
+| **Total unit tests** | **368 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
