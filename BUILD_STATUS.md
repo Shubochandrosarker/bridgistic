@@ -16,7 +16,7 @@ owned by this build.
 | Phase | Title | State |
 |---|---|---|
 | 0 | Repository and release hardening | **done** |
-| 1 | Canonical contracts + external engine migration | not started |
+| 1 | Canonical contracts + external engine migration | **in progress** — contracts done, import pending |
 | 2 | Identity, OAuth, tenancy, site connection | not started |
 | 3 | Shared ActionExecutor | not started |
 | 4 | Metering and entitlements | not started |
@@ -69,6 +69,8 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-010 | Medium | Two competing models for site scope grants: `sites.scopes_granted` (0001) and `site_scope_grants` (0002). | open | Phase 2 picks `site_scope_grants` as authoritative + compatibility migration |
 | BR-011 | Medium | CI had no secret scanning, no placeholder check, no dependency audit. | **fixed** (Phase 0) | — |
 | BR-012 | Medium | Repository is public under GPL-2.0-or-later while being prepared to hold customer data and hosted-service code. | **decision recorded** (Phase 0) | Owner must action `docs/LICENSING-DECISION.md` before Phase 2 |
+| BR-013 | High | The pinned engine's `guardParams` includes a client-settable `force`, documented as "Bypass the snapshot-required abort (irreversible)". A tool argument that switches off a safety gate — filled in, on the hosted product, by a language model. | **fixed** (Phase 1) | No hosted contract accepts it; bypass is an approval with a reason, made by a person |
+| BR-014 | Medium | `bridgistic_create_user` accepted a `password` argument, so a credential would travel through the model's context window, the MCP transport and client-side logging. | **fixed** (Phase 1) | Removed; WordPress generates and emails the password directly |
 
 ## Owner decisions required
 

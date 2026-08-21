@@ -66,6 +66,12 @@ const ALLOWLIST = [
     why: "Queue consumer is deliberately not wired. Throwing with a doc pointer beats silently dropping a run. Tracked as BR-008.",
   },
   {
+    file: "packages/contracts/src/types.ts",
+    ids: ["not_implemented"],
+    phase: "1",
+    why: "ERROR_CODES declares `not_implemented` as a vocabulary entry. It is the name of a response an API can legitimately give, not a marker of unfinished code — the scanner cannot tell a declaration from a usage.",
+  },
+  {
     file: "scripts/check-placeholders.mjs",
     ids: ["REPLACE_ME", "TODO", "501", "not_implemented", "intentional-throw", "placeholder-secret"],
     phase: "0",
