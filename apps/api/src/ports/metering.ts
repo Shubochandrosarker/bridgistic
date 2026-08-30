@@ -1,9 +1,10 @@
 /**
  * The metering port, backed by the `UsageCounter` Durable Object.
  *
- * The object is the serialization point: one counter per organization, so two
- * concurrent calls cannot both see room under the limit and both take it. That
- * is the whole reason this is a Durable Object rather than a D1 row.
+ * The object is the serialization point: one counter per organization and
+ * billing period, so two concurrent calls cannot both see room under the limit
+ * and both take it. That is the whole reason this is a Durable Object rather
+ * than a D1 row.
  *
  * ## The plan is read here, not passed in
  *
@@ -20,6 +21,8 @@
  */
 
 import type { MeteringStore, AdmissionOutcome } from "@bridgistic/executor";
+import { counterName, periodFor } from "../usage-counter.ts";
+import { PLAN_IDS } from "@bridgistic/types";
 import type { PlanId } from "@bridgistic/types";
 import type { SqlDatabase } from "../db/scope.ts";
 
@@ -59,8 +62,9 @@ export class DurableMeteringStore implements MeteringStore {
     idempotencyKey: string;
   }): Promise<AdmissionOutcome> {
     const plan = await this.#planFor(input.organizationId);
+    const period = periodFor(this.#now());
 
-    const reply = await this.#call<ReserveReply>(input.organizationId, "/reserve", {
+    const reply = await this.#call<ReserveReply>(counterName(input.organizationId, period), "/reserve", {
       cost: input.cost,
       plan,
       idempotencyKey: input.idempotencyKey,
@@ -79,18 +83,28 @@ export class DurableMeteringStore implements MeteringStore {
       };
     }
 
-    return { admitted: true, reservation: { id: reply.reservationId, cost: input.cost } };
+    return {
+      admitted: true,
+      // The period is part of the private handle so a call crossing a billing
+      // boundary settles/releases against the same counter that admitted it.
+      // The raw DO reservation id never leaves this adapter.
+      reservation: { id: `${period}.${reply.reservationId}`, cost: input.cost },
+    };
   }
 
   async settle(input: { organizationId: string; reservationId: string; actual: number }): Promise<void> {
-    await this.#call(input.organizationId, "/settle", {
-      reservationId: input.reservationId,
+    const handle = parseReservationHandle(input.reservationId, this.#now());
+    await this.#call(counterName(input.organizationId, handle.period), "/settle", {
+      reservationId: handle.reservationId,
       actual: input.actual,
     });
   }
 
   async release(input: { organizationId: string; reservationId: string }): Promise<void> {
-    await this.#call(input.organizationId, "/release", { reservationId: input.reservationId });
+    const handle = parseReservationHandle(input.reservationId, this.#now());
+    await this.#call(counterName(input.organizationId, handle.period), "/release", {
+      reservationId: handle.reservationId,
+    });
   }
 
   /**
@@ -114,8 +128,8 @@ export class DurableMeteringStore implements MeteringStore {
     return isPlanId(row?.plan) ? row.plan : "free";
   }
 
-  async #call<T>(organizationId: string, path: string, body: unknown): Promise<T | undefined> {
-    const stub = this.#counters.get(this.#counters.idFromName(organizationId));
+  async #call<T>(counter: string, path: string, body: unknown): Promise<T | undefined> {
+    const stub = this.#counters.get(this.#counters.idFromName(counter));
     try {
       const response = await stub.fetch(
         new Request(`https://usage-counter.internal${path}`, {
@@ -136,14 +150,29 @@ export class DurableMeteringStore implements MeteringStore {
   }
 }
 
-const PLAN_IDS = new Set(["free", "starter", "pro", "agency", "scale"]);
-
 function isPlanId(value: unknown): value is PlanId {
-  return typeof value === "string" && PLAN_IDS.has(value);
+  return typeof value === "string" && (PLAN_IDS as readonly string[]).includes(value);
 }
 
 function resetDelay(resetAt: number | undefined, now: number): number | undefined {
   if (typeof resetAt !== "number" || !Number.isFinite(resetAt)) return undefined;
   const delay = resetAt - now;
   return delay > 0 ? delay : undefined;
+}
+
+interface ReservationHandle {
+  readonly period: string;
+  readonly reservationId: string;
+}
+
+function parseReservationHandle(value: string, now: number): ReservationHandle {
+  const separator = value.indexOf(".");
+  const period = separator > 0 ? value.slice(0, separator) : "";
+  const reservationId = separator > 0 ? value.slice(separator + 1) : value;
+  // Unprefixed handles remain readable for a short compatibility window after
+  // deploy, but new reservations always carry their period. Invalid handles
+  // fail closed against the current counter rather than becoming a new route.
+  return /^\d{4}-(?:0[1-9]|1[0-2])$/.test(period) && reservationId !== ""
+    ? { period, reservationId }
+    : { period: periodFor(now), reservationId: value };
 }

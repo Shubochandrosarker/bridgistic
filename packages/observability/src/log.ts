@@ -33,11 +33,11 @@ export interface LogFields {
   readonly organizationId?: string;
   readonly siteId?: string;
   readonly actorId?: string;
-  readonly actorType?: "user" | "api_key" | "service_account" | "scheduler" | "system";
+  readonly actorType?: "user" | "api_key" | "mcp_session" | "service_account" | "scheduler" | "system";
   readonly tool?: string;
   readonly actionId?: string;
   readonly jobRunId?: string;
-  readonly outcome?: "success" | "denied" | "failed" | "timeout" | "cancelled";
+  readonly outcome?: "success" | "denied" | "pending_approval" | "rate_limited" | "failed" | "timeout" | "cancelled";
   readonly durationMs?: number;
   readonly retryCount?: number;
   readonly errorClass?: string;

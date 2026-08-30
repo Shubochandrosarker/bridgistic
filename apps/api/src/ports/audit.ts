@@ -28,9 +28,9 @@ export class D1AuditLog implements AuditLog {
     await this.#db
       .prepare(
         `INSERT INTO action_log (
-           id, organization_id, site_id, actor_type, actor_id, tool, scope_used,
-           approval_id, snapshot_id, idempotency_key, request_digest, outcome,
-           error_code, duration_ms, actions_consumed, request_id, created_at
+        id, organization_id, site_id, actor_type, actor_id, tool, scope_used,
+        approval_id, snapshot_id, idempotency_key, request_digest, outcome,
+        error_code, duration_ms, actions_consumed, request_id, created_at
          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       )
       .bind(
@@ -40,10 +40,10 @@ export class D1AuditLog implements AuditLog {
         entry.actorType,
         entry.actorId,
         entry.tool,
-        null,
+        entry.scopeUsed,
         entry.approvalId ?? null,
         entry.snapshotId ?? null,
-        null,
+        entry.idempotencyKey,
         entry.requestDigest,
         entry.outcome,
         entry.errorClass ?? null,
@@ -52,7 +52,7 @@ export class D1AuditLog implements AuditLog {
         // losing the record of a call is worse than recording it as instant.
         Math.max(0, Math.round(entry.durationMs)),
         Math.max(0, Math.round(entry.actionsConsumed)),
-        null,
+        entry.requestId,
         entry.createdAt
       )
       .run();

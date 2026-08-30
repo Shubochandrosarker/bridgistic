@@ -14,6 +14,7 @@
  */
 
 import type { ToolContract } from "@bridgistic/contracts";
+import type { ActionOutcome } from "@bridgistic/types";
 
 // ------------------------------------------------------------ idempotency --
 
@@ -108,7 +109,7 @@ export interface ApprovalStore {
      */
     siteId: string | null;
     actorId: string;
-    actorType: "user" | "api_key" | "service_account" | "scheduler" | "system";
+    actorType: "user" | "api_key" | "mcp_session" | "service_account" | "scheduler" | "system";
     tool: string;
     /** The scope being asked for, so the approval screen can name it. */
     scopeRequested: string;
@@ -187,11 +188,15 @@ export interface AuditEntry {
   readonly organizationId: string;
   readonly siteId: string | null;
   readonly actorId: string;
-  readonly actorType: "user" | "api_key" | "service_account" | "scheduler" | "system";
+  readonly actorType: "user" | "api_key" | "mcp_session" | "service_account" | "scheduler" | "system";
   readonly tool: string;
+  /** The effective scope used, or null when the call was denied before scope resolution. */
+  readonly scopeUsed: string | null;
   /** sha256(canonical(args)). Never the arguments. */
   readonly requestDigest: string;
-  readonly outcome: "success" | "denied" | "failed" | "timeout" | "cancelled";
+  readonly idempotencyKey: string | null;
+  readonly requestId: string;
+  readonly outcome: ActionOutcome;
   readonly durationMs: number;
   readonly actionsConsumed: number;
   readonly approvalId?: string;

@@ -12,7 +12,15 @@ export type Id = string; // UUIDv4
 
 // ---------------------------------------------------------------- tenancy ---
 
-export const MEMBERSHIP_ROLES = ["owner", "admin", "member", "viewer"] as const;
+export const MEMBERSHIP_ROLES = [
+  "owner",
+  "admin",
+  "operator",
+  "approver",
+  "viewer",
+  "billing_manager",
+  "support_auditor",
+] as const;
 export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
 
 export interface Organization {
@@ -87,7 +95,14 @@ export interface Subscription {
 
 // --------------------------------------------------------------- metering ---
 
-export const ACTOR_TYPES = ["user", "api_key", "mcp_session", "scheduler"] as const;
+export const ACTOR_TYPES = [
+  "user",
+  "api_key",
+  "mcp_session",
+  "service_account",
+  "scheduler",
+  "system",
+] as const;
 export type ActorType = (typeof ACTOR_TYPES)[number];
 
 export const ACTION_OUTCOMES = [
@@ -96,6 +111,8 @@ export const ACTION_OUTCOMES = [
   "denied",
   "pending_approval",
   "rate_limited",
+  "timeout",
+  "cancelled",
 ] as const;
 export type ActionOutcome = (typeof ACTION_OUTCOMES)[number];
 
@@ -116,6 +133,8 @@ export interface ActionLogEntry {
   snapshotId: string | null;
   idempotencyKey: string | null;
   requestDigest: string;
+  /** The request correlation id. Nullable only for legacy/imported rows. */
+  requestId: string | null;
   outcome: ActionOutcome;
   errorCode: string | null;
   durationMs: number;

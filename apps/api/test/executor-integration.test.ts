@@ -19,6 +19,7 @@ import { encryptSecret } from "@bridgistic/crypto";
 import { Logger } from "@bridgistic/observability";
 import type { SqlDatabase } from "../src/db/scope.ts";
 import type { CounterNamespace } from "../src/ports/metering.ts";
+import { periodFor } from "../src/usage-counter.ts";
 
 const NOW = 1_800_000_000_000;
 const ENC_KEY = btoa("bridgistic-test-key-never-real!!");
@@ -146,7 +147,7 @@ test("a destructive call without approval is refused, and nothing reaches the si
 
   // And it is in the audit log as denied, with a digest and no arguments.
   const logged = db.prepare(`SELECT * FROM action_log`).get() as Record<string, unknown>;
-  assert.equal(logged.outcome, "denied");
+  assert.equal(logged.outcome, "pending_approval");
   assert.ok(!JSON.stringify(logged).includes("w/w.php"), "an argument reached the audit row");
 });
 
@@ -161,7 +162,7 @@ test("a safe read runs, is metered once, and is audited", async () => {
   });
 
   assert.equal(result.ok, true, result.ok === false ? result.message : "");
-  assert.equal(consumed.get("org_1"), 1);
+  assert.equal(consumed.get(`org_1:${periodFor(NOW)}`), 1);
 
   const logged = db.prepare(`SELECT outcome, actions_consumed FROM action_log`).get() as Record<string, unknown>;
   assert.equal(logged.outcome, "success");
@@ -258,7 +259,7 @@ test("a call that never reaches the site releases its reservation", async () => 
   });
 
   assert.equal(result.ok, false);
-  assert.equal(consumed.get("org_1") ?? 0, 0, "an unreachable site was billed for");
+  assert.equal(consumed.get(`org_1:${periodFor(NOW)}`) ?? 0, 0, "an unreachable site was billed for");
   assert.equal(pending.size, 0, "the reservation was left hanging");
 });
 
@@ -284,7 +285,7 @@ test("a scope the site's key does not carry is refused before anything is spent"
   assert.equal(result.ok, false);
   assert.equal(result.ok === false && result.error, "scope_denied");
   assert.equal(siteCalls, 0);
-  assert.equal(consumed.get("org_1") ?? 0, 0);
+  assert.equal(consumed.get(`org_1:${periodFor(NOW)}`) ?? 0, 0);
 });
 
 test("the site lock is released, so a second call is not blocked by the first", async () => {

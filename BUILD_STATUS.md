@@ -4,12 +4,33 @@ Live state of the Bridgistic production build. Updated at the end of every
 phase. If a line here says "done", it means the acceptance criteria in
 `RELEASE_GATES.md` for that item were run and passed — not that the code exists.
 
-**Last updated:** 2026-08-21, end of Phase 0.
+**Last updated:** 2026-08-30, app-layer read-surface slice (no phase closed).
 **Commercial mode:** `BILLING_MODE=FREE_ONLY`. Paid checkout, Stripe portal and
 WPistic customer entitlements are disabled and must stay disabled until the
 owner records approval (`RELEASE_GATES.md` § Production release gate).
 **Live customer sites used:** none. No connection has been made to any site not
 owned by this build.
+
+## 2026-08-30 working-tree slice
+
+The shared security model remains unchanged: no free-engine security primitive
+was weakened or bypassed. The app layer now has authenticated, no-store read
+routes for identity, organizations, sites, entitlements, usage, audit actions,
+jobs, runs and pending approvals. These use verified credentials, role
+permissions, organization-scoped SQL and opaque cross-tenant 404s. Dashboard
+responses exclude site credentials, scheduled-job variables, and raw run error
+messages. The executor now carries effective audit metadata, metering is keyed
+by organization and UTC billing month, and snapshot retention comes from the
+active plan with Free fallback.
+
+Focused evidence: `apps/api` index tests 9 pass; adapter/integration tests 33
+pass; `packages/executor` 24 pass; `packages/types` 21 pass; `packages/tools`
+25 pass; workspace typecheck passes. SQL migrations, deploy environment,
+engine pin, tool drift, plugin-route and Windows placeholder checks pass.
+This is not production sign-off: the external engine import, remaining API
+actions, MCP execution, scheduler consumer, dashboard/web apps, authenticated
+response signatures, full snapshot coverage, live E2E and independent review
+remain open.
 
 ## Phase status
 
@@ -39,18 +60,18 @@ Run with `npm run verify`.
 | `packages/crypto` | 14 pass |
 | `packages/observability` | 19 pass |
 | `packages/executor` | 24 pass |
-| `apps/api` (isolation, auth, meter, idempotency, transport, ports, locks, snapshots, executor integration) | 119 pass |
+| `apps/api` (auth, isolation, index, idempotency, locks, meter, ports, snapshots, transport, executor integration) | 132 pass |
 | `packages/url-guard` | 23 pass |
 | `packages/scheduler-core` | 25 pass |
-| `scripts/check-migrations.mjs` | 9 migrations + 2 legacy, 25 assertions |
-| `scripts/check-placeholders.mjs` | pass — 0 undeclared, 4 declared and tracked |
+| `scripts/check-migrations.mjs` | 10 migrations + 2 legacy, 25 assertions |
+| `scripts/check-placeholders.mjs` | pass — 0 undeclared, 5 declared and tracked |
 | `scripts/check-deploy-env.mjs` | pass — 3 apps, both environments, no top-level fallback |
 | `scripts/check-engine-pin.mjs` | pass — a9cf564f88ce, v1.2.0, 194 tests at pin |
 | `scripts/check-tool-drift.mjs` | pass — 54 contracts vs 54 engine tools, 5 declared divergences |
 | `scripts/check-plugin-routes.mjs` | pass — 53 site-calling tools, every route served by the plugin |
 | `wrangler deploy --dry-run` | pass — 6/6 (3 apps × 2 environments) |
 | `gitleaks` (8.28.0) | pass — clean on working tree and on full history |
-| **Total unit tests** | **385 pass, 0 fail** |
+| **Total unit tests** | **398 pass, 0 fail** |
 
 Phase 0 added 15 tests: 13 security-policy invariants in `packages/types`
 (`test/security-policy.test.ts`) and 2 in `packages/tools` covering the BR-002
@@ -73,7 +94,7 @@ person. Every finding here is either fixed, feature-gated, or has a named phase.
 | BR-004 | High | `UsageCounter` takes `limit` and `periodEndMs` from the request body, does not validate `cost`/`actual` (a negative cost decrements the meter), and has no reservation expiry, so a crash between reserve and settle burns quota permanently. | **fixed** (Phase 3) | No limit parameter exists — the limit is derived from the plan catalogue inside the object; cost and actual are validated; reservations expire on an alarm |
 | BR-005 | High | `checkSiteUrl` cannot see DNS. A hostname that passes validation and then resolves to a private address at fetch time is not caught. | **mitigated** (Phase 1) | `packages/url-guard` pre-resolves over DoH and refuses unless EVERY A/AAAA record is globally reachable, failing closed. The TOCTOU race is not winnable from a Worker; the control that closes it is response-signature binding, Phase 3 |
 | BR-006 | High | `database_id` / KV `id` were `REPLACE_ME` in all three `wrangler.toml`. | **fixed** (Phase 0) | Real ids are set per environment as CI/deploy variables |
-| BR-007 | Medium | 27 API routes return `501`. | open, declared | Phases 2–5 by route; `docs/PHASES.md` maps each |
+| BR-007 | Medium | 15 API routes still return `501`; eleven authenticated read routes are now implemented. | open, declared | Phases 2–5 by route; `docs/PHASES.md` maps each |
 | BR-008 | Medium | Scheduler queue consumer throws by design. | open, declared | Phase 5 |
 | BR-009 | Medium | `apps/dashboard` and `apps/web` are README-only. | open, declared | Phases 6–7 |
 | BR-010 | Medium | Two competing models for site scope grants: `sites.scopes_granted` (0001) and `site_scope_grants` (0002). Not duplicates — the key's ceiling and the org's grant, wearing names that suggest they are the same thing. | **fixed** (Phase 2) | Renamed to `sites.key_scopes`; `site_scope_grants` authoritative for policy; `effectiveScopes` now intersects four terms; migration 0006 + backfill on both paths |

@@ -19,19 +19,23 @@
 
 import { snapshotTargetFor, isUnavailable } from "@bridgistic/tools";
 import { contractFor } from "@bridgistic/contracts";
+import { PLANS } from "@bridgistic/types";
+import type { PlanId } from "@bridgistic/types";
 import type { SnapshotStore, Transport } from "@bridgistic/executor";
 import type { SqlDatabase } from "../db/scope.ts";
 
 /**
  * How long a snapshot is kept.
  *
- * A flat window until plan-based retention lands with the sweep (Phase 5). It
- * is a floor, not a promise: the row carries `expires_at` so the sweep can find
- * it, and shortening it later shortens retention for snapshots already taken,
- * which is why it starts at the longest any plan will offer rather than the
- * shortest.
+ * The row carries `expires_at` so the sweep can find expired snapshots. The
+ * value is derived from the organization's active plan when the snapshot is
+ * created; missing or inactive entitlement falls back to Free retention.
  */
-export const SNAPSHOT_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
+const DAY_MS = 24 * 60 * 60 * 1_000;
+
+export function snapshotRetentionMs(plan: PlanId): number {
+  return PLANS[plan].snapshotRetentionDays * DAY_MS;
+}
 
 export interface PluginSnapshotStoreOptions {
   readonly db: SqlDatabase;
@@ -111,6 +115,7 @@ export class PluginSnapshotStore implements SnapshotStore {
 
     const id = this.#newId();
     const now = this.#now();
+    const retentionPlan = await this.#planFor(input.organizationId);
     await this.#db
       .prepare(
         `INSERT INTO snapshots (
@@ -126,12 +131,35 @@ export class PluginSnapshotStore implements SnapshotStore {
         input.reason,
         byteSizeFrom(result.data),
         now,
-        now + SNAPSHOT_TTL_MS
+        now + snapshotRetentionMs(retentionPlan)
       )
       .run();
 
     return { ok: true, id };
   }
+
+  /**
+   * Retention is derived from the organization's active entitlement at the
+   * moment the snapshot is created. Past-due, cancelled, malformed, or absent
+   * subscriptions fail closed to Free retention.
+   */
+  async #planFor(organizationId: string): Promise<PlanId> {
+    const row = await this.#db
+      .prepare(
+        `SELECT plan FROM subscriptions
+          WHERE organization_id = ? AND status IN ('active','trialing')
+          ORDER BY created_at DESC
+          LIMIT 1`
+      )
+      .bind(organizationId)
+      .first<{ plan: string }>();
+
+    return isPlanId(row?.plan) ? row.plan : "free";
+  }
+}
+
+function isPlanId(value: unknown): value is PlanId {
+  return typeof value === "string" && Object.hasOwn(PLANS, value);
 }
 
 function remoteIdFrom(data: unknown): string | undefined {

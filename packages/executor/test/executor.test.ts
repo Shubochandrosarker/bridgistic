@@ -256,7 +256,7 @@ test("a destructive call creates an approval rather than telling the caller to f
   // Nothing was touched while waiting for a human.
   assert.equal(h.reserved.length, 0);
   assert.equal(h.snapshots, 0);
-  assert.equal(h.audit[0]!.outcome, "denied");
+  assert.equal(h.audit[0]!.outcome, "pending_approval");
   assert.ok(h.audit[0]!.approvalId);
 });
 

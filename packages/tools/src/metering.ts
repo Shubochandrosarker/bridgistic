@@ -65,6 +65,8 @@ export function actionsConsumed(
     case "pending_approval":
       return 0;
     case "failed":
+    case "timeout":
+    case "cancelled":
       return FAILED_CALL_WEIGHT;
     case "success": {
       const cls = grantedScopes ? effectiveToolClass(tool, grantedScopes) : operationClass(tool);

@@ -10,7 +10,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { PluginSnapshotStore, SNAPSHOT_TTL_MS } from "../src/ports/snapshots.ts";
+import { PluginSnapshotStore, snapshotRetentionMs } from "../src/ports/snapshots.ts";
 import { adapt, migratedDatabase } from "./helpers/sqlite.ts";
 import { snapshotTargetFor, isUnavailable } from "@bridgistic/tools";
 import { allContracts } from "@bridgistic/contracts";
@@ -76,7 +76,7 @@ test("a snapshot is taken on the site and recorded against the organization", as
   assert.equal(row.remote_id, "snap_abc", "the plugin's id is what a restore needs");
   assert.equal(row.organization_id, "org_1");
   assert.equal(row.size_bytes, 1234);
-  assert.equal(row.expires_at, NOW + SNAPSHOT_TTL_MS);
+  assert.equal(row.expires_at, NOW + snapshotRetentionMs("free"));
   assert.equal(row.restored_at, null);
 });
 
@@ -89,6 +89,18 @@ test("the label names the call, not its arguments", async () => {
 
   assert.equal(seen[0]?.args.label, "Bridgistic: before bridgistic_fs_write");
   assert.ok(!JSON.stringify(seen[0]?.args).includes("SECRET-VALUE"), "an argument reached the label");
+});
+
+test("snapshot retention comes from the active organization plan", async () => {
+  db.exec(`
+    INSERT INTO subscriptions (id,organization_id,plan,billing_interval,status,api_addon,stripe_customer_id,stripe_subscription_id,trial_ends_at,current_period_start,current_period_end,created_at,updated_at)
+    VALUES ('sub_1','org_1','starter','monthly','active',0,NULL,NULL,NULL,${NOW},${NOW + 2592000},${NOW},${NOW});
+  `);
+
+  const result = await store(took({ snapshot_id: "snap_starter" })).create(input());
+  assert.equal(result.ok, true);
+  const row = db.prepare(`SELECT expires_at FROM snapshots WHERE id='snp_1'`).get() as { expires_at: number };
+  assert.equal(row.expires_at, NOW + snapshotRetentionMs("starter"));
 });
 
 // -------------------------------------------------------------- refusing ---

@@ -97,7 +97,9 @@ function walk(dir) {
 }
 
 function scan(path) {
-  const rel = relative(".", path);
+  // `relative()` uses the host separator. The allowlist is repository data and
+  // stays POSIX-shaped so the same check behaves identically on Windows and CI.
+  const rel = relative(".", path).replaceAll("\\", "/");
   const lines = readFileSync(path, "utf8").split("\n");
   const allowed = ALLOWLIST.find((a) => a.file === rel);
 

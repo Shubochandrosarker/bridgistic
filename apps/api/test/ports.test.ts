@@ -14,6 +14,7 @@ import { D1AuditLog } from "../src/ports/audit.ts";
 import { D1ApprovalStore, APPROVAL_TTL_MS } from "../src/ports/approvals.ts";
 import { DurableMeteringStore } from "../src/ports/metering.ts";
 import type { CounterNamespace } from "../src/ports/metering.ts";
+import { periodFor } from "../src/usage-counter.ts";
 import { adapt, migratedDatabase } from "./helpers/sqlite.ts";
 import type { SqlDatabase } from "../src/db/scope.ts";
 import type { AuditEntry } from "@bridgistic/executor";
@@ -50,7 +51,10 @@ const entry = (overrides: Partial<AuditEntry> = {}): AuditEntry => ({
   actorId: "usr_alice",
   actorType: "user",
   tool: "bridgistic_list_posts",
+  scopeUsed: "site:read",
   requestDigest: "a".repeat(64),
+  idempotencyKey: null,
+  requestId: "req_1",
   outcome: "success",
   durationMs: 12,
   actionsConsumed: 1,
@@ -68,11 +72,34 @@ test("a denied call is recorded, not only a successful one", async () => {
   assert.equal(row.actions_consumed, 0);
 });
 
+test("audit metadata is persisted without argument values", async () => {
+  await new D1AuditLog(sql).record(
+    entry({ scopeUsed: "posts:read", idempotencyKey: "idem-audit", requestId: "req-audit" })
+  );
+
+  const row = db.prepare(`SELECT scope_used, idempotency_key, request_id FROM action_log WHERE id='act_1'`).get() as Record<string, unknown>;
+  assert.equal(row.scope_used, "posts:read");
+  assert.equal(row.idempotency_key, "idem-audit");
+  assert.equal(row.request_id, "req-audit");
+});
+
+test("audit retries can record repeated denials without weakening success uniqueness", async () => {
+  const log = new D1AuditLog(sql);
+  await log.record(entry({ id: "act_denied_1", outcome: "denied", idempotencyKey: "idem-repeat" }));
+  await log.record(entry({ id: "act_denied_2", outcome: "denied", idempotencyKey: "idem-repeat" }));
+
+  await log.record(entry({ id: "act_success_1", idempotencyKey: "idem-success" }));
+  await assert.rejects(
+    log.record(entry({ id: "act_success_2", idempotencyKey: "idem-success" })),
+    /UNIQUE constraint failed/
+  );
+});
+
 test("every executor outcome and actor type satisfies the table's CHECKs", async () => {
   // A CHECK the executor can violate is a lost audit row at exactly the moment
   // one matters — a timeout on a destructive call.
   const outcomes = ["success", "denied", "failed", "timeout", "cancelled"] as const;
-  const actors = ["user", "api_key", "service_account", "scheduler", "system"] as const;
+  const actors = ["user", "api_key", "mcp_session", "service_account", "scheduler", "system"] as const;
   const log = new D1AuditLog(sql);
 
   let n = 0;
@@ -217,7 +244,7 @@ test("the plan comes from the organization's own row, never from the call", asyn
 
   await store.reserve({ organizationId: "org_1", cost: 5, idempotencyKey: "idem-1" });
   assert.equal(seen[0]?.body.plan, "agency");
-  assert.equal(seen[0]?.organization, "org_1");
+  assert.equal(seen[0]?.organization, `org_1:${periodFor(NOW)}`);
 });
 
 test("no subscription, and a lapsed one, both meter as free", async () => {
@@ -289,11 +316,33 @@ test("settle and release reach the organization's own counter", async () => {
   assert.deepEqual(
     seen.map((s) => [s.organization, s.path]),
     [
-      ["org_1", "/settle"],
-      ["org_free", "/release"],
+      [`org_1:${periodFor(NOW)}`, "/settle"],
+      [`org_free:${periodFor(NOW)}`, "/release"],
     ]
   );
   assert.equal(seen[0]?.body.actual, 3);
+});
+
+test("a reservation keeps its admitting billing period across a month boundary", async () => {
+  const { namespace, seen } = counters(admitted);
+  const admittedAt = Date.UTC(2026, 0, 31, 23, 59, 59);
+  const settledAt = Date.UTC(2026, 1, 1, 0, 0, 1);
+  const first = new DurableMeteringStore({ counters: namespace, db: sql, now: () => admittedAt });
+  const second = new DurableMeteringStore({ counters: namespace, db: sql, now: () => settledAt });
+
+  const result = await first.reserve({ organizationId: "org_1", cost: 1, idempotencyKey: "idem-cross-month" });
+  assert.equal(result.admitted, true);
+  if (!result.admitted) return;
+
+  await second.settle({ organizationId: "org_1", reservationId: result.reservation.id, actual: 1 });
+
+  assert.deepEqual(
+    seen.map((s) => [s.organization, s.path]),
+    [
+      [`org_1:${periodFor(admittedAt)}`, "/reserve"],
+      [`org_1:${periodFor(admittedAt)}`, "/settle"],
+    ]
+  );
 });
 
 test("a settle that cannot be delivered does not throw into the executor", async () => {

@@ -30,7 +30,7 @@
 import { assertCallable, contractFor } from "@bridgistic/contracts";
 import type { CallerContext, ToolContract, ErrorCode } from "@bridgistic/contracts";
 import { requestDigest, actionsConsumed, FAILED_CALL_WEIGHT } from "@bridgistic/tools";
-import { snapshotOperationClass } from "@bridgistic/types";
+import { effectiveScopes, snapshotOperationClass } from "@bridgistic/types";
 import { can, permissionForRiskClass } from "@bridgistic/identity";
 import type { Role } from "@bridgistic/identity";
 import type { Logger } from "@bridgistic/observability";
@@ -41,7 +41,7 @@ export interface ExecuteRequest {
   readonly args: Record<string, unknown>;
   readonly caller: CallerContext & {
     readonly role: Role;
-    readonly actorType: "user" | "api_key" | "service_account" | "scheduler" | "system";
+    readonly actorType: "user" | "api_key" | "mcp_session" | "service_account" | "scheduler" | "system";
   };
   readonly siteId: string | null;
   readonly requestId: string;
@@ -296,7 +296,10 @@ export class ActionExecutor {
           actorId: request.caller.actorId,
           actorType: request.caller.actorType,
           tool: request.tool,
+          scopeUsed: scopeUsedFor(request),
           requestDigest: digest,
+          idempotencyKey,
+          requestId: request.requestId,
           outcome: "success",
           durationMs,
           actionsConsumed: reservation?.cost ?? 0,
@@ -347,7 +350,10 @@ export class ActionExecutor {
         actorId: request.caller.actorId,
         actorType: request.caller.actorType,
         tool: request.tool,
+        scopeUsed: scopeUsedFor(request),
         requestDigest: digest,
+        idempotencyKey,
+        requestId: request.requestId,
         outcome,
         durationMs,
         actionsConsumed: charged,
@@ -417,8 +423,11 @@ export class ActionExecutor {
       actorId: request.caller.actorId,
       actorType: request.caller.actorType,
       tool: request.tool,
+      scopeUsed: scopeUsedFor(request),
       requestDigest: digest,
-      outcome: "denied",
+      idempotencyKey: idempotencyKeyFrom(request.args),
+      requestId: request.requestId,
+      outcome: "pending_approval",
       durationMs: this.#ports.now() - startedAt,
       actionsConsumed: 0,
       approvalId,
@@ -455,8 +464,11 @@ export class ActionExecutor {
       actorId: request.caller.actorId,
       actorType: request.caller.actorType,
       tool: request.tool,
+      scopeUsed: scopeUsedFor(request),
       requestDigest: await requestDigest(request.tool, request.args),
-      outcome: "denied",
+      idempotencyKey: idempotencyKeyFrom(request.args),
+      requestId: request.requestId,
+      outcome: auditOutcomeForDenial(code),
       durationMs: this.#ports.now() - startedAt,
       actionsConsumed: 0,
       errorClass: code,
@@ -487,6 +499,44 @@ export class ActionExecutor {
     if (key === null) return;
     await this.#ports.idempotency.settle(key, state, result).catch(() => undefined);
   }
+}
+
+function idempotencyKeyFrom(args: Record<string, unknown>): string | null {
+  return typeof args.idempotency_key === "string" ? args.idempotency_key : null;
+}
+
+/**
+ * Record the scope that actually authorised the call, not a caller-supplied
+ * scope label. A lower-risk minimum scope is recorded for read-only fallbacks;
+ * denied calls have no scope used and therefore record null.
+ */
+function scopeUsedFor(request: ExecuteRequest): string | null {
+  const contract = contractFor(request.tool);
+  if (!contract || contract.requiredScopes.length === 0) return null;
+
+  const full = effectiveScopes({
+    requested: contract.requiredScopes,
+    planEntitled: request.caller.planScopes,
+    siteGranted: request.caller.siteScopes,
+    keyCeiling: request.caller.keyScopes,
+  });
+  if (contract.requiredScopes.every((scope) => full.includes(scope))) return contract.requiredScopes.join(" ");
+
+  if (contract.minScope !== undefined) {
+    const minimum = effectiveScopes({
+      requested: [contract.minScope],
+      planEntitled: request.caller.planScopes,
+      siteGranted: request.caller.siteScopes,
+      keyCeiling: request.caller.keyScopes,
+    });
+    if (minimum.includes(contract.minScope)) return contract.minScope;
+  }
+
+  return null;
+}
+
+function auditOutcomeForDenial(code: ErrorCode): "denied" | "rate_limited" {
+  return code === "rate_limited" || code === "quota_exceeded" ? "rate_limited" : "denied";
 }
 
 function transportErrorCode(kind: string): ErrorCode {

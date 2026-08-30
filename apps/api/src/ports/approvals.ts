@@ -43,7 +43,7 @@ export class D1ApprovalStore implements ApprovalStore {
     organizationId: string;
     siteId: string | null;
     actorId: string;
-    actorType: "user" | "api_key" | "service_account" | "scheduler" | "system";
+    actorType: "user" | "api_key" | "mcp_session" | "service_account" | "scheduler" | "system";
     tool: string;
     scopeRequested: string;
     requestHash: string;
@@ -95,6 +95,8 @@ function toRequestedByType(actorType: string): "user" | "api_key" | "mcp_session
   switch (actorType) {
     case "user":
       return "user";
+    case "mcp_session":
+      return "mcp_session";
     case "scheduler":
       return "scheduler";
     default:
