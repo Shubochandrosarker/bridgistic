@@ -22,6 +22,7 @@
     "check:engine-pin": "node scripts/check-engine-pin.mjs",
     "check:tool-drift": "node scripts/check-tool-drift.mjs",
     "check:plugin-routes": "node scripts/check-plugin-routes.mjs",
+    "smoke:deployment": "node scripts/smoke-deployment.mjs",
     "check:secrets": "gitleaks dir . --config .gitleaks.toml --no-banner || echo \"gitleaks not installed locally; CI runs it\""
   },
   "devDependencies": {

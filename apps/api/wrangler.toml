@@ -39,6 +39,7 @@ database_name = "bridgistic-app-staging"
 # substitutes it. Never a literal id in the repository, and never a bare
 # placeholder string: a placeholder that typechecks is a placeholder that ships.
 database_id = "$CLOUDFLARE_D1_ID_STAGING"
+migrations_dir = "../../db/migrations"
 
 [[env.staging.kv_namespaces]]
 binding = "OAUTH_KV"
@@ -64,6 +65,7 @@ class_name = "UsageCounter"
 binding = "DB"
 database_name = "bridgistic-app"
 database_id = "$CLOUDFLARE_D1_ID_PRODUCTION"
+migrations_dir = "../../db/migrations"
 
 [[env.production.kv_namespaces]]
 binding = "OAUTH_KV"

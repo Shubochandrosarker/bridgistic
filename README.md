@@ -12,6 +12,8 @@
 
 [Architecture](docs/ARCHITECTURE.md) · [Scheduler](docs/SCHEDULER.md) · [Pricing](docs/PRICING.md) · [Metering](docs/METERING.md) · [Phases](docs/PHASES.md) · [Hard gates](docs/HARD-GATES.md)
 
+[Deployment status and runbook](docs/DEPLOYMENT.md)
+
 </div>
 
 ---
