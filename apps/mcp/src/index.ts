@@ -49,7 +49,9 @@ export default {
     const requestId = request.headers.get("X-Bridgistic-Request-Id") ?? crypto.randomUUID();
     const headers = { "Content-Type": "application/json", "X-Bridgistic-Request-Id": requestId };
 
-    if (url.pathname === "/health") {
+    // The production route is mounted at /mcp*, so accept the externally
+    // reachable path as well as /health for workers.dev/local diagnostics.
+    if (url.pathname === "/health" || url.pathname === "/mcp/health") {
       return new Response(JSON.stringify({ ok: true, service: "bridgistic-mcp" }), { headers });
     }
 

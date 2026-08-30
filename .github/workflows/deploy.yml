@@ -17,6 +17,10 @@ on:
         default: staging
         type: choice
         options: [staging, production]
+      approved_commit:
+        description: Production only — exact Level 3-approved commit SHA
+        required: false
+        type: string
 
 # One deploy per (app, environment) at a time. Two concurrent deploys of the
 # same Worker race on the Durable Object migration tag.
@@ -37,6 +41,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+
+      # The component workflow must not provide a back door around the complete
+      # release workflow's commit-bound production approval.
+      - name: Enforce the written production approval
+        if: inputs.environment == 'production'
+        env:
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          RELEASE_APPROVED_COMMIT: ${{ vars.RELEASE_APPROVED_COMMIT }}
+        run: |
+          set -eu
+          test "${APPROVED_COMMIT}" = "${GITHUB_SHA}"
+          test "${RELEASE_APPROVED_COMMIT}" = "${GITHUB_SHA}"
 
       # Level 1 gates, re-run on the exact commit being deployed. A green CI
       # run on an older commit is not evidence about this one.

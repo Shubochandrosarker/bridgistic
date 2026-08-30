@@ -1,0 +1,109 @@
+name: Release platform
+
+# This is the complete platform deployment path. Individual Worker deploys are
+# for break-glass recovery; normal releases use this workflow so migrations,
+# deployment order, and smoke checks cannot be skipped.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target Cloudflare environment
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+      approved_commit:
+        description: Production only — exact 40-character release commit approved at Level 3
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+      - name: Enforce the written production approval
+        if: inputs.environment == 'production'
+        env:
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          RELEASE_APPROVED_COMMIT: ${{ vars.RELEASE_APPROVED_COMMIT }}
+        run: |
+          set -eu
+          if [ ! "${APPROVED_COMMIT}" = "${GITHUB_SHA}" ]; then
+            echo "::error::approved_commit must equal the exact release SHA ${GITHUB_SHA}"
+            exit 1
+          fi
+          if [ ! "${RELEASE_APPROVED_COMMIT}" = "${GITHUB_SHA}" ]; then
+            echo "::error::The protected production environment must set RELEASE_APPROVED_COMMIT=${GITHUB_SHA} after Level 3 approval"
+            exit 1
+          fi
+
+  migrate-and-deploy:
+    name: Migrate and deploy Workers
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_ID_STAGING: ${{ secrets.CLOUDFLARE_D1_ID_STAGING }}
+      CLOUDFLARE_D1_ID_PRODUCTION: ${{ secrets.CLOUDFLARE_D1_ID_PRODUCTION }}
+      CLOUDFLARE_KV_OAUTH_STAGING: ${{ secrets.CLOUDFLARE_KV_OAUTH_STAGING }}
+      CLOUDFLARE_KV_OAUTH_PRODUCTION: ${{ secrets.CLOUDFLARE_KV_OAUTH_PRODUCTION }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Require deployment credentials and resource identifiers
+        run: |
+          set -eu
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            eval "value=\${$name:-}"
+            [ -n "$value" ] || missing="$missing $name"
+          done
+          suffix=$(printf '%s' '${{ inputs.environment }}' | tr '[:lower:]' '[:upper:]')
+          for prefix in CLOUDFLARE_D1_ID CLOUDFLARE_KV_OAUTH; do
+            name="${prefix}_${suffix}"
+            eval "value=\${$name:-}"
+            [ -n "$value" ] || missing="$missing $name"
+          done
+          [ -z "$missing" ] || { echo "::error::Missing:$missing"; exit 1; }
+      - name: Validate every Worker bundle
+        run: |
+          set -eu
+          for app in api mcp scheduler; do
+            npx wrangler deploy --dry-run --env '${{ inputs.environment }}' --config "apps/$app/wrangler.toml"
+          done
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply DB --remote --env '${{ inputs.environment }}' --config apps/api/wrangler.toml
+      - name: Deploy API
+        run: npx wrangler deploy --env '${{ inputs.environment }}' --config apps/api/wrangler.toml
+      - name: Deploy MCP
+        run: npx wrangler deploy --env '${{ inputs.environment }}' --config apps/mcp/wrangler.toml
+      - name: Deploy scheduler last
+        run: npx wrangler deploy --env '${{ inputs.environment }}' --config apps/scheduler/wrangler.toml
+      - name: Smoke-test public services
+        env:
+          API_URL: ${{ inputs.environment == 'production' && 'https://api.bridgistic.app/v1/health' || 'https://api-staging.bridgistic.app/v1/health' }}
+          MCP_URL: ${{ inputs.environment == 'production' && 'https://bridgistic.app/mcp/health' || 'https://staging.bridgistic.app/mcp/health' }}
+        run: node scripts/smoke-deployment.mjs
+
