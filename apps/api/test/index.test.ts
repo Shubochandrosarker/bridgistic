@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import api from "../src/index.ts";
 import type { Env } from "../src/env.ts";
+import { periodFor } from "../src/usage-counter.ts";
 import { adapt, migratedDatabase } from "./helpers/sqlite.ts";
 
 const NOW = 1_800_000_000;
@@ -146,7 +147,7 @@ test("entitlements and usage are derived from server-side subscription and count
   assert.equal(usage.status, 200);
   const usageBody = await body(usage);
   assert.equal(usageBody.plan, "starter");
-  assert.equal(usageBody.period, "2026-08");
+  assert.equal(usageBody.period, periodFor(Date.now()));
   assert.deepEqual(usageBody.counter, { consumed: 12, pending: 3, pendingCount: 1, expiredCount: 0 });
   assert.equal((usageBody.verdict as Record<string, unknown>).used, 15);
   assert.deepEqual(usageBody.rollups, [
