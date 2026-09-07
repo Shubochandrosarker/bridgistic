@@ -4,12 +4,31 @@ Live state of the Bridgistic production build. Updated at the end of every
 phase. If a line here says "done", it means the acceptance criteria in
 `RELEASE_GATES.md` for that item were run and passed — not that the code exists.
 
-**Last updated:** 2026-08-30, app-layer read-surface slice (no phase closed).
+**Last updated:** 2026-09-03, source verification and live-route audit (no phase closed).
 **Commercial mode:** `BILLING_MODE=FREE_ONLY`. Paid checkout, Stripe portal and
 WPistic customer entitlements are disabled and must stay disabled until the
 owner records approval (`RELEASE_GATES.md` § Production release gate).
 **Live customer sites used:** none. No connection has been made to any site not
 owned by this build.
+
+## 2026-09-03 verification and live-route audit
+
+`npm run verify` passes: all 10 migrations plus 2 legacy migrations, contract
+and route drift checks, workspace typechecks, and 398 unit tests are green.
+The usage-period test now derives the expected UTC billing month instead of
+hard-coding `2026-08`, so it remains valid after a calendar rollover. `npm
+audit` reports zero vulnerabilities.
+
+This does **not** make the hosted app deployable. The current public route state
+is: `app.bridgistic.app` = 404, `api.bridgistic.app/health` = 404,
+`mcp.bridgistic.app/mcp` = authenticated Worker endpoint (401 without a token),
+and the GitHub Pages marketing site is available over HTTP while GitHub waits
+to issue the custom-domain certificate. DNS points `app` and `api` at the VPS;
+neither has a production app behind it yet.
+
+Production remains **NO-GO** while BR-007, BR-008, BR-009, BR-016, and BR-020
+remain open and the owner decisions/release gates below are unresolved. Do not
+deploy the 404 placeholders or advertise the app as operational.
 
 ## 2026-08-30 working-tree slice
 
