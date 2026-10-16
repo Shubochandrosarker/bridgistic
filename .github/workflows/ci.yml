@@ -27,6 +27,8 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
+      - name: Lint + build frontends (dashboard, pay)
+        run: npm run lint --workspace apps/dashboard && npm run build:frontends
 
   migrations:
     name: Migrations — apply against real SQLite

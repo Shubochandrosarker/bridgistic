@@ -1,30 +1,22 @@
-# apps/dashboard — app.bridgistic.app
+# apps/dashboard: app.bridgistic.app
 
-The customer-facing control plane. **Phase 5.**
+Vite + React 18 + TypeScript + Tailwind 3 + Framer Motion + Recharts. Static build for Cloudflare Pages (`dist/`, SPA `_redirects`).
 
-The test it has to pass: *an agency can onboard 25 sites and see every run in
-one place.* Everything below follows from that one sentence.
+```
+npm run dev --workspace apps/dashboard        # http://localhost:5173, demo: /?demo=1
+npm run build --workspace apps/dashboard      # tsc + vite build → apps/dashboard/dist
+npm test --workspace apps/dashboard           # vitest
+npm run lint --workspace apps/dashboard
+```
+
+## Data access
+`src/lib/api/client.ts` defines `BridgisticClient`. Implementations:
+- `BridgeClient`: real HMAC-signed calls to `https://<site>/wp-json/bridgistic/v1/*` through `@bridgistic/wp-client` (same signer as the hosted executor). The key secret lives in `sessionStorage` for that tab only and is never sent to a Bridgistic server.
+- `DemoClient`: bundled sample data. Whenever it is active a gold "Demo data" banner is shown on every screen.
+
+Routes `audit`, `approvals`, `license/*` need plugin PR Wordpressistic/bridgistic#8. On older plugins they return `rest_no_route` and the screen shows "Needs plugin update". Approval decisions and key minting stay in WP Admin; the dashboard deep-links there.
+
+When api.bridgistic.app ships (BR-007), add a `HostedClient` implementing the same interface; screens don't change.
 
 ## Screens
-
-| Screen | Must show |
-|---|---|
-| Sites | Every connected site, health, plugin version, last successful run, seat usage against `bridgistic.sites.max`. |
-| Site detail | Every scope granted, **with a last-used time and a one-click revoke** (INVARIANT 10). Health timeline. |
-| Jobs | Schedule, timezone (the IANA name, not an offset), next run, last status, overlap and catch-up policy. |
-| Run history | Per-step outcome, filterable, exportable, one-click re-run with the original vars. |
-| Approvals | What will happen, who asked, when it expires. Step-up auth on the decision. |
-| Audit | `action_log`, digests only. Never an argument body. |
-| Team | Seats against the plan. Roles: owner / admin / member / viewer. |
-| Billing | Plan, usage against quota, the soft-limit banner at 80%, invoices, the upgrade CTA at 100%. |
-
-## Things that are easy to get wrong here
-
-- **Never render a raw key.** Masked, and shown in full exactly once at mint time.
-- **Never render request arguments.** The audit table stores digests; a UI that
-  wants to "just show the SQL" is asking for the one thing that was deliberately
-  never stored.
-- **Show the timezone, not the offset.** A job says `02:00 Asia/Dhaka`, never
-  `02:00 UTC+6`, because the second one is a lie twice a year in half the world.
-- **Seat exhaustion and expiry get an email**, not just a banner. A banner is
-  only seen by someone already logged in, which is not the person who needs it.
+Sign-in shell (account sign-in labelled Coming soon), Sites + connect flow, Overview (stats, quota bar, activity area chart, outcomes donut, top actions), Keys & scopes, Approvals, Audit log (search/filter/CSV), Snapshots (timeline, restore/delete with confirm), Usage, Posts, Media, Users, Plugins (toggle → approval), Options, Files, Database, Playbooks, Schedules (pause/resume/run now), Memory, WooCommerce, License, Coming soon, Roadmap. Feature → route map: `docs/DASHBOARD-FEATURE-INVENTORY.md`.
