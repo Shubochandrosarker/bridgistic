@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :focus-visible { outline: 2px solid #C6A15B; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+}
+@layer components {
+  .card { @apply rounded-2xl bg-white/90 ring-1 ring-navy/10 shadow-[0_1px_2px_rgba(11,31,58,0.06),0_8px_24px_-12px_rgba(11,31,58,0.18)]; }
+  .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50; }
+  .btn-primary { @apply btn bg-navy text-ivory hover:bg-navy-700; }
+  .btn-ghost { @apply btn text-navy ring-1 ring-navy/15 hover:bg-navy/5; }
+  .btn-danger { @apply btn text-red-800 ring-1 ring-red-800/20 hover:bg-red-50; }
+  .input { @apply w-full rounded-xl border border-navy/15 bg-white px-3 py-2 text-sm text-navy placeholder:text-navy/40 focus:border-gold focus:outline-none; }
+  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-navy/60; }
+  .shimmer { background: linear-gradient(90deg, rgba(11,31,58,.06) 25%, rgba(11,31,58,.12) 50%, rgba(11,31,58,.06) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  @keyframes shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+}

@@ -9,7 +9,9 @@
     "packages/*",
     "apps/mcp",
     "apps/api",
-    "apps/scheduler"
+    "apps/scheduler",
+    "apps/dashboard",
+    "apps/pay"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
@@ -23,7 +25,8 @@
     "check:tool-drift": "node scripts/check-tool-drift.mjs",
     "check:plugin-routes": "node scripts/check-plugin-routes.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
-    "check:secrets": "gitleaks dir . --config .gitleaks.toml --no-banner || echo \"gitleaks not installed locally; CI runs it\""
+    "check:secrets": "gitleaks dir . --config .gitleaks.toml --no-banner || echo \"gitleaks not installed locally; CI runs it\"",
+    "build:frontends": "npm run build --workspace apps/dashboard --workspace apps/pay"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260815.1",
