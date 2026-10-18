@@ -21,27 +21,56 @@
   <main>
     <section class="bg-navy pb-24 pt-10 text-ivory">
       <div class="mx-auto max-w-5xl px-6">
-        <p class="reveal text-sm font-medium uppercase tracking-[0.18em] text-gold">Lifetime Deal</p>
-        <h1 class="reveal reveal-2 mt-3 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">Bridgistic for life. One payment.</h1>
-        <p class="reveal reveal-3 mt-4 max-w-xl text-lg text-ivory/70">Connect your WordPress sites to the AI tools you already use, with scoped keys, approvals and snapshots. Pay once and keep every future update.</p>
+        <p class="reveal text-sm font-medium uppercase tracking-[0.18em] text-gold"><span data-when="open">Welcome offer: Lifetime Deal</span><span data-when="closed" hidden>Bridgistic Pro</span></p>
+        <h1 class="reveal reveal-2 mt-3 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl"><span data-when="open">Bridgistic Pro for life. One payment of $29.99.</span><span data-when="closed" hidden>Bridgistic Pro, monthly or yearly.</span></h1>
+        <p class="reveal reveal-3 mt-4 max-w-xl text-lg text-ivory/70">Connect your WordPress sites to the AI tools you already use, with scoped keys, approvals and snapshots. <span data-when="open">Pay once instead of $99 every year, and keep every future update.</span></p>
+        <ul data-when="open" class="reveal reveal-3 mt-6 flex flex-wrap gap-2 text-sm font-medium" aria-label="Offer terms">
+          <li class="rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-ivory">Available until 31 December 2026</li>
+          <li class="rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-ivory">100 licenses only</li>
+          <li id="remaining" hidden class="rounded-full border border-teal/60 bg-teal/15 px-3 py-1.5 text-ivory"></li>
+        </ul>
       </div>
     </section>
 
     <section id="offer" class="mx-auto -mt-16 grid max-w-5xl gap-6 px-6 lg:grid-cols-5">
       <div class="reveal rounded-3xl bg-white p-8 shadow-xl ring-1 ring-navy/10 lg:col-span-3">
         <div id="thanks" hidden class="mb-6 rounded-2xl bg-teal-soft p-4 text-sm text-teal">Thank you. Your receipt and license key are on their way to your email.</div>
-        <div class="flex items-baseline gap-3">
-          <span class="text-5xl font-semibold tabular-nums">$29.99</span>
-          <span class="text-navy/60">USD, one time</span>
+        <label for="buyer-email" class="block text-xs font-semibold uppercase tracking-[0.14em] text-navy/60">Email for your license key</label>
+        <input id="buyer-email" type="email" autocomplete="email" placeholder="you@example.com" class="mt-2 w-full rounded-xl border border-navy/20 bg-ivory px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gold" />
+        <p id="email-note" class="mt-1 text-xs text-navy/55">Your WPistic license is issued to this email after payment.</p>
+
+        <div data-when="open" class="mt-8">
+          <div class="flex items-baseline gap-3">
+            <span class="text-5xl font-semibold tabular-nums">$29.99</span>
+            <span class="text-navy/60">USD, one time</span>
+          </div>
+          <p class="mt-2 text-sm text-navy/60">After the welcome offer: $12 per month or $99 per year.</p>
+          <ul class="mt-6 space-y-3 text-sm">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Lifetime use of Bridgistic Pro</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>All future updates included</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>No subscription and no renewal</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>License issued and managed through your WPistic account</li>
+          </ul>
+          <button id="buy" data-plan="lifetime" type="button" class="mt-8 w-full rounded-2xl bg-gold px-6 py-4 text-base font-semibold text-navy transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50">Claim the Lifetime Deal</button>
+          <p class="mt-3 text-center text-xs text-navy/55">The offer closes on 31 December 2026 or when 100 licenses are sold, whichever comes first.</p>
         </div>
-        <ul class="mt-6 space-y-3 text-sm">
-          <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Lifetime use of Bridgistic</li>
-          <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>All future updates included</li>
-          <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>No subscription and no renewal</li>
-          <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>License issued and managed through your WPistic account</li>
-        </ul>
-        <button id="buy" type="button" class="mt-8 w-full rounded-2xl bg-navy px-6 py-4 text-base font-semibold text-ivory transition hover:bg-[#132C4F] disabled:cursor-not-allowed disabled:opacity-50">Buy the Lifetime Deal</button>
-        <p id="buy-note" class="mt-3 text-center text-xs text-navy/55" aria-live="polite">Payment is processed by Paddle, our reseller and Merchant of Record. Taxes are calculated at checkout.</p>
+
+        <div data-when="closed" hidden class="mt-8">
+          <p class="rounded-2xl bg-teal-soft p-4 text-sm text-teal">The Lifetime Deal welcome offer has ended.</p>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-2xl p-5 ring-1 ring-navy/10">
+              <p class="text-sm font-semibold text-navy/60">Pro Monthly</p>
+              <p class="mt-1"><span class="text-3xl font-semibold tabular-nums">$12</span> <span class="text-navy/60">USD per month</span></p>
+              <button data-plan="monthly" type="button" class="mt-4 w-full rounded-xl bg-navy px-4 py-3 text-sm font-semibold text-ivory disabled:opacity-50">Choose monthly</button>
+            </div>
+            <div class="rounded-2xl p-5 ring-1 ring-gold/60">
+              <p class="text-sm font-semibold text-navy/60">Pro Yearly</p>
+              <p class="mt-1"><span class="text-3xl font-semibold tabular-nums">$99</span> <span class="text-navy/60">USD per year</span></p>
+              <button data-plan="yearly" type="button" class="mt-4 w-full rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-navy disabled:opacity-50">Choose yearly</button>
+            </div>
+          </div>
+        </div>
+        <p id="buy-note" class="mt-4 text-center text-xs text-navy/55" aria-live="polite">Payment is processed by Paddle, our reseller and Merchant of Record. Taxes are calculated at checkout.</p>
       </div>
       <aside class="reveal reveal-2 rounded-3xl bg-white p-8 ring-1 ring-navy/10 lg:col-span-2">
         <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-navy/55">What Bridgistic does today</h2>
@@ -61,6 +90,7 @@
     <section class="mx-auto max-w-3xl px-6 py-20" aria-labelledby="faq">
       <h2 id="faq" class="text-2xl font-semibold">Questions</h2>
       <div class="mt-6 divide-y divide-navy/10 rounded-2xl bg-white ring-1 ring-navy/10">
+        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">How long is the welcome offer open?</summary><p class="mt-2 text-sm text-navy/70">Until 31 December 2026, or until 100 Lifetime licenses are sold, whichever comes first. After that, Bridgistic Pro is $12 per month or $99 per year.</p></details>
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">What does lifetime mean here?</summary><p class="mt-2 text-sm text-navy/70">You pay once and can use Bridgistic for as long as the product is offered, with no renewal fee. The exact terms are in the Terms of Service linked below.</p></details>
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Are future updates included?</summary><p class="mt-2 text-sm text-navy/70">Yes. Every future update to Bridgistic is included in the Lifetime Deal.</p></details>
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">How do I activate my license?</summary><p class="mt-2 text-sm text-navy/70">After purchase you receive a license key by email. Paste it on the License screen in the Bridgistic dashboard or plugin. The license is verified by the WPistic license server.</p></details>
