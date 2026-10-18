@@ -30,7 +30,7 @@ apps/
   api/         Worker  api.bridgistic.app      accounts, plans, billing, entitlements, meter
   scheduler/   Worker + Durable Objects + Queues
   web/         bridgistic.app                  marketing + free tools (static)
-  dashboard/   app.bridgistic.app              sites, jobs, runs, approvals, team, billing
+  dashboard/   dashboard.bridgistic.app         sites, jobs, runs, approvals, team, billing
 
 packages/
   types/           plans, scopes, entities — the single source of truth for enums
