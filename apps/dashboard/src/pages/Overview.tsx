@@ -77,7 +77,7 @@ export function Overview() {
                 <Card className="lg:col-span-2">
                   <h2 className="text-sm font-semibold">Top actions this month</h2>
                   <div className="mt-4 h-60">{top.length ? <ResponsiveContainer><BarChart data={top} layout="vertical" margin={{ left: 40 }}>
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} /><YAxis type="category" dataKey="action" tick={{ fontSize: 11 }} width={110} /><Tooltip />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} /><YAxis type="category" dataKey="action" tick={{ fontSize: 11 }} width={110} interval={0} /><Tooltip />
                     <Bar dataKey="count" fill="#0B1F3A" radius={[0, 6, 6, 0]} animationDuration={900} /></BarChart></ResponsiveContainer>
                     : <p className="text-sm text-navy/55">No actions recorded this month.</p>}</div>
                 </Card>

@@ -19,10 +19,10 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
     let siteUrl: string;
     try { siteUrl = normalizeSiteUrl(f.siteUrl); } catch (x) { setUrlErr(x instanceof Error ? x.message : "Invalid URL"); return; }
     setStep("testing");
-    const conn = { ...f, siteUrl, id: "test", alias: f.alias || new URL(siteUrl).host };
+    const conn = { siteUrl, keyId: f.keyId.trim(), secret: f.secret.trim(), id: "test", alias: f.alias.trim() || new URL(siteUrl).host };
     try {
       await new BridgeClient(conn).siteInfo();
-      addSite({ alias: conn.alias, siteUrl, keyId: f.keyId.trim(), secret: f.secret.trim() });
+      addSite({ alias: conn.alias, siteUrl, keyId: conn.keyId, secret: conn.secret });
       setStep("ok"); setTimeout(() => onDone?.(), 700);
     } catch (x) { setErr(x instanceof ApiError ? x : new ApiError(String(x), "server")); setStep("form"); }
   };
