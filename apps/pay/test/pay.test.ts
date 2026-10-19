@@ -55,7 +55,7 @@ describe("pay.bridgistic.app", () => {
     expect(text).toContain("Lifetime Deal: 1 license · 1 site. Monthly and Yearly: 1 license · 5 sites.");
     expect((text.match(/Coming soon/g) || []).length).toBe(12);
     expect(text).not.toContain("website connection");
-    expect(text).toContain("14-day refund guarantee");
+    expect(text).toContain("7-day refund guarantee");
     expect(html).toContain("mailto:support@wpistic.com");
   });
   it("links privacy, terms and refund pages", () => {
@@ -71,5 +71,9 @@ describe("pay.bridgistic.app", () => {
     expect(quantityReset(ev(1), "pri_x")).toBeNull();
     expect(quantityReset(ev(1, true), "pri_x")).toEqual([{ priceId: "pri_x", quantity: 1 }]);
     expect(quantityReset({ name: "checkout.completed", data: { items: [] } }, "pri_x")).toBeNull();
+  });
+  it("refund guarantee is 7 days, never 14", () => {
+    expect(text).toContain("7-day refund guarantee");
+    expect(text).not.toMatch(/14[- ]day|14 days/i);
   });
 });
