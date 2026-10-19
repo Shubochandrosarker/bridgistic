@@ -71,3 +71,17 @@ export function checkoutOptions(c: PayConfig, email?: string, plan: Plan = "life
     ...(email ? { customer: { email } } : {}),
   };
 }
+
+type PaddleItem = { quantity?: number; price_id?: string; price?: { id?: string } };
+/**
+ * One purchase = one license. Paddle Billing has no allowQuantity setting, so a
+ * changed quantity or item list is reset to 1 x the plan. Returns the items to
+ * restore, or null when the checkout is already correct.
+ */
+export function quantityReset(ev: { name?: string; data?: { items?: PaddleItem[] } } | undefined, priceId: string | null) {
+  if (!ev || !priceId || !ev.data?.items) return null;
+  if (!["checkout.items.updated", "checkout.updated", "checkout.loaded"].includes(ev.name ?? "")) return null;
+  const items = ev.data.items;
+  const ok = items.length === 1 && items[0]!.quantity === 1 && (items[0]!.price_id ?? items[0]!.price?.id) === priceId;
+  return ok ? null : [{ priceId, quantity: 1 }];
+}

@@ -1,7 +1,7 @@
 import "./style.css";
-import { checkoutOptions, checkoutReady, offerOpen, readConfig, remainingLabel, validEmail, type Plan } from "./config.ts";
+import { checkoutOptions, checkoutReady, offerOpen, quantityReset, readConfig, remainingLabel, validEmail, type Plan } from "./config.ts";
 
-declare global { interface Window { Paddle?: { Environment: { set(e: string): void }; Initialize(o: { token: string }): void; Checkout: { open(o: unknown): void } } } }
+declare global { interface Window { Paddle?: { Environment: { set(e: string): void }; Initialize(o: { token: string; eventCallback?: (ev: any) => void }): void; Checkout: { open(o: unknown): void; updateItems(i: unknown): void } } } }
 
 const cfg = readConfig(import.meta.env as Record<string, string>);
 const note = document.getElementById("buy-note")!;
@@ -37,12 +37,16 @@ if (!checkoutReady(cfg)) {
   note.textContent = "Checkout is not open yet. It opens once the Paddle client token is configured.";
 } else {
   for (const b of buttons) b.disabled = true;
+  let openPriceId: string | null = null;
   const s = document.createElement("script");
   s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
   s.onload = () => {
     if (!window.Paddle) return;
     if (cfg.env === "sandbox") window.Paddle.Environment.set("sandbox");
-    window.Paddle.Initialize({ token: cfg.token });
+    window.Paddle.Initialize({
+      token: cfg.token,
+      eventCallback: (ev) => { const fix = quantityReset(ev, openPriceId); if (fix) window.Paddle?.Checkout.updateItems(fix); },
+    });
     for (const b of buttons) b.disabled = false;
   };
   s.onerror = () => { note.textContent = "The payment provider could not be loaded. Check your connection or try again later."; };
@@ -60,6 +64,7 @@ if (!checkoutReady(cfg)) {
         await refreshStatus();
         if (!offerOpen(Date.now(), lastStatus)) return; // closed meanwhile: the regular plans are now shown
       }
+      openPriceId = cfg.prices[plan];
       window.Paddle?.Checkout.open(checkoutOptions(cfg, email, plan));
     });
   }

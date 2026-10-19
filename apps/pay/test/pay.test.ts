@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkoutOptions, checkoutReady, offerOpen, PADDLE_PRICES, readConfig, remainingLabel, validEmail } from "../src/config.ts";
+import { checkoutOptions, checkoutReady, offerOpen, PADDLE_PRICES, quantityReset, readConfig, remainingLabel, validEmail } from "../src/config.ts";
 
 const html = readFileSync(resolve(__dirname, "../index.html"), "utf8");
 const text = html.replace(/<[^>]+>/g, " ");
@@ -60,5 +60,16 @@ describe("pay.bridgistic.app", () => {
   });
   it("links privacy, terms and refund pages", () => {
     for (const p of ["https://bridgistic.app/terms", "https://bridgistic.app/privacy", "https://bridgistic.app/refund-policy", "https://bridgistic.app/how-purchases-work"]) expect(html).toContain(p);
+  });
+  it("checkout opens with quantity 1 and any quantity change is reset to 1", () => {
+    for (const plan of ["lifetime", "monthly", "yearly"] as const) {
+      const o = checkoutOptions(readConfig({}), "a@b.co", plan);
+      expect(o.items).toEqual([{ priceId: PADDLE_PRICES[plan], quantity: 1 }]);
+    }
+    const ev = (q: number, extra = false) => ({ name: "checkout.items.updated", data: { items: [{ price_id: "pri_x", quantity: q }, ...(extra ? [{ price_id: "pri_y", quantity: 1 }] : [])] } });
+    expect(quantityReset(ev(3), "pri_x")).toEqual([{ priceId: "pri_x", quantity: 1 }]);
+    expect(quantityReset(ev(1), "pri_x")).toBeNull();
+    expect(quantityReset(ev(1, true), "pri_x")).toEqual([{ priceId: "pri_x", quantity: 1 }]);
+    expect(quantityReset({ name: "checkout.completed", data: { items: [] } }, "pri_x")).toBeNull();
   });
 });
