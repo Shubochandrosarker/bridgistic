@@ -49,6 +49,12 @@ describe("pay.bridgistic.app", () => {
   it("brand voice: no exclamation marks in visible copy", () => {
     expect(text.replace(/<!doctype[^>]*>/i, "")).not.toContain("!");
   });
+  it("states the website allowance and refund guarantee", () => {
+    expect(text).toContain("1 website connection");
+    expect((text.match(/5 website connections/g) || []).length).toBe(2);
+    expect(text).toContain("14-day refund guarantee");
+    expect(html).toContain("mailto:support@wpistic.com");
+  });
   it("links privacy, terms and refund pages", () => {
     for (const p of ["https://bridgistic.app/terms", "https://bridgistic.app/privacy", "https://bridgistic.app/refund-policy", "https://bridgistic.app/how-purchases-work"]) expect(html).toContain(p);
   });
