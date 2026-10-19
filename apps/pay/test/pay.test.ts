@@ -50,6 +50,6 @@ describe("pay.bridgistic.app", () => {
     expect(text.replace(/<!doctype[^>]*>/i, "")).not.toContain("!");
   });
   it("links privacy, terms and refund pages", () => {
-    for (const p of ["/privacy.html", "/terms.html", "/refund.html"]) expect(html).toContain(p);
+    for (const p of ["https://bridgistic.app/terms", "https://bridgistic.app/privacy", "https://bridgistic.app/refund-policy", "https://bridgistic.app/how-purchases-work"]) expect(html).toContain(p);
   });
 });
