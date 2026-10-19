@@ -44,14 +44,17 @@ describe("pay.bridgistic.app", () => {
   it("shows only the real Paddle amounts and the offer terms", () => {
     expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$29.99", "$12", "$99"].includes(p))).toBe(true);
     for (const t of ["31 December 2026", "100 licenses only"]) expect(text).toContain(t);
-    expect(text).toContain("All future updates included");
+    expect(text).toContain("All future paid features");
   });
   it("brand voice: no exclamation marks in visible copy", () => {
     expect(text.replace(/<!doctype[^>]*>/i, "")).not.toContain("!");
   });
   it("states the website allowance and refund guarantee", () => {
-    expect(text).toContain("1 website connection");
-    expect((text.match(/5 website connections/g) || []).length).toBe(2);
+    expect((html.match(/>1 license · 1 site</g) || []).length).toBe(1);
+    expect((html.match(/>1 license · 5 sites</g) || []).length).toBe(2);
+    expect(text).toContain("Lifetime Deal: 1 license · 1 site. Monthly and Yearly: 1 license · 5 sites.");
+    expect((text.match(/Coming soon/g) || []).length).toBe(12);
+    expect(text).not.toContain("website connection");
     expect(text).toContain("14-day refund guarantee");
     expect(html).toContain("mailto:support@wpistic.com");
   });
