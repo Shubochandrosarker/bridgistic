@@ -2,7 +2,7 @@ export type Plan = "lifetime" | "monthly" | "yearly";
 export interface PayConfig {
   token: string;
   env: "production" | "sandbox";
-  /** Lifetime Deal ($29.99 one time), the welcome offer. */
+  /** Lifetime Deal ($49.99 one time), the welcome offer. */
   priceId: string;
   /** Regular plans that apply after the welcome offer ends. */
   prices: Record<Plan, string>;
@@ -11,7 +11,7 @@ export interface PayConfig {
 
 /** Real Paddle prices on product "Bridgistic Pro" (pro_01m1ykaqjsgcgt6xvwsy4jpn83), read 2026-10-19. */
 export const PADDLE_PRICES: Record<Plan, string> = {
-  lifetime: "pri_01m58k6epsqzbr3qbab84t6p90", // $29.99 USD one time
+  lifetime: "pri_01m58k6epsqzbr3qbab84t6p90", // $49.99 USD one time
   monthly: "pri_01m1ykar8aq033865h68a4b9hh", // $12.00 USD per month
   yearly: "pri_01m1ykaqyaaeewsbah07akmpka", // $99.00 USD per year
 };
