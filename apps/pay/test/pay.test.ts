@@ -42,7 +42,7 @@ describe("pay.bridgistic.app", () => {
     expect(o.customData).toMatchObject({ source: "pay.bridgistic.app", product: "bridgistic", offer: "welcome-lifetime" });
   });
   it("shows only the real Paddle amounts and the offer terms", () => {
-    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$29.99", "$12", "$99"].includes(p))).toBe(true);
+    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$49.99", "$12", "$99"].includes(p))).toBe(true);
     for (const t of ["31 December 2026", "100 licenses only"]) expect(text).toContain(t);
     expect(text).toContain("All future paid features");
   });
