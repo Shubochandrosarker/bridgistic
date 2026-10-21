@@ -1,4 +1,4 @@
-# apps/dashboard: app.bridgistic.app
+# apps/dashboard: dashboard.bridgistic.app (app.bridgistic.app 301-redirects here)
 
 Vite + React 18 + TypeScript + Tailwind 3 + Framer Motion + Recharts. Static build for Cloudflare Pages (`dist/`, SPA `_redirects`).
 

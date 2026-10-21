@@ -34,7 +34,7 @@ export function Approvals() {
       </Resource>
       <Card>
         <h2 className="text-sm font-semibold">Check one approval</h2>
-        <p className="text-xs text-navy/55">Uses GET approvals/status, available on every plugin version.</p>
+        <p className="text-xs text-navy/55">Looks the ID up among this key's own approvals. A key cannot see approvals made by other keys.</p>
         <form className="mt-3 flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (!client) return; try { setFound(await client.approvalStatus(lookup.trim())); } catch { setFound("err"); } }}>
           <input className="input" value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="Approval ID" aria-label="Approval ID" />
           <button className="btn-ghost"><Search className="h-4 w-4" aria-hidden />Check</button>

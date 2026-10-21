@@ -3,6 +3,9 @@ import { firstArray, type BridgisticClient, type ListResource } from "./client.t
 import { ApiError, classify } from "./errors.ts";
 import type { AuditEntry, Approval, LicenseStatus, Playbook, Row, Schedule, SiteConnection, SiteInfo, Snapshot, UsageInfo } from "./types.ts";
 
+/** The plugin's default options allowlist (rest/class-options-controller.php). */
+const DEFAULT_OPTIONS = ["blogname", "blogdescription", "date_format", "time_format", "start_of_week", "posts_per_page", "show_on_front", "page_on_front", "page_for_posts", "default_comment_status", "timezone_string"];
+
 /** Real client: HMAC-signed requests straight to the site's bridgistic/v1 REST API. */
 export class BridgeClient implements BridgisticClient {
   readonly mode = "live" as const;
@@ -27,13 +30,36 @@ export class BridgeClient implements BridgisticClient {
   siteInfo() { return this.call<SiteInfo>("GET", "site-info"); }
   usage() { return this.call<UsageInfo>("GET", "usage"); }
   async snapshots() { return firstArray(await this.call("GET", "snapshot")) as unknown as Snapshot[]; }
-  createSnapshot(input: { type: string; target: string; label?: string }) { return this.call<Row>("POST", "snapshot", input); }
+  /** The plugin expects target as an object: option → { name }, post → { id }. */
+  createSnapshot(input: { type: string; target: string; label?: string }) {
+    const t = input.target.trim();
+    const target = input.type === "option" ? { name: t } : { id: Number(t) };
+    return this.call<Row>("POST", "snapshot", { type: input.type, target, label: input.label ?? "" });
+  }
   restoreSnapshot(id: string) { return this.call<Row>("POST", "snapshot/restore", { snapshot_id: id }); }
   deleteSnapshot(id: string) { return this.call<Row>("POST", "snapshot/delete", { snapshot_id: id }); }
-  approvalStatus(id: string) { return this.call<Approval>("GET", `approvals/status?approval_id=${encodeURIComponent(id)}`); }
+  /**
+   * Plugin 1.5.3+ refuses approval_id in the (unsigned) query string, and GET
+   * cannot carry a signed body, so look the ID up in this key's own approvals
+   * list. Older plugins have no list route; they still accept the query form.
+   */
+  async approvalStatus(id: string) {
+    try {
+      const hit = (await this.approvals()).find((a) => a.approval_id === id);
+      if (!hit) throw new ApiError("Approval not found for this key.", "not_found", 404);
+      return hit;
+    } catch (e) {
+      if (e instanceof ApiError && e.kind === "needs_plugin_update") {
+        return this.call<Approval>("GET", `approvals/status?approval_id=${encodeURIComponent(id)}`);
+      }
+      throw e;
+    }
+  }
   async approvals() { return firstArray(await this.call("GET", "approvals")) as unknown as Approval[]; }
   async audit(filter = "all") { return firstArray(await this.call("GET", `audit?filter=${encodeURIComponent(filter)}`)) as unknown as AuditEntry[]; }
   async list(resource: ListResource, query: Record<string, string> = {}) {
+    if (resource === "options") return this.options();
+    if (resource === "woo/inventory") return this.inventory();
     const qs = new URLSearchParams(query).toString();
     return firstArray(await this.call("GET", qs ? `${resource}?${qs}` : resource));
   }
@@ -44,7 +70,38 @@ export class BridgeClient implements BridgisticClient {
   togglePlugin(file: string, active: boolean) { return this.call<Row>("POST", "plugins/toggle", { plugin: file, state: active ? "activate" : "deactivate" }); }
   async fsList(path: string) { return firstArray(await this.call("POST", "fs/list", { path })); }
   async dbQuery(sql: string) { return firstArray(await this.call("POST", "db/query", { sql })); }
-  wooSalesSummary() { return this.call<Row>("GET", "woo/sales-summary"); }
+  /** Normalised to the same headline fields the demo uses: period, orders, revenue. */
+  async wooSalesSummary() {
+    const s = await this.call<Row>("GET", "woo/sales-summary");
+    const cur = String(s.currency ?? "");
+    const money = (v: unknown) => (typeof v === "number" ? v.toFixed(2) : String(v ?? "0")) + (cur ? ` ${cur}` : "");
+    return {
+      period: `Last ${String(s.period_days ?? 30)} days`,
+      orders: Number(s.order_count ?? 0),
+      gross_revenue: money(s.gross_revenue),
+      average_order_value: money(s.average_order_value),
+    } as Row;
+  }
+  /**
+   * GET options needs a name (there is no list route), and only allow-listed
+   * names are readable. Read the plugin's default allowlist one by one and skip
+   * names the site has removed from its allowlist.
+   */
+  private async options(): Promise<Row[]> {
+    const settled = await Promise.allSettled(DEFAULT_OPTIONS.map((n) => this.call<Row>("GET", `options?name=${encodeURIComponent(n)}`)));
+    const rows = settled.flatMap((r) => (r.status === "fulfilled" && r.value.exists !== false ? [{ option: r.value.name, value: r.value.value }] : []));
+    const firstErr = settled.find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (!rows.length && firstErr) throw firstErr.reason;
+    return rows;
+  }
+  /** woo/inventory returns { out_of_stock: [...], low_stock: [...] }; show both. */
+  private async inventory(): Promise<Row[]> {
+    const d = await this.call<{ out_of_stock?: Row[]; low_stock?: Row[] }>("GET", "woo/inventory");
+    return [
+      ...(d.out_of_stock ?? []).map((r) => ({ ...r, stock_state: "out of stock" })),
+      ...(d.low_stock ?? []).map((r) => ({ ...r, stock_state: "low stock" })),
+    ];
+  }
   license() { return this.call<LicenseStatus>("GET", "license"); }
   activateLicense(key: string) { return this.call<LicenseStatus>("POST", "license/activate", { key }); }
   deactivateLicense() { return this.call<LicenseStatus>("POST", "license/deactivate", {}); }

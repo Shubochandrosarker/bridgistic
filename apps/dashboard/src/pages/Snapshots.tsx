@@ -11,11 +11,12 @@ export function Snapshots() {
   const [confirm, setConfirm] = useState<{ id: string; kind: "restore" | "delete" } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [form, setForm] = useState({ type: "option" as "option" | "post", target: "", label: "" });
+  const [tick, setTick] = useState(0);
   return (
     <div className="space-y-6">
       <PageHeader title="Snapshots" description="Point-in-time copies taken before changes. Restore rolls the target back; nothing else is touched." />
       <Card>
-        <form className="flex flex-wrap items-end gap-2" onSubmit={async (e) => { e.preventDefault(); if (!client) return; try { await client.createSnapshot(form); setMsg("Snapshot created. Refresh the list to see it."); } catch (x) { setMsg(String(x)); } }}>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={async (e) => { e.preventDefault(); if (!client) return; if (form.type === "post" && !/^\d+$/.test(form.target.trim())) { setMsg("Enter a numeric post ID."); return; } try { await client.createSnapshot(form); setMsg("Snapshot created."); setForm({ ...form, target: "", label: "" }); setTick((t) => t + 1); } catch (x) { setMsg(x instanceof Error ? x.message : String(x)); } }}>
           <label><span className="label">Type</span><select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "option" | "post" })}><option value="option">option</option><option value="post">post</option></select></label>
           <label className="flex-1"><span className="label">Target</span><input required className="input" value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} placeholder="Option name or post ID" /></label>
           <label className="flex-1"><span className="label">Label</span><input className="input" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
@@ -23,7 +24,7 @@ export function Snapshots() {
         </form>
         {msg && <p className="mt-3 text-sm text-teal" role="status">{msg}</p>}
       </Card>
-      <Resource load={(c) => c.snapshots()} empty={{ title: "No snapshots", body: "Snapshots are taken automatically before supported changes, or manually above." }}>
+      <Resource load={(c) => c.snapshots()} deps={[tick]} empty={{ title: "No snapshots", body: "Snapshots are taken automatically before supported changes, or manually above." }}>
         {(rows, st) => (
           <ol className="relative space-y-3 border-l-2 border-navy/10 pl-6">
             {rows.map((s, i) => (
@@ -32,7 +33,7 @@ export function Snapshots() {
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{s.label || s.snapshot_id}</p>
-                    <p className="text-xs text-navy/55">{fmtTime(s.created_at)} · {s.type} {s.target ? `· ${s.target}` : ""} · {fmtBytes(s.byte_size)} · key {s.key_id}</p>
+                    <p className="text-xs text-navy/55">{fmtTime(s.created_at)} · {s.type} {s.target ? `· ${fmtTarget(s.target)}` : ""} · {fmtBytes(s.byte_size)} · key {s.key_id}</p>
                   </div>
                   {s.restored_at && <Badge tone="pending">restored {fmtTime(s.restored_at)}</Badge>}
                   <button className="btn-ghost" onClick={() => setConfirm({ id: s.snapshot_id, kind: "restore" })}><RotateCcw className="h-4 w-4" aria-hidden />Restore</button>
@@ -49,4 +50,13 @@ export function Snapshots() {
       </Resource>
     </div>
   );
+}
+
+/** The plugin stores target as JSON, e.g. {"name":"blogname"} or {"id":12}. */
+export function fmtTarget(t: unknown): string {
+  try {
+    const o = typeof t === "string" ? JSON.parse(t) : t;
+    if (o && typeof o === "object") return Object.values(o as Record<string, unknown>).map(String).join(", ");
+  } catch { /* plain string */ }
+  return String(t);
 }

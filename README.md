@@ -22,7 +22,7 @@
 > Bridgistic WordPress plugin and local MCP server, both superseded by
 > [`bridgistic-claude-marketplace`](https://github.com/Shubochandrosarker/bridgistic-claude-marketplace).
 > That code now lives in [`legacy/`](legacy/). This repository is the **hosted
-> platform**: `bridgistic.app`, `api.bridgistic.app`, `app.bridgistic.app`, and
+> platform**: `bridgistic.app`, `api.bridgistic.app`, `dashboard.bridgistic.app`, and
 > the managed cloud scheduler.
 
 ## What this is
@@ -51,7 +51,7 @@ apps/
   api/         Worker  api.bridgistic.app     accounts, plans, billing, entitlements, meter
   scheduler/   Worker + Durable Objects + Queues — the managed scheduler
   web/         bridgistic.app                 marketing site + free tools
-  dashboard/   app.bridgistic.app             sites, jobs, runs, approvals, team, billing
+  dashboard/   dashboard.bridgistic.app        sites, jobs, runs, approvals, team, billing
 
 packages/
   types/           plans, scopes, entities — single source of truth for every enum

@@ -30,5 +30,5 @@ pay.wpistic.com opens a Paddle overlay (`Paddle.Checkout.open`, `customData.sour
 ## Still missing
 - Scheduled re-validation and `/licenses/refresh` token rotation in the plugin (1.3.x had it).
 - Plan entitlements for "lifetime" are undefined. The plugin gates nothing on a license today (free-only policy kept).
-- Org-level license views in app.bridgistic.app need the hosted API (BR-007) or a WPistic dashboard token.
+- Org-level license views in dashboard.bridgistic.app need the hosted API (BR-007) or a WPistic dashboard token.
 - PLAT-17 (symmetric `verification_key`) is still open per WPISTIC-INTEROP.md; the hosted API must not trust ecosystem keys before it is settled.
