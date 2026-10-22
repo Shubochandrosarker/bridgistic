@@ -1,0 +1,8 @@
+name = "bridgistic-console"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bridgistic-console"
+database_id = "ee54b1a5-944f-4130-962a-a737898819a9"

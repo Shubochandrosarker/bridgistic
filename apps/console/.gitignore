@@ -1,0 +1,7 @@
+# Generated seed SQL (regenerate with npm run seed:registry)
+seed-sql/
+seed-one/
+seed-gz/
+cleanup.json
+.mimosa/
+*.tsbuildinfo
