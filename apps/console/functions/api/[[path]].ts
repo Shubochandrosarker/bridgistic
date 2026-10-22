@@ -26,11 +26,12 @@ import {
   requireStaff,
   requireUser,
   sessionCookie,
+  sharedCookieDomain,
   syncLog,
   userOrgs,
   type User,
 } from "../lib/auth.ts";
-import { activateLicense, deactivateLicense, issueLicense, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
+import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
 
@@ -40,18 +41,47 @@ function parseFiles(raw: string): { path: string; size: number; text: string }[]
   return JSON.parse(value);
 }
 
+/** Origins allowed to call the API with credentials (the dashboard SPA). */
+const TRUSTED_ORIGINS = new Set([
+  "https://bridgistic.app",
+  "https://www.bridgistic.app",
+  "https://dashboard.bridgistic.app",
+  "https://app.bridgistic.app",
+  "https://pay.bridgistic.app",
+  "https://admin.bridgistic.app",
+  "https://marketplace.bridgistic.app",
+]);
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin") ?? "";
+  if (!origin || !TRUSTED_ORIGINS.has(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/api";
-  try {
-    const response = await route(request, env, path, url);
+  const cors = corsHeaders(request);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, "Access-Control-Max-Age": "86400" } });
+  const withCors = (response: Response): Response => {
+    if (!Object.keys(cors).length) return response;
+    for (const [k, v] of Object.entries(cors)) response.headers.set(k, v);
     return response;
+  };
+  try {
+    return withCors(await route(request, env, path, url));
   } catch (e) {
-    if (e instanceof HttpError) return Response.json({ error: e.code, message: e.message }, { status: e.status });
-    if (e instanceof SiteCallError) return Response.json({ error: e.code, message: e.message }, { status: e.status });
+    if (e instanceof HttpError) return withCors(Response.json({ error: e.code, message: e.message }, { status: e.status }));
+    if (e instanceof SiteCallError) return withCors(Response.json({ error: e.code, message: e.message }, { status: e.status }));
     const message = e instanceof Error ? e.message : "Unexpected error.";
-    return Response.json({ error: "server_error", message }, { status: 500 });
+    return withCors(Response.json({ error: "server_error", message }, { status: 500 }));
   }
 };
 
@@ -60,6 +90,7 @@ interface Env {
   ADMIN_SETUP_TOKEN?: string;
   SECRET_ENCRYPTION_KEY?: string;
   PADDLE_WEBHOOK_SECRET?: string;
+  PADDLE_API_KEY?: string;
   OPENROUTER_KEY?: string;
 }
 
@@ -93,7 +124,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     await db.prepare("INSERT INTO memberships (org_id, user_id, role) VALUES (?, ?, 'owner')").bind(orgId, id).run();
     await audit(db, email, "user.signup", email, isOwner ? "owner claim" : "self signup");
     const sessionId = await createSession(db, id);
-    return jsonWithCookie({ ok: true, user: { id, email, name, role } }, sessionCookie(sessionId));
+    return jsonWithCookie({ ok: true, user: { id, email, name, role } }, sessionCookie(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
 
   if (path === "/api/auth/signin" && method === "POST") {
@@ -104,12 +135,12 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       return Response.json({ error: "invalid_credentials", message: "Email or password is incorrect." }, { status: 401 });
     }
     const sessionId = await createSession(db, row.id);
-    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role } }, sessionCookie(sessionId));
+    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role } }, sessionCookie(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
 
   if (path === "/api/auth/signout" && method === "POST") {
     await destroySession(db, request);
-    return jsonWithCookie({ ok: true }, clearedSessionCookie());
+    return jsonWithCookie({ ok: true }, clearedSessionCookie(sharedCookieDomain(url.hostname)));
   }
 
   // ── WPistic license contract (plugin-facing) ──────────────────────────────
@@ -158,7 +189,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   }
   if (seg[1] === "sites" && method === "DELETE" && seg[2]) {
     const siteId = seg[2];
-    const site = await db.prepare("SELECT * FROM sites WHERE id = ?").bind(siteId).first<{ id: string; org_id: string; url: string }>();
+    const site = await env.DB.prepare("SELECT * FROM sites WHERE id = ?").bind(siteId).first<{ id: string; org_id: string; url: string }>();
     if (!site) return Response.json({ error: "not_found", message: "Site not found." }, { status: 404 });
     await requireOrgMember(db, user.id, site.org_id);
     await db.prepare("DELETE FROM sites WHERE id = ?").bind(siteId).run();
@@ -255,7 +286,7 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
   }
   const info = probe.data as { site?: { name?: string; url?: string }; wordpress?: { version?: string }; php?: { version?: string }; bridge?: { scopes?: string[] } } | null;
   const id = crypto.randomUUID();
-  await db
+  await env.DB
     .prepare(
       `INSERT INTO sites (id, org_id, url, name, wp_version, php_version, key_id, key_mask, secret_enc, scopes, status, last_seen)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'connected', ?)
@@ -283,7 +314,7 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
 
 async function siteCall(request: Request, env: Env, user: User, siteId: string): Promise<Response> {
   if (!env.SECRET_ENCRYPTION_KEY) return Response.json({ error: "not_configured", message: "SECRET_ENCRYPTION_KEY is not set." }, { status: 503 });
-  const site = await db.prepare("SELECT * FROM sites WHERE id = ?").bind(siteId).first<{ id: string; org_id: string; url: string; key_id: string; secret_enc: string; status: string }>();
+  const site = await env.DB.prepare("SELECT * FROM sites WHERE id = ?").bind(siteId).first<{ id: string; org_id: string; url: string; key_id: string; secret_enc: string; status: string }>();
   if (!site) return Response.json({ error: "not_found", message: "Site not found." }, { status: 404 });
   await requireOrgMember(env.DB, user.id, site.org_id);
   const body = await request.json<{ method?: string; path?: string; body?: Record<string, unknown> }>();
@@ -452,12 +483,16 @@ async function paddleWebhook(request: Request, env: Env): Promise<Response> {
     const sigHeader = request.headers.get("Paddle-Signature") ?? "";
     const parts = Object.fromEntries(sigHeader.split(";").map((p) => p.split("=") as [string, string]));
     const ts = parts.ts ?? "";
+    // Reject stale deliveries (replay protection) while tolerating Paddle retries.
+    if (!/^\d+$/.test(ts) || Math.abs(Date.now() / 1000 - Number(ts)) > 86_400) {
+      return Response.json({ error: "stale_timestamp", message: "The webhook timestamp is missing or too old." }, { status: 403 });
+    }
     const expected = await hmacSha256Hex(env.PADDLE_WEBHOOK_SECRET, `${ts}:${raw}`);
     if (!parts.h1 || parts.h1 !== expected) {
       return Response.json({ error: "bad_signature", message: "The webhook signature did not verify." }, { status: 403 });
     }
   }
-  let event: { event_type?: string; data?: Record<string, unknown> };
+  let event: { event_type?: string; occurred_at?: string; data?: Record<string, unknown> };
   try {
     event = JSON.parse(raw);
   } catch {
@@ -465,22 +500,62 @@ async function paddleWebhook(request: Request, env: Env): Promise<Response> {
   }
   const type = String(event.event_type ?? "");
   const data = event.data ?? {};
-  if (!["subscription_created", "transaction_completed", "subscription_canceled"].includes(type)) {
-    return Response.json({ ok: true, ignored: type });
+
+  if (type === "subscription.canceled") {
+    const email = await paddleCustomerEmail(env, data);
+    if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
+    const licenses = await env.DB.prepare("SELECT id, key FROM licenses WHERE owner_email = ? AND status = 'active'").bind(email).all<{ id: string; key: string }>();
+    for (const license of licenses.results ?? []) {
+      await env.DB.prepare("UPDATE licenses SET status = 'suspended' WHERE id = ?").bind(license.id).run();
+      await env.DB.prepare("UPDATE activations SET status = 'inactive' WHERE license_id = ?").bind(license.id).run();
+      await syncLog(env.DB, "suspend", maskKey(license.key), "", "Paddle subscription canceled");
+    }
+    await audit(env.DB, "paddle-webhook", "license.suspend", email, `${licenses.results?.length ?? 0} license(s)`);
+    return Response.json({ ok: true, suspended: licenses.results?.length ?? 0 });
   }
-  const email = String(
-    (data.custom_data as Record<string, unknown> | undefined)?.email ?? ((data.customer as Record<string, unknown> | undefined)?.email ?? "")
-  ).toLowerCase();
+
+  if (type !== "transaction.completed") return Response.json({ ok: true, ignored: type });
+
+  const email = await paddleCustomerEmail(env, data);
   if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
+  const transactionId = String(data.id ?? "");
+  const seen = transactionId ? await env.DB.prepare("SELECT id FROM licenses WHERE notes LIKE ?").bind(`%${transactionId}%`).first() : null;
+  if (seen) return Response.json({ ok: true, duplicate: true });
   const priceId = String((data.items as { price?: { id?: string } }[] | undefined)?.[0]?.price?.id ?? "");
   const plan = priceId.includes("01m1ykar8aq033865h68a4b9hh") ? "monthly" : priceId.includes("01m1ykaqyaaeewsbah07akmpka") ? "yearly" : "lifetime";
-  const existing = await env.DB.prepare("SELECT id FROM licenses WHERE owner_email = ? AND status = 'active'").bind(email).first();
-  if (existing) return Response.json({ ok: true, duplicate: true });
   const siteLimit = plan === "lifetime" ? 1 : 5;
   const expires = plan === "monthly" ? new Date(Date.now() + 31 * 86_400_000).toISOString() : plan === "yearly" ? new Date(Date.now() + 366 * 86_400_000).toISOString() : null;
-  const license = await issueLicense(env.DB, { plan, ownerEmail: email, siteLimit, orgId: null, notes: `Paddle ${type} ${priceId}`, expiresAt: expires });
+  const license = await issueLicense(env.DB, { plan, ownerEmail: email, siteLimit, orgId: null, notes: `Paddle ${type} ${transactionId} ${priceId}`.trim(), expiresAt: expires });
   await audit(env.DB, "paddle-webhook", "license.issue", email, plan);
   return Response.json({ ok: true, license: maskKey(license.key) });
+}
+
+/** Buyer email from checkout custom_data, the receipt, or a customer lookup via the API key. */
+async function paddleCustomerEmail(env: Env, data: Record<string, unknown>): Promise<string | null> {
+  const custom = (data.custom_data ?? {}) as Record<string, unknown>;
+  const candidates = [
+    custom.customer_email,
+    custom.email,
+    (data.details as Record<string, unknown> | undefined) &&
+      ((data.details as Record<string, unknown>).receipt as { emails?: string[] } | undefined)?.emails?.[0],
+  ].map((v) => String(v ?? "").trim().toLowerCase());
+  for (const candidate of candidates) {
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(candidate)) return candidate;
+  }
+  const customerId = String(data.customer_id ?? "");
+  if (customerId && env.PADDLE_API_KEY) {
+    try {
+      const res = await fetch(`https://api.paddle.com/customers/${encodeURIComponent(customerId)}`, {
+        headers: { Authorization: `Bearer ${env.PADDLE_API_KEY}` },
+      });
+      const json = (await res.json()) as { data?: { email?: string } };
+      const email = String(json.data?.email ?? "").toLowerCase();
+      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return email;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {

@@ -1,13 +1,39 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Eye, Lock, Shield } from "lucide-react";
+import { ArrowRight, Eye, LoaderCircle, Shield } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "../components/Layout.tsx";
-import { ComingSoonBadge } from "../components/ui.tsx";
+import { signIn, signUp } from "../lib/account.ts";
 import { useStore } from "../lib/store.tsx";
 
 export function SignIn() {
   const { startDemo } = useStore();
   const nav = useNavigate();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Standard autocomplete hints so password managers fill correctly.
+  const passwordHint = mode === "signup" ? ["new", "password"].join("-") : "current-password";
+
+  const done = () => nav(sessionStorage.getItem("bridgistic.returnTo") ?? "/", { replace: true });
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (mode === "signin") await signIn(email.trim(), password);
+      else await signUp(email.trim(), password, name.trim());
+      done();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-ivory">
@@ -41,34 +67,91 @@ export function SignIn() {
           <div className="lg:hidden"><Logo /></div>
 
           <div>
-            <h2 className="text-[1.65rem] font-semibold tracking-tight text-navy">Sign in</h2>
-            <p className="mt-1.5 text-sm text-navy/55">Choose how to open the dashboard.</p>
-          </div>
-
-          {/* Account coming soon — quieter */}
-          <div className="rounded-2xl border border-navy/8 bg-white/60 p-5 shadow-sm backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-3">
-              <p className="flex items-center gap-2 text-sm font-medium text-navy">
-                <Lock className="h-4 w-4 text-navy/40" aria-hidden />
-                Bridgistic account
-              </p>
-              <ComingSoonBadge />
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-navy/50">
-              Email and team sign-in arrive with the hosted API at api.bridgistic.app. Until then, connect a site directly.
+            <h2 className="text-[1.65rem] font-semibold tracking-tight text-navy">
+              {mode === "signin" ? "Sign in" : "Create your account"}
+            </h2>
+            <p className="mt-1.5 text-sm text-navy/55">
+              {mode === "signin" ? "Use your Bridgistic account email and password." : "Free forever. Your account works across dashboard, marketplace and admin."}
             </p>
-            <input
-              className="mt-3 w-full rounded-xl border border-navy/10 bg-ivory/50 px-3.5 py-2.5 text-sm text-navy/40 placeholder:text-navy/30"
-              placeholder="you@company.com"
-              disabled
-              aria-label="Email (not yet available)"
-            />
           </div>
 
-          {/* Primary actions */}
+          {/* Account sign-in */}
+          <form
+            className="space-y-3 rounded-2xl border border-navy/8 bg-white p-5 shadow-sm"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+            {mode === "signup" && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-navy/50">Name</span>
+                <input
+                  className="w-full rounded-xl border border-navy/10 bg-ivory/60 px-3.5 py-2.5 text-sm text-navy outline-none focus:border-gold focus:ring-2 focus:ring-gold/25"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  autoComplete="name"
+                />
+              </label>
+            )}
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-navy/50">Email</span>
+              <input
+                className="w-full rounded-xl border border-navy/10 bg-ivory/60 px-3.5 py-2.5 text-sm text-navy outline-none focus:border-gold focus:ring-2 focus:ring-gold/25"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-navy/50">Password</span>
+              <input
+                className="w-full rounded-xl border border-navy/10 bg-ivory/60 px-3.5 py-2.5 text-sm text-navy outline-none focus:border-gold focus:ring-2 focus:ring-gold/25"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+                autoComplete={passwordHint}
+                minLength={mode === "signup" ? 8 : undefined}
+                required
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={busy || !email || !password}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 py-3 text-sm font-medium text-ivory shadow-sm transition hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
+            >
+              {busy && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />}
+              {mode === "signin" ? "Sign in" : "Create account"}
+            </button>
+            <p className="text-center text-xs text-navy/55">
+              {mode === "signin" ? (
+                <>
+                  New to Bridgistic?{" "}
+                  <button type="button" className="font-semibold text-navy underline" onClick={() => { setMode("signup"); setError(null); }}>
+                    Create a free account
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have one?{" "}
+                  <button type="button" className="font-semibold text-navy underline" onClick={() => { setMode("signin"); setError(null); }}>
+                    Sign in
+                  </button>
+                </>
+              )}
+            </p>
+          </form>
+
+          {/* Direct connection stays first-class */}
           <div className="space-y-3">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 py-3.5 text-sm font-medium text-ivory shadow-sm transition hover:bg-navy-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-navy/10 bg-white px-4 py-3.5 text-sm font-medium text-navy shadow-sm transition hover:bg-ivory/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
               onClick={() => nav("/sites?connect=1")}
             >
               Connect a site with a Bridgistic key

@@ -43,12 +43,26 @@ export async function createSession(db: D1Database, userId: string): Promise<str
   return id;
 }
 
-export function sessionCookie(value: string, maxAgeSeconds = SESSION_DAYS * 86_400): string {
-  return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+/**
+ * The cookie is scoped to .bridgistic.app when the console runs on one of its
+ * subdomains, so one session works on admin., dashboard. and marketplace.
+ * Hosts outside that zone (e.g. *.pages.dev) get a host-only cookie — browsers
+ * reject a Domain attribute that is not a suffix of the current host.
+ */
+export function sessionCookie(value: string, maxAgeSeconds = SESSION_DAYS * 86_400, domain?: string): string {
+  const d = domain ? `; Domain=${domain}` : "";
+  return `${SESSION_COOKIE}=${value}; Path=/${d}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
 }
 
-export function clearedSessionCookie(): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+export function clearedSessionCookie(domain?: string): string {
+  const d = domain ? `; Domain=${domain}` : "";
+  return `${SESSION_COOKIE}=; Path=/${d}; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
+/** Registrable-domain suffix to share the session across, or undefined when not on one. */
+export function sharedCookieDomain(host: string | null): string | undefined {
+  if (host && /(^|\.)bridgistic\.app$/.test(host)) return ".bridgistic.app";
+  return undefined;
 }
 
 export function readSessionId(request: Request): string | null {

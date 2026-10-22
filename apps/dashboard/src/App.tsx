@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout.tsx";
+import { loadAccount, refreshAccount, type Account } from "./lib/account.ts";
 import { useStore } from "./lib/store.tsx";
 import { Approvals } from "./pages/Approvals.tsx";
 import { Audit } from "./pages/Audit.tsx";
@@ -15,7 +17,19 @@ import { Usage } from "./pages/Usage.tsx";
 
 export function App() {
   const { mode, sites } = useStore();
-  const signedIn = mode === "demo" || sites.length > 0;
+  // An account session (shared cookie with the console) or a direct bridge
+  // session both open the dashboard; the cache is validated against the API.
+  const [account, setAccount] = useState<Account | null>(loadAccount);
+  useEffect(() => {
+    let live = true;
+    void refreshAccount().then((a) => {
+      if (live) setAccount(a);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const signedIn = account !== null || mode === "demo" || sites.length > 0;
   return (
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />

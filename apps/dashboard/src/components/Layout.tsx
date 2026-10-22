@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Menu, UserRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { loadAccount, refreshAccount, signOutAccount, type Account } from "../lib/account.ts";
 import { useStore } from "../lib/store.tsx";
 import { NAV } from "./nav.ts";
 
@@ -24,6 +25,21 @@ export function DemoBanner() {
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { signOut, mode } = useStore();
+  const [account, setAccount] = useState<Account | null>(loadAccount);
+  useEffect(() => {
+    let live = true;
+    void refreshAccount().then((a) => {
+      if (live) setAccount(a);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const handleSignOut = () => {
+    if (account) void signOutAccount();
+    setAccount(null);
+    signOut();
+  };
   return (
     <nav aria-label="Main" className="flex h-full flex-col gap-6 overflow-y-auto bg-navy px-4 py-6 text-ivory">
       <div className="px-2"><Logo dark /><p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-ivory/45">MCP Server dashboard</p></div>
@@ -46,7 +62,22 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </ul>
         </div>
       ))}
-      <button onClick={signOut} className="mt-auto flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
+      {account ? (
+        <div className="mt-auto space-y-1 border-t border-white/10 px-2 pt-4">
+          <a href="https://admin.bridgistic.app/admin" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-gold hover:bg-white/5">
+            <UserRound className="h-4 w-4" aria-hidden />Console
+          </a>
+          <div className="px-2">
+            <p className="truncate text-xs font-semibold text-ivory/90">{account.name || account.email}</p>
+            <p className="truncate text-[11px] text-ivory/50">{account.email}</p>
+          </div>
+        </div>
+      ) : (
+        <a href="https://admin.bridgistic.app/signin" className="mt-auto flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
+          <UserRound className="h-4 w-4" aria-hidden />Sign in to Bridgistic
+        </a>
+      )}
+      <button onClick={handleSignOut} className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
         <LogOut className="h-4 w-4" aria-hidden />{mode === "demo" ? "Leave demo" : "Sign out"}
       </button>
     </nav>
