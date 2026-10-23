@@ -8,7 +8,7 @@
  * in deployment secrets — the buttons render only for configured providers.
  */
 
-import { createSession, sessionCookie, sharedCookieDomain } from "./auth.ts";
+import { createSession, sessionCookies, sharedCookieDomain } from "./auth.ts";
 
 export interface OAuthEnv {
   DB: D1Database;
@@ -36,23 +36,40 @@ function b64url(input: ArrayBuffer | Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function createState(db: D1Database): Promise<string> {
+/** Hosts an OAuth flow may return the user to. Anything else is ignored. */
+const RETURN_HOSTS = new Set(["dashboard.bridgistic.app", "admin.bridgistic.app", "marketplace.bridgistic.app", "bridgistic.app"]);
+
+export const MEMBER_HOME = "https://dashboard.bridgistic.app/";
+
+function safeReturnUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || !RETURN_HOSTS.has(url.hostname)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+async function createState(db: D1Database, nextUrl: string | null): Promise<string> {
   const state = b64url(crypto.getRandomValues(new Uint8Array(24)));
   await db
-    .prepare("INSERT INTO oauth_states (state, provider, expires_at) VALUES (?, ?, ?)")
-    .bind(state, "generic", new Date(Date.now() + 600_000).toISOString())
+    .prepare("INSERT INTO oauth_states (state, provider, next_url, expires_at) VALUES (?, 'generic', ?, ?)")
+    .bind(state, nextUrl ?? "", new Date(Date.now() + 600_000).toISOString())
     .run();
   return state;
 }
 
-async function consumeState(db: D1Database, state: string): Promise<boolean> {
+/** Marks the state consumed and returns the validated return origin, if any. */
+async function consumeState(db: D1Database, state: string): Promise<string | null> {
   const row = await db
-    .prepare("SELECT state FROM oauth_states WHERE state = ? AND expires_at > ?")
+    .prepare("SELECT state, next_url FROM oauth_states WHERE state = ? AND expires_at > ?")
     .bind(state, new Date().toISOString())
-    .first<{ state: string }>();
-  if (!row) return false;
+    .first<{ state: string; next_url: string }>();
+  if (!row) return null;
   await db.prepare("DELETE FROM oauth_states WHERE state = ?").bind(state).run();
-  return true;
+  return safeReturnUrl(row.next_url);
 }
 
 export async function oauthStart(request: Request, env: OAuthEnv, provider: string): Promise<Response> {
@@ -60,7 +77,8 @@ export async function oauthStart(request: Request, env: OAuthEnv, provider: stri
     return Response.json({ error: "provider_not_configured", message: `${provider} sign-in is not configured on this deployment.` }, { status: 503 });
   }
   const redirect = callbackUrl(request, provider);
-  const state = await createState(env.DB);
+  const returnTo = safeReturnUrl(new URL(request.url).searchParams.get("next"));
+  const state = await createState(env.DB, returnTo);
   const authorize =
     provider === "github"
       ? `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(env.GITHUB_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(redirect)}&scope=${encodeURIComponent("read:user user:email")}&state=${encodeURIComponent(state)}`
@@ -116,18 +134,15 @@ async function exchangeGoogle(env: OAuthEnv, code: string, redirect: string): Pr
   return { email: info.email.toLowerCase(), name: info.name || info.email.split("@")[0] };
 }
 
-function landing(request: Request): string {
-  const host = new URL(request.url).hostname;
-  return host.startsWith("marketplace") ? "/marketplace" : "/";
-}
-
 export async function oauthCallback(request: Request, env: OAuthEnv, provider: string, url: URL): Promise<Response> {
   const code = url.searchParams.get("code") ?? "";
   const state = url.searchParams.get("state") ?? "";
   const fail = (reason: string) =>
     new Response(null, { status: 302, headers: { Location: `/signin?oauth_error=${encodeURIComponent(reason)}` } });
   if (!providerConfigured(env, provider)) return fail("provider_not_configured");
-  if (!code || !state || !(await consumeState(env.DB, state))) return fail("invalid_state");
+  if (!code || !state) return fail("invalid_state");
+  const returnTo = await consumeState(env.DB, state);
+  if (returnTo === null) return fail("invalid_state");
 
   const redirect = callbackUrl(request, provider);
   const profile = provider === "github" ? await exchangeGithub(env, code, redirect) : await exchangeGoogle(env, code, redirect);
@@ -149,11 +164,16 @@ export async function oauthCallback(request: Request, env: OAuthEnv, provider: s
   }
   if (user.status !== "active") return fail("account_disabled");
 
+  // Staff land on the console (their root routes to the master dashboard);
+  // every non-staff account lands on the member dashboard, and an explicit
+  // `next` origin (validated against the allowlist) always wins.
+  const landing = returnTo ?? (user.role === "owner" || user.role === "admin" ? new URL(request.url).origin : MEMBER_HOME);
   const sessionId = await createSession(db, user.id);
-  return new Response(null, {
-    status: 302,
-    headers: { Location: landing(request), "Set-Cookie": sessionCookie(sessionId, undefined, sharedCookieDomain(new URL(request.url).hostname)) },
-  });
+  const headers = new Headers({ Location: landing });
+  for (const cookie of sessionCookies(sessionId, undefined, sharedCookieDomain(new URL(request.url).hostname))) {
+    headers.append("Set-Cookie", cookie);
+  }
+  return new Response(null, { status: 302, headers });
 }
 
 /** Which providers this deployment can offer on the sign-in buttons. */

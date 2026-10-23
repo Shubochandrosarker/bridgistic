@@ -65,6 +65,23 @@ export function sharedCookieDomain(host: string | null): string | undefined {
   return undefined;
 }
 
+/**
+ * Sessions are one domain-scoped cookie. Browsers that still hold an old
+ * host-only variant (pre-domain deployments) would send both, and the legacy
+ * host cookie would win — so every session mutation also expires that variant.
+ */
+export function sessionCookies(value: string, maxAgeSeconds = SESSION_DAYS * 86_400, domain?: string): string[] {
+  const shared = `${SESSION_COOKIE}=${value}; Path=/${domain ? `; Domain=${domain}` : ""}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+  if (!domain) return [shared];
+  return [shared, `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`];
+}
+
+export function clearedSessionCookies(domain?: string): string[] {
+  const shared = `${SESSION_COOKIE}=; Path=/${domain ? `; Domain=${domain}` : ""}; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  if (!domain) return [shared];
+  return [shared, `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`];
+}
+
 export function readSessionId(request: Request): string | null {
   const header = request.headers.get("Cookie") ?? "";
   for (const part of header.split(";")) {

@@ -139,5 +139,6 @@ CREATE INDEX IF NOT EXISTS idx_skills_tier ON skills(tier);
 CREATE TABLE IF NOT EXISTS oauth_states (
   state      TEXT PRIMARY KEY,
   provider   TEXT NOT NULL DEFAULT '',
+  next_url   TEXT NOT NULL DEFAULT '',
   expires_at TEXT NOT NULL
 );

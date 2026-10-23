@@ -38,11 +38,16 @@ function RequireAuth({ children, staff = false }: { children: React.ReactNode; s
 }
 
 /** On the marketplace host the root is the public directory; for platform
- * staff the root is the master dashboard; members get the workspace. */
+ * staff the root is the master dashboard; members are sent to the member
+ * dashboard host — the admin console is staff-only. */
 function RootRoute() {
   const { user } = useSession();
   if (window.location.hostname.startsWith("marketplace")) return <Navigate to="/marketplace" replace />;
-  if (user && (user.role === "owner" || user.role === "admin")) return <Navigate to="/admin" replace />;
+  if (user && user.role !== "owner" && user.role !== "admin") {
+    window.location.replace("https://dashboard.bridgistic.app/");
+    return <Spinner label="Taking you to your dashboard…" />;
+  }
+  if (user) return <Navigate to="/admin" replace />;
   return (
     <RequireAuth>
       <Shell>

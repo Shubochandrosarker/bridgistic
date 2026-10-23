@@ -16,7 +16,7 @@ import { hashPassword, verifyPassword, randomHex, encryptSecret, decryptSecret }
 import {
   HttpError,
   audit,
-  clearedSessionCookie,
+  clearedSessionCookies,
   createSession,
   currentUser,
   destroySession,
@@ -25,7 +25,7 @@ import {
   requireOrgMember,
   requireStaff,
   requireUser,
-  sessionCookie,
+  sessionCookies,
   sharedCookieDomain,
   syncLog,
   userOrgs,
@@ -129,7 +129,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     await db.prepare("INSERT INTO memberships (org_id, user_id, role) VALUES (?, ?, 'owner')").bind(orgId, id).run();
     await audit(db, email, "user.signup", email, isOwner ? "owner claim" : "self signup");
     const sessionId = await createSession(db, id);
-    return jsonWithCookie({ ok: true, user: { id, email, name, role } }, sessionCookie(sessionId, undefined, sharedCookieDomain(url.hostname)));
+    return jsonWithCookie({ ok: true, user: { id, email, name, role } }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
 
   if (path === "/api/auth/signin" && method === "POST") {
@@ -140,12 +140,12 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       return Response.json({ error: "invalid_credentials", message: "Email or password is incorrect." }, { status: 401 });
     }
     const sessionId = await createSession(db, row.id);
-    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role } }, sessionCookie(sessionId, undefined, sharedCookieDomain(url.hostname)));
+    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role } }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
 
   if (path === "/api/auth/signout" && method === "POST") {
     await destroySession(db, request);
-    return jsonWithCookie({ ok: true }, clearedSessionCookie(sharedCookieDomain(url.hostname)));
+    return jsonWithCookie({ ok: true }, clearedSessionCookies(sharedCookieDomain(url.hostname)));
   }
 
   // ── OAuth sign-in (Google / GitHub) ────────────────────────────────────────
@@ -281,11 +281,10 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   return Response.json({ error: "not_found", message: "Unknown API route." }, { status: 404 });
 }
 
-function jsonWithCookie(body: unknown, cookie: string): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "Content-Type": "application/json", "Set-Cookie": cookie },
-  });
+function jsonWithCookie(body: unknown, cookies: string[]): Response {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  for (const cookie of cookies) headers.append("Set-Cookie", cookie);
+  return new Response(JSON.stringify(body), { status: 200, headers });
 }
 
 /** Paid marketplace unlock: an active Bridgistic license assigned to this email. */
