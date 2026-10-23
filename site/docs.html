@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B1F3A" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Docs · Bridgistic</title>
+  <meta name="description" content="Install Bridgistic, create a Read-only key, and connect Claude, Codex, Gemini or ChatGPT. WordPress 6.4+ and PHP 8.0+." />
+  <link rel="canonical" href="https://bridgistic.app/docs" />
+  <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
+  <link rel="stylesheet" href="/assets/legal.css" />
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="https://bridgistic.app/sitemap.xml" />
+  <meta name="author" content="WordPressistic LLC" />
+  <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Bridgistic setup",
+    "url": "https://bridgistic.app/docs",
+    "description": "Setup and configuration for the Bridgistic WordPress plugin and MCP bridge.",
+    "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
+    "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
+    "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" }
+  }
+  </script>
+  <style>
+    pre { overflow:auto; background:var(--code); border-radius:12px; padding:12px 14px; font-size:13px; line-height:1.5; }
+    code { word-break:break-word; }
+    @media (prefers-reduced-motion: no-preference) {
+      article section { animation: rise .45s ease both; }
+    }
+    @keyframes rise { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:none;} }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="brand" href="/"><img src="/assets/bridgistic-icon.png" alt="" width="28" height="28" /><b class="word">Bridg<span>istic</span></b></a>
+      <nav class="top-nav" aria-label="Site"><a href="/features">Features</a><a href="/#pricing">Pricing</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
+        <button class="theme" type="button" id="themeToggle" aria-label="Switch colour theme">Theme</button></nav>
+    </div>
+  </header>
+  <main id="content" class="wrap doc">
+    <nav class="doc-nav" aria-label="Docs">
+      <a href="#overview">Overview</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="#install">Install</a>
+      <a href="#key">Connection key</a>
+      <a href="#clients">AI clients</a>
+      <a href="#approvals">Approvals</a>
+      <a href="#playbooks">Playbooks</a>
+      <a href="#snapshots">Snapshots</a>
+      <a href="#audit">Audit log</a>
+      <a href="#plans">Plans</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <article>
+      <p class="eyebrow">Docs</p>
+      <h1>Setup and configuration</h1>
+      <p class="meta">About 10 minutes for a Read-only local connection. Published by <a href="https://wpistic.com/">WordPressistic LLC</a>.</p>
+      <div class="lead"><p>Bridgistic is a WordPress plugin and a local MCP server. The plugin checks a signed request before an AI client can touch the site. The longer source notes live in the <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/INSTALL.md">install guide on GitHub</a> and the <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/WORDPRESS_SETUP.md">WordPress setup note</a>.</p></div>
+
+      <section id="overview"><h2>Overview</h2>
+        <p>You install the plugin, create a key, and point a client that speaks the <a href="https://modelcontextprotocol.io/">Model Context Protocol</a> at your site. Claude Desktop, Claude Code, Codex CLI, Gemini CLI and ChatGPT can use that bridge. The policy stays in WordPress.</p>
+        <p>What you will set up: the plugin, one Read-only key, and one client. Writes stay off until you choose a wider key. See the <a href="/features">feature guide</a> for what is included today.</p>
+      </section>
+
+      <section id="quickstart"><h2>Quickstart</h2>
+        <ol class="steps">
+          <li>Confirm WordPress 6.4 or newer and PHP 8.0 or newer. <a href="https://wordpress.org/documentation/">WordPress documentation</a> covers the site-health screen.</li>
+          <li>Upload the plugin zip from the <a href="https://github.com/Wordpressistic/bridgistic/releases">latest GitHub release</a> and activate it.</li>
+          <li>Open Bridgistic, then Health Check.</li>
+          <li>Create a Read-only key and copy the key id and secret once.</li>
+          <li>Connect one local client and run a site-info read. Confirm the row in Bridgistic, then Logs.</li>
+        </ol>
+      </section>
+
+      <section id="install"><h2>Install the plugin</h2>
+        <p>Download <code>bridgistic-wordpress-plugin.zip</code> from <a href="https://github.com/Wordpressistic/bridgistic/releases">Releases</a>. In WP Admin open Plugins, Add New, Upload Plugin, then Activate. A Bridgistic menu appears. If the health score is poor, fix permalinks and HTTPS before you create a key.</p>
+        <p>The free plugin is GPL-2.0-or-later. You do not need an account to use the local bridge. Paid plans are sold by Paddle and described on <a href="/how-purchases-work">How purchases work</a>.</p>
+      </section>
+
+      <section id="key"><h2>Create a connection key</h2>
+        <p>Open Bridgistic, then AI / MCP Connections. Choose the client, choose Read-only, and create the key. Copy the key id and the secret. The secret is shown once. You can rotate or revoke the key later without changing the WordPress administrator password.</p>
+        <p>Three values go to the client: the site URL, the key id, and the key secret. Export Package can bundle a setup zip. Do not commit the secret to a public repository.</p>
+      </section>
+
+      <section id="clients"><h2>Connect an AI client</h2>
+        <p>Local mode is the recommended default. Bridgistic Cloud at mcp.bridgistic.app is a public beta and has not had an independent security review.</p>
+        <ul>
+          <li>Claude Desktop and Claude Code: <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/CLAUDE_DESKTOP.md">desktop</a> and <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/CLAUDE_CODE.md">Claude Code</a>.</li>
+          <li>Codex CLI: <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/CODEX_SETUP.md">Codex setup</a>.</li>
+          <li>Gemini CLI: <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/GEMINI_SETUP.md">Gemini setup</a>.</li>
+          <li>ChatGPT and other clients: <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/CHATGPT_SETUP.md">ChatGPT</a> and <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/CONNECT_OTHER_AI.md">other MCP clients</a>.</li>
+        </ul>
+        <p>A local Claude Code install from the marketplace looks like this:</p>
+        <pre><code>/plugin marketplace add Wordpressistic/bridgistic
+/plugin install bridgistic@bridgistic-marketplace</code></pre>
+        <p>After it connects, ask for site info, then open Bridgistic, then Logs. The <a href="/#clients">client tabs on the homepage</a> show the same families.</p>
+      </section>
+
+      <section id="approvals"><h2>Scopes and approvals</h2>
+        <p>Read-only can look. It should not publish or delete. Move to a wider preset only when a workflow needs a write. Developer Mode includes database, files and PHP tools and should stay on sites you fully control.</p>
+        <p>If the key requires approval, the write waits in Bridgistic, then Approvals, until a person allows or denies it. That queue is part of the free plugin.</p>
+      </section>
+
+      <section id="playbooks"><h2>Playbooks and schedules</h2>
+        <p>A manual playbook runs when you start it. A schedule runs one playbook on a timer. The free plugin allows 3 enabled schedules. A live license on the License screen removes that cap. See <a href="/features#unlimited">unlimited schedules</a>.</p>
+      </section>
+
+      <section id="snapshots"><h2>Snapshots</h2>
+        <p>The plugin can snapshot before a destructive write, and you can restore. The free screen keeps up to 50 snapshots. A live license lifts that cap. See <a href="/features#advanced-snapshots">advanced snapshots</a>.</p>
+      </section>
+
+      <section id="audit"><h2>Audit log</h2>
+        <p>Every bridge request can be read in the log for 90 days. Audit export is the same rows from the dashboard route, and it stays closed until the license is live. See <a href="/features#audit-export">audit log export</a>. Setup export under Bridgistic, then Export Package, is a connection bundle, not the log.</p>
+      </section>
+
+      <section id="plans"><h2>Plans</h2>
+        <p>Prices on <a href="/#pricing">bridgistic.app</a> are the published prices. Free is $0. Lifetime is $49 once for 1 license · 1 site. Pro is $12 a month or $99 a year for 1 license · 5 sites. The refund window is 7 days, described in the <a href="/refund-policy">refund policy</a>. The <a href="https://wpistic.com/terms">WPistic terms</a> also apply to paid plans.</p>
+        <p>The account dashboard is <a href="https://dashboard.bridgistic.app/">dashboard.bridgistic.app</a>. It is not required for the local free bridge.</p>
+      </section>
+
+      <section id="faq"><h2>FAQ</h2>
+        <p>More answers sit on the <a href="/#faq">homepage FAQ</a>. If Health Check fails, start there before you change a client config. Support mail is <a href="mailto:support@wpistic.com">support@wpistic.com</a>. Issues can also go to <a href="https://github.com/Wordpressistic/bridgistic/issues">GitHub</a>.</p>
+      </section>
+
+      <section><h2>Publisher</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address></section>
+    </article>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span>© 2026 WordPressistic LLC. Bridgistic is licensed GPL-2.0-or-later.</span>
+      <nav aria-label="Legal"><a href="/">Home</a><a href="/features">Features</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/sitemap.html">Sitemap</a></nav>
+    </div>
+  </footer>
+  <script>document.getElementById('themeToggle').addEventListener('click',function(){var r=document.documentElement;var n=r.getAttribute('data-theme')==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('bridgistic-theme',n);}catch(e){}});</script>
+</body>
+</html>

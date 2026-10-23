@@ -7,7 +7,7 @@ import { Overview, Sites, Keys, Approvals, AuditLog, Snapshots, Usage, LicensePa
 import { Posts, Media, SiteUsers, Plugins, Options, FilesScreen, DatabaseScreen } from "./pages/content";
 import { Playbooks, Schedules, Memory, WooCommerce } from "./pages/automation";
 import { AgentHub, AgentPage } from "./pages/agents";
-import { MarketDirectory, SkillDetail } from "./pages/marketplace";
+import { MarketDirectory, ProHub, SkillDetail } from "./pages/marketplace";
 import { Installed } from "./pages/installed";
 import { Connectors, Social, Bridge } from "./pages/connectors";
 import { AgencyTeam, AgencyBulk, AgencyDeals, Roadmap } from "./pages/agency";
@@ -37,12 +37,17 @@ function RequireAuth({ children, staff = false }: { children: React.ReactNode; s
   return <>{children}</>;
 }
 
-/** On the marketplace host the root is the public directory; elsewhere it is the dashboard. */
+/** On the marketplace host the root is the public directory; for platform
+ * staff the root is the master dashboard; members get the workspace. */
 function RootRoute() {
+  const { user } = useSession();
   if (window.location.hostname.startsWith("marketplace")) return <Navigate to="/marketplace" replace />;
+  if (user && (user.role === "owner" || user.role === "admin")) return <Navigate to="/admin" replace />;
   return (
     <RequireAuth>
-      <Overview />
+      <Shell>
+        <Overview />
+      </Shell>
     </RequireAuth>
   );
 }
@@ -54,8 +59,10 @@ export default function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         {/* Public marketplace — anonymous visitors browse; gated actions ask for an account. */}
-        <Route path="/marketplace" element={<Shell><MarketDirectory /></Shell>} />
-        <Route path="/marketplace/:slug" element={<Shell><SkillDetail /></Shell>} />
+        <Route path="/marketplace" element={<MarketDirectory />} />
+        <Route path="/pro" element={<ProHub />} />
+        <Route path="/marketplace/:handle/:slug" element={<SkillDetail />} />
+        <Route path="/marketplace/:slug" element={<SkillDetail />} />
         <Route path="/" element={<RootRoute />} />
         <Route
           path="*"

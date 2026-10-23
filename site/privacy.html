@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B1F3A" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Privacy Policy · Bridgistic</title>
+  <meta name="description" content="What Bridgistic, its dashboard, relay and the WPistic license server store and send." />
+  <link rel="canonical" href="https://bridgistic.app/privacy" />
+  <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
+  <link rel="stylesheet" href="/assets/legal.css" />
+  <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="brand" href="/"><img src="/assets/bridgistic-icon.png" alt="" width="28" height="28" /><b class="word">Bridg<span>istic</span></b></a>
+      <nav class="top-nav" aria-label="Site"><a href="/#pricing">Pricing</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
+        <button class="theme" type="button" id="themeToggle" aria-label="Switch colour theme">Theme</button></nav>
+    </div>
+  </header>
+  <main id="content" class="wrap doc">
+    <nav class="doc-nav" aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy" aria-current="page">Privacy Policy</a><a href="/refund-policy">Refund Policy</a><a href="/how-purchases-work">How purchases work</a></nav>
+    <article>
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy Policy</h1>
+      <p class="meta">Last updated 19 October 2026. Operated by WordPressistic LLC, doing business as WPistic.</p>
+      <div class="lead"><p>This page explains what Bridgistic handles and where. It is based on the current Bridgistic and WPistic source code, which this page names component by component. The <a href="https://wpistic.com/privacy" rel="noopener">WPistic Privacy Policy</a> covers your WPistic account, billing records and your rights. WordPressistic LLC is the company responsible.</p></div>
+      
+<section><h2>1. bridgistic.app</h2>
+<ul>
+<li>The site runs no analytics or advertising scripts. It stores one value in your browser, the colour theme you choose (<code>bridgistic-theme</code> in local storage).</li>
+<li>The offer status check (<code>/api/offer-status</code>) returns only whether the welcome offer is open and how many Lifetime licenses remain. It receives no personal data from you.</li>
+<li>When you start checkout, the page loads Paddle.js from cdn.paddle.com and passes the email you entered to Paddle, so that your license can be issued to it. Paddle.js is not loaded before you start checkout.</li>
+<li>The site and the offer status check are hosted on Cloudflare.</li>
+</ul></section>
+
+<section><h2>2. Payment (Paddle)</h2>
+<p>Paddle collects your payment details and the information its checkout asks for. According to the WPistic Privacy Policy, WPistic does not store full card numbers. It keeps only the billing metadata needed to reconcile payments, such as plan, amount and status.</p></section>
+
+<section><h2>3. WPistic license server (api.wpistic.com)</h2>
+<p>When Paddle reports a completed payment, the license server stores:</p>
+<ul>
+<li>the Paddle notification itself, which includes your email and transaction details;</li>
+<li>a WPistic organization with your email as the billing email;</li>
+<li>the order, the subscription or lifetime record, and your license.</li>
+</ul>
+<p>Your license key is stored only as a hash with a short prefix and a masked form. The full key is sent to you once, by email.</p>
+<p>When a site activates the key, the server records the site's domain, site and home URLs, an installation ID, the environment, and the WordPress, PHP and plugin versions. License events record the IP address and user agent of the request.</p></section>
+
+<section><h2>4. The Bridgistic plugin, on your own WordPress site</h2>
+<p>The plugin keeps its data in your WordPress database:</p>
+<ul>
+<li>API keys: key ID, label, scopes, limits and an encrypted secret.</li>
+<li>An audit log: time, key ID, action, status, IP address, a hash of the parameters and a summary. Entries are pruned after 90 days.</li>
+<li>Pending and decided approvals.</li>
+<li>Snapshots of content taken before changes, so they can be rolled back.</li>
+<li>Usage counters, memory notes, playbooks and schedules.</li>
+<li>If you activate a license, the activation token and the license status.</li>
+</ul>
+<p>The only outside service the plugin contacts is the WPistic license server, and only when a license is activated, re-checked or deactivated. It then sends the key (on activation), the domain, the site and home URLs, an installation ID, the environment, and the WordPress, PHP and plugin versions. </p>
+<h3>Snapshots and backups</h3>
+<p>Snapshots are stored only in your own WordPress database. They are never sent to WPistic, to bridgistic.app or to the relay, and WPistic holds no backup of your WordPress site. The plugin does not expire snapshots on its own: they stay until you delete them or uninstall the plugin.</p>
+<h3>What uninstalling does today</h3>
+<p>Deleting the plugin in WordPress removes its eight tables (keys, audit log, snapshots, approvals, usage, memory, playbooks and schedules), deletes its option allowlist and signing settings, clears its scheduled tasks and removes its sandbox folder in your uploads directory. Deactivating the plugin only stops its scheduled tasks.</p>
+<p>Two items stay in WordPress after an uninstall: the stored license activation, and the WPistic installation ID, which other WPistic plugins share. Uninstalling does not contact the license server, so the site keeps its activation there. Deactivate the license on the License screen first if you want to free the site for another one.</p></section>
+
+<section><h2>5. Dashboard (dashboard.bridgistic.app)</h2>
+<p>The dashboard runs in your browser. The site connections you add, including the key secret, are kept in your browser's session storage and cleared when you sign out or close the session. Requests are signed in your browser and sent directly to your WordPress site. The dashboard has no server that stores your keys.</p></section>
+
+<section><h2>6. Relay (mcp.bridgistic.app)</h2>
+<p>The relay is optional. It is for AI clients that connect over the web instead of running the Bridgistic MCP server locally. For each connected site it stores:</p>
+<ul>
+<li>the site URL, the Bridgistic key ID, the key secret (encrypted with AES-256-GCM) and the granted scopes;</li>
+<li>when the connection was created and last used;</li>
+<li>the OAuth grants for your AI client.</li>
+</ul>
+<p>It forwards tool calls to your site as signed requests and does not store request or response bodies. Its logs use a fixed format that identifies a site only by a short hash. Rate-limit counters include the caller's IP address and expire within two minutes. Sign-in flow state expires after 10 minutes, and access tokens are valid for one hour. The relay runs on Cloudflare.</p></section>
+
+<section><h2>7. Service providers</h2>
+<p>These are the providers that handle Bridgistic data, limited to those we have verified in our code and configuration.</p>
+<table>
+<thead><tr><th>Provider</th><th>What it does</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Paddle</td><td>Merchant of record: checkout, payment, tax and receipts. Sends signed purchase notifications to the license server</td><td><span class="verified">Verified</span></td></tr>
+<tr><td>Cloudflare</td><td>Hosts bridgistic.app, pay.bridgistic.app, the dashboard and the relay, including the relay's encrypted connection store. Runs DNS for bridgistic.app and the network tunnel to the license server</td><td><span class="verified">Verified</span></td></tr>
+<tr><td>Hostinger</td><td>Hosts the server that runs the WPistic license server and its database, and delivers license emails through its mail service</td><td><span class="verified">Verified</span></td></tr>
+<tr><td>GitHub</td><td>Hosts the free plugin's source code and release downloads</td><td><span class="verified">Verified</span></td></tr>
+</tbody></table></section>
+
+<section><h2>8. Retention</h2>
+<ul>
+<li><strong>Lifetime Deal license.</strong> The license record is kept for the life of the license and deleted if you cancel or are refunded.</li>
+<li><strong>Account and billing data.</strong> According to the WPistic Privacy Policy, these are kept while your account is active and afterwards as legal, tax and accounting obligations require.</li>
+<li><strong>Backups.</strong> Backups of the license server database, which include the records in section 3, are kept for about 60 days, for every plan. This is the only backup data WPistic holds for Bridgistic.</li>
+<li><strong>On your site.</strong> The plugin prunes its audit log after 90 days. Snapshots stay until you delete them or uninstall the plugin.</li>
+<li><strong>Relay.</strong> The relay keeps the short-lived items described in section 6.</li>
+</ul></section>
+
+<section><h2>9. Your rights</h2>
+<p>Section 7 of the <a href="https://wpistic.com/privacy" rel="noopener">WPistic Privacy Policy</a> describes your rights over the data WPistic holds, such as access, correction and deletion, and how to exercise them. The plugin's data is in your own WordPress database and under your control.</p></section>
+
+      <section><h2>Contact</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address><p>Support and refunds, for Bridgistic and the whole WPistic ecosystem: <a href="mailto:support@wpistic.com">support@wpistic.com</a>.<br>General company enquiries: <a href="mailto:hello@insightistic.com">hello@insightistic.com</a>.</p></section>
+    </article>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span>© 2026 WordPressistic LLC. Bridgistic is licensed GPL-2.0-or-later.</span>
+      <nav aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/refund-policy">Refund Policy</a><a href="/how-purchases-work">How purchases work</a><a href="/sitemap.html">Sitemap</a></nav>
+    </div>
+  </footer>
+  <script>(function(){var b=document.getElementById('themeToggle');if(!b)return;b.addEventListener('click',function(){var r=document.documentElement;var n=r.getAttribute('data-theme')==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('bridgistic-theme',n);}catch(e){}});})();</script>
+</body>
+</html>

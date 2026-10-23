@@ -34,6 +34,7 @@ import {
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
+import { oauthCallback, oauthProviders, oauthStart, type OAuthEnv } from "../lib/oauth.ts";
 
 /** Skills whose file payload exceeded D1's statement limit are stored gzipped with a `gz:` prefix. */
 function parseFiles(raw: string): { path: string; size: number; text: string }[] {
@@ -92,6 +93,10 @@ interface Env {
   PADDLE_WEBHOOK_SECRET?: string;
   PADDLE_API_KEY?: string;
   OPENROUTER_KEY?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 async function route(request: Request, env: Env, path: string, url: URL): Promise<Response> {
@@ -120,7 +125,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       .run();
     const orgId = crypto.randomUUID();
     const orgName = isOwner ? "Bridgistic Platform" : `${name || email.split("@")[0]}'s workspace`;
-    await db.prepare("INSERT INTO orgs (id, name, plan, owner_user_id) VALUES (?, ?, 'free', ?)").bind(orgId, orgName, id).run();
+    await db.prepare("INSERT INTO orgs (id, name, plan, owner_user_id) VALUES (?, ?, ?, ?)").bind(orgId, orgName, isOwner ? "platform" : "free", id).run();
     await db.prepare("INSERT INTO memberships (org_id, user_id, role) VALUES (?, ?, 'owner')").bind(orgId, id).run();
     await audit(db, email, "user.signup", email, isOwner ? "owner claim" : "self signup");
     const sessionId = await createSession(db, id);
@@ -141,6 +146,32 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   if (path === "/api/auth/signout" && method === "POST") {
     await destroySession(db, request);
     return jsonWithCookie({ ok: true }, clearedSessionCookie(sharedCookieDomain(url.hostname)));
+  }
+
+  // ── OAuth sign-in (Google / GitHub) ────────────────────────────────────────
+  if (path === "/api/auth/oauth/providers" && method === "GET") {
+    return Response.json({ providers: oauthProviders(env as OAuthEnv) });
+  }
+  if (seg[1] === "auth" && seg[2] === "oauth" && seg[4] === "start" && method === "GET") {
+    return oauthStart(request, env as OAuthEnv, seg[3]);
+  }
+  if (seg[1] === "auth" && seg[2] === "oauth" && seg[4] === "manifest" && method === "GET") {
+    // GitHub App manifest flow lands here with a one-time code; the owner
+    // exchanges it for the app credentials, which then live in secrets.
+    const manifestCode = url.searchParams.get("code") ?? "";
+    const exchange = await fetch(`https://api.github.com/app-manifests/${encodeURIComponent(manifestCode)}/conversions`, {
+      method: "POST",
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "bridgistic-console" },
+    });
+    const app = (await exchange.json()) as { slug?: string; client_id?: string; client_secret?: string; html_url?: string };
+    return new Response(
+      JSON.stringify({ ok: exchange.ok, slug: app.slug, client_id: app.client_id, client_secret: app.client_secret, html_url: app.html_url }, null, 2),
+      { status: exchange.ok ? 200 : 502, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (seg[1] === "auth" && seg[2] === "oauth" && seg[4] === "callback" && method === "GET") {
+    return oauthCallback(request, env as OAuthEnv, seg[3], url);
   }
 
   // ── WPistic license contract (plugin-facing) ──────────────────────────────
@@ -335,25 +366,32 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
   const db = env.DB;
 
   if (seg[2] === "items" && method === "GET") {
-    const tier = url.searchParams.get("tier") ?? "";
+    const requested = url.searchParams.get("tier") ?? "free";
     const category = url.searchParams.get("category") ?? "";
     const q = (url.searchParams.get("q") ?? "").toLowerCase();
-    let sql = "SELECT slug, name, description, category, author, handle, tier, version, installs, updated FROM skills";
-    const where: string[] = [];
-    const binds: unknown[] = [];
-    if (tier === "free" || tier === "paid") {
-      where.push("tier = ?");
-      binds.push(tier);
+    // The public directory lists free skills only. The pro collection is
+    // returned exclusively to signed-in accounts with an active license;
+    // archived rows are never listed anywhere.
+    let tier = "free";
+    if (requested === "pro") {
+      const user = await currentUser(db, request);
+      if (!user) return Response.json({ error: "signin_required", message: "Sign in to see the Pro collection." }, { status: 401 });
+      const staff = user.role === "owner" || user.role === "admin";
+      if (!staff && !(await paidUnlock(db, user)).unlocked) {
+        return Response.json({ error: "license_required", message: "The Pro collection needs an active Bridgistic license." }, { status: 403 });
+      }
+      tier = "pro";
     }
+    let sql = "SELECT slug, name, description, category, author, handle, tier, version, installs, updated FROM skills WHERE tier = ?";
+    const binds: unknown[] = [tier];
     if (category) {
-      where.push("category = ?");
+      sql += " AND category = ?";
       binds.push(category);
     }
     if (q) {
-      where.push("(lower(name) LIKE ? OR lower(description) LIKE ?)");
+      sql += " AND (lower(name) LIKE ? OR lower(description) LIKE ?)";
       binds.push(`%${q}%`, `%${q}%`);
     }
-    if (where.length) sql += ` WHERE ${where.join(" AND ")}`;
     sql += " ORDER BY installs DESC";
     const { results } = await db.prepare(sql).bind(...binds).all();
     return Response.json({ items: results ?? [] });

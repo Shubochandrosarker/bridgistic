@@ -377,12 +377,13 @@ function UsageBody({ siteId, onInfo, onError }: { siteId: string; onInfo: (info:
 }
 
 export function LicensePage() {
-  const { paidUnlock, refresh } = useSession();
+  const { paidUnlock, refresh, user, org } = useSession();
   const [site] = useCurrentSite();
   const [key, setKey] = useState("");
   const [status, setStatus] = useState<Row | null>(null);
   const [toast, showToast] = useToast();
   const [busy, setBusy] = useState(false);
+  const staff = user?.role === "owner" || user?.role === "admin";
 
   const activate = async () => {
     if (!site) {
@@ -425,19 +426,36 @@ export function LicensePage() {
           {status && <pre className="mt-4 overflow-x-auto rounded-lg bg-navy/[0.04] p-3 text-xs">{JSON.stringify(status, null, 2)}</pre>}
         </Card>
         <Card className="p-5">
-          <h2 className="mb-2 text-sm font-bold text-navy">Your account</h2>
-          <p className="text-sm text-navy/70">
-            {paidUnlock.unlocked ? (
-              <>Pro is active on this account (<b>{paidUnlock.plan}</b>) — the paid skills marketplace is unlocked.</>
-            ) : (
-              <>No license is attached to this account yet. The Lifetime Deal is $49.99 one time until 31 Dec 2026.</>
-            )}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold">Get the Lifetime Deal · $49.99</Btn></a>
-            <a href="https://bridgistic.app/#pricing" target="_blank" rel="noreferrer"><Btn variant="ghost">Compare plans</Btn></a>
-          </div>
-          <p className="mt-3 text-xs text-navy/50">Licenses are issued and managed in Platform admin → Licenses, and activations follow the WPistic license contract.</p>
+          {staff ? (
+            <>
+              <h2 className="mb-2 text-sm font-bold text-navy">Master account</h2>
+              <p className="text-sm text-navy/70">
+                You administer the platform, so no license is needed on this account. Issue, cap, suspend and revoke
+                customer licenses from <b>Platform admin → Licenses</b> — every issuance is shown once and tracked in sync logs.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href="/admin/licenses"><Btn>Open license management</Btn></a>
+                <a href="/admin/sync-logs"><Btn variant="ghost">View sync logs</Btn></a>
+              </div>
+              <p className="mt-3 text-xs text-navy/50">Workspace plan: <b className="capitalize">{org?.plan ?? "platform"}</b> · purchases by customers are billed through Paddle and issued automatically by the webhook.</p>
+            </>
+          ) : (
+            <>
+              <h2 className="mb-2 text-sm font-bold text-navy">Your account</h2>
+              <p className="text-sm text-navy/70">
+                {paidUnlock.unlocked ? (
+                  <>Pro is active on this account (<b>{paidUnlock.plan}</b>) — the paid skills marketplace is unlocked.</>
+                ) : (
+                  <>No license is attached to this account yet. The Lifetime Deal is $49.99 one time until 31 Dec 2026.</>
+                )}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold">Get the Lifetime Deal · $49.99</Btn></a>
+                <a href="https://bridgistic.app/#pricing" target="_blank" rel="noreferrer"><Btn variant="ghost">Compare plans</Btn></a>
+              </div>
+              <p className="mt-3 text-xs text-navy/50">Licenses are issued and managed in Platform admin → Licenses, and activations follow the WPistic license contract.</p>
+            </>
+          )}
         </Card>
       </div>
       <Toast message={toast} />

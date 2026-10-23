@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B1F3A" />
+  <meta name="color-scheme" content="dark light" />
+  <title>How purchases work · Bridgistic</title>
+  <meta name="description" content="How a Bridgistic purchase is processed: Paddle, the WPistic license server, the plugin, the dashboard and the relay." />
+  <link rel="canonical" href="https://bridgistic.app/how-purchases-work" />
+  <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
+  <link rel="stylesheet" href="/assets/legal.css" />
+  <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="brand" href="/"><img src="/assets/bridgistic-icon.png" alt="" width="28" height="28" /><b class="word">Bridg<span>istic</span></b></a>
+      <nav class="top-nav" aria-label="Site"><a href="/#pricing">Pricing</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
+        <button class="theme" type="button" id="themeToggle" aria-label="Switch colour theme">Theme</button></nav>
+    </div>
+  </header>
+  <main id="content" class="wrap doc">
+    <nav class="doc-nav" aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/refund-policy">Refund Policy</a><a href="/how-purchases-work" aria-current="page">How purchases work</a></nav>
+    <article>
+      <p class="eyebrow">Legal</p>
+      <h1>How purchases work</h1>
+      <p class="meta">Last updated 19 October 2026. Operated by WordPressistic LLC, doing business as WPistic.</p>
+      <div class="lead"><p>Bridgistic is part of WPistic, the family of WordPress products from WordPressistic LLC. This page explains what happens from checkout to a working license, and which part of the system does what. It is based on the current source code.</p></div>
+      
+<section><h2>The parts</h2>
+<table>
+<thead><tr><th>Part</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>bridgistic.app, pay.bridgistic.app</td><td>Show the plans and open Paddle checkout with the email you enter</td></tr>
+<tr><td>Paddle</td><td>Merchant of record. Takes payment, issues the receipt and sends a signed notification to WPistic</td></tr>
+<tr><td>api.wpistic.com</td><td>The WPistic license server. Issues and verifies Bridgistic licenses</td></tr>
+<tr><td>Bridgistic plugin</td><td>Runs on your WordPress site. Holds your keys, approvals, snapshots and audit log, and activates your license</td></tr>
+<tr><td>dashboard.bridgistic.app</td><td>A browser dashboard that talks directly to your site with signed requests</td></tr>
+<tr><td>mcp.bridgistic.app</td><td>Optional relay for AI clients that connect over the web</td></tr>
+</tbody></table></section>
+
+<section><h2>From checkout to license</h2>
+<ol class="steps">
+<li><strong>Choose a plan.</strong> On bridgistic.app or pay.bridgistic.app, pick the Lifetime Deal or, after the welcome offer, monthly or yearly. Enter the email that should receive your license.</li>
+<li><strong>Pay with Paddle.</strong> Paddle checkout opens on the page. Your payment details go to Paddle, which is the merchant of record for the sale.</li>
+<li><strong>Paddle notifies WPistic.</strong> Paddle sends a signed <code>transaction.completed</code> notification to api.wpistic.com. The license server rejects any notification whose signature does not verify.</li>
+<li><strong>The license is issued by price.</strong> The license server looks up the Paddle price in its catalog. The Lifetime Deal price <code>pri_01m58k6epsqzbr3qbab84t6p90</code> issues a license with no expiry. Lifetime Deal: 1 license · 1 site. Monthly <code>pri_01m1ykar8aq033865h68a4b9hh</code> and yearly <code>pri_01m1ykaqyaaeewsbah07akmpka</code> issue a Bridgistic Pro license. Monthly and Yearly: 1 license · 5 sites. The same price issues the same license whether you bought on bridgistic.app, pay.bridgistic.app or app.wpistic.com.</li>
+<li><strong>You receive the key by email.</strong> The license server keeps only a hash of the key, and sends the key to you once.</li>
+<li><strong>Activate it on your site.</strong> In dashboard.bridgistic.app, connect your site and open <em>License</em>. Paste the key and the dashboard asks the plugin on your site to activate it. The plugin sends the key with your site's domain and installation ID to api.wpistic.com, checks the signature on the reply, and stores the activation. The same key and the same license are then shown in the plugin and in the dashboard.</li>
+<li><strong>Re-checks.</strong> <em>Check now</em> in the dashboard re-validates the license with the license server. Deactivating frees the site's activation slot.</li>
+<li><strong>Refunds and support.</strong> Every purchase has a 7-day refund guarantee. Write to <a href="mailto:support@wpistic.com">support@wpistic.com</a>, and Paddle processes the refund as merchant of record. A refund ends the license, which may be done by hand rather than instantly. See the <a href="/refund-policy">Refund Policy</a>.</li>
+</ol></section>
+
+<section><h2>Using AI clients</h2>
+<p>AI clients reach your site in one of two ways:</p>
+<ul>
+<li>through the Bridgistic MCP server running on your own computer, which signs requests with a key you create in the plugin;</li>
+<li>through the optional relay at mcp.bridgistic.app, which keeps that key encrypted and forwards each call to your site as a signed request.</li>
+</ul>
+<p>In both cases the plugin checks the signature, the key's scopes and your approval rules before anything changes, and records the action in its audit log.</p></section>
+
+<section><h2>What each part stores or sends</h2>
+<table>
+<thead><tr><th>Part</th><th>Stores</th><th>Sends</th></tr></thead>
+<tbody>
+<tr><td>bridgistic.app</td><td>Your colour theme, in your browser</td><td>Your email and chosen price to Paddle when you start checkout</td></tr>
+<tr><td>Paddle</td><td>Payment details and checkout information, under Paddle's terms</td><td>A signed notification, including your email, to api.wpistic.com</td></tr>
+<tr><td>api.wpistic.com</td><td>The notification, your organization and billing email, order, subscription or lifetime record, the license (key stored hashed), site activations (domain, URLs, installation ID, environment, versions) and license events (IP address, user agent)</td><td>Your license key by email; signed responses to the plugin</td></tr>
+<tr><td>Plugin</td><td>Keys (secret encrypted), an audit log pruned after 90 days (including IP addresses), approvals, snapshots (only on your site), usage, memory, playbooks, schedules, and the license activation</td><td>Only to api.wpistic.com, for license activation, re-checks and deactivation</td></tr>
+<tr><td>Dashboard</td><td>Site connections in your browser's session storage</td><td>Signed requests directly to your site</td></tr>
+<tr><td>Relay</td><td>Site URL, key ID, encrypted key secret, scopes, timestamps and OAuth grants; rate-limit counters that expire within two minutes</td><td>Signed tool calls to your site. Request and response bodies are not stored</td></tr>
+</tbody></table>
+<p>More detail is in the <a href="/privacy">Bridgistic Privacy Policy</a>. Account, billing and data-rights matters are covered by the <a href="https://wpistic.com/privacy" rel="noopener">WPistic Privacy Policy</a>, the <a href="https://wpistic.com/terms" rel="noopener">WPistic Terms of Service</a> and the <a href="https://wpistic.com/refund-policy" rel="noopener">WPistic Refund Policy</a>.</p></section>
+
+      <section><h2>Contact</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address><p>Support and refunds, for Bridgistic and the whole WPistic ecosystem: <a href="mailto:support@wpistic.com">support@wpistic.com</a>.<br>General company enquiries: <a href="mailto:hello@insightistic.com">hello@insightistic.com</a>.</p></section>
+    </article>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span>© 2026 WordPressistic LLC. Bridgistic is licensed GPL-2.0-or-later.</span>
+      <nav aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/refund-policy">Refund Policy</a><a href="/how-purchases-work">How purchases work</a><a href="/sitemap.html">Sitemap</a></nav>
+    </div>
+  </footer>
+  <script>(function(){var b=document.getElementById('themeToggle');if(!b)return;b.addEventListener('click',function(){var r=document.documentElement;var n=r.getAttribute('data-theme')==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('bridgistic-theme',n);}catch(e){}});})();</script>
+</body>
+</html>

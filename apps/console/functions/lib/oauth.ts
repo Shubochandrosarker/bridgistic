@@ -1,0 +1,162 @@
+/**
+ * OAuth sign-in for Google and GitHub.
+ *
+ * Flow: /api/auth/oauth/:provider/start sets a signed state cookie and
+ * redirects to the provider; /callback exchanges the code, fetches the
+ * verified email, finds or creates the Bridgistic account (with a personal
+ * workspace) and issues the normal session cookie. Client secrets live only
+ * in deployment secrets — the buttons render only for configured providers.
+ */
+
+import { createSession, sessionCookie, sharedCookieDomain } from "./auth.ts";
+
+export interface OAuthEnv {
+  DB: D1Database;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+}
+
+export function providerConfigured(env: OAuthEnv, provider: string): boolean {
+  if (provider === "github") return Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET);
+  if (provider === "google") return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  return false;
+}
+
+function callbackUrl(request: Request, provider: string): string {
+  const url = new URL(request.url);
+  return `${url.origin}/api/auth/oauth/${provider}/callback`;
+}
+
+function b64url(input: ArrayBuffer | Uint8Array): string {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function createState(db: D1Database): Promise<string> {
+  const state = b64url(crypto.getRandomValues(new Uint8Array(24)));
+  await db
+    .prepare("INSERT INTO oauth_states (state, provider, expires_at) VALUES (?, ?, ?)")
+    .bind(state, "generic", new Date(Date.now() + 600_000).toISOString())
+    .run();
+  return state;
+}
+
+async function consumeState(db: D1Database, state: string): Promise<boolean> {
+  const row = await db
+    .prepare("SELECT id FROM oauth_states WHERE state = ? AND expires_at > ?")
+    .bind(state, new Date().toISOString())
+    .first<{ id: string }>();
+  if (!row) return false;
+  await db.prepare("DELETE FROM oauth_states WHERE id = ?").bind(row.id).run();
+  return true;
+}
+
+export async function oauthStart(request: Request, env: OAuthEnv, provider: string): Promise<Response> {
+  if (!providerConfigured(env, provider)) {
+    return Response.json({ error: "provider_not_configured", message: `${provider} sign-in is not configured on this deployment.` }, { status: 503 });
+  }
+  const redirect = callbackUrl(request, provider);
+  const state = await createState(env.DB);
+  const authorize =
+    provider === "github"
+      ? `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(env.GITHUB_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(redirect)}&scope=${encodeURIComponent("read:user user:email")}&state=${encodeURIComponent(state)}`
+      : `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(env.GOOGLE_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&scope=${encodeURIComponent("openid email profile")}&state=${encodeURIComponent(state)}`;
+  return new Response(null, { status: 302, headers: { Location: authorize } });
+}
+
+interface Profile {
+  email: string;
+  name: string;
+}
+
+async function exchangeGithub(env: OAuthEnv, code: string, redirect: string): Promise<Profile | null> {
+  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code, redirect_uri: redirect }),
+  });
+  const tokenJson = (await tokenRes.json()) as { access_token?: string };
+  if (!tokenJson.access_token) return null;
+  const headers = { Authorization: `Bearer ${tokenJson.access_token}`, Accept: "application/vnd.github+json", "User-Agent": "bridgistic-console" };
+  const userRes = await fetch("https://api.github.com/user", { headers });
+  const user = (await userRes.json()) as { name?: string; login?: string; email?: string | null };
+  let email = user.email ?? "";
+  if (!email) {
+    const emailRes = await fetch("https://api.github.com/user/emails", { headers });
+    const emails = (await emailRes.json()) as { email: string; primary: boolean; verified: boolean }[];
+    email = (Array.isArray(emails) ? emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.verified) : undefined)?.email ?? "";
+  }
+  if (!email) return null;
+  return { email: email.toLowerCase(), name: user.name || user.login || email.split("@")[0] };
+}
+
+async function exchangeGoogle(env: OAuthEnv, code: string, redirect: string): Promise<Profile | null> {
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID!,
+      client_secret: env.GOOGLE_CLIENT_SECRET!,
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: redirect,
+    }),
+  });
+  const tokenJson = (await tokenRes.json()) as { access_token?: string };
+  if (!tokenJson.access_token) return null;
+  const infoRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+  });
+  const info = (await infoRes.json()) as { email?: string; email_verified?: boolean; name?: string };
+  if (!info.email || info.email_verified === false) return null;
+  return { email: info.email.toLowerCase(), name: info.name || info.email.split("@")[0] };
+}
+
+function landing(request: Request): string {
+  const host = new URL(request.url).hostname;
+  return host.startsWith("marketplace") ? "/marketplace" : "/";
+}
+
+export async function oauthCallback(request: Request, env: OAuthEnv, provider: string, url: URL): Promise<Response> {
+  const code = url.searchParams.get("code") ?? "";
+  const state = url.searchParams.get("state") ?? "";
+  const fail = (reason: string) =>
+    new Response(null, { status: 302, headers: { Location: `/signin?oauth_error=${encodeURIComponent(reason)}` } });
+  if (!providerConfigured(env, provider)) return fail("provider_not_configured");
+  if (!code || !state || !(await consumeState(env.DB, state))) return fail("invalid_state");
+
+  const redirect = callbackUrl(request, provider);
+  const profile = provider === "github" ? await exchangeGithub(env, code, redirect) : await exchangeGoogle(env, code, redirect);
+  if (!profile) return fail("exchange_failed");
+
+  const db = env.DB;
+  let user = await db.prepare("SELECT id, email, name, role, status FROM users WHERE email = ?").bind(profile.email).first<{ id: string; email: string; name: string; role: string; status: string }>();
+  if (!user) {
+    const id = crypto.randomUUID();
+    await db
+      .prepare("INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'oauth', 'member')")
+      .bind(id, profile.email, profile.name)
+      .run();
+    const orgId = crypto.randomUUID();
+    await db.prepare("INSERT INTO orgs (id, name, plan, owner_user_id) VALUES (?, ?, 'free', ?)").bind(orgId, `${profile.name}'s workspace`, id).run();
+    await db.prepare("INSERT INTO memberships (org_id, user_id, role) VALUES (?, ?, 'owner')").bind(orgId, id).run();
+    user = { id, email: profile.email, name: profile.name, role: "member", status: "active" };
+    await db.prepare("INSERT INTO audit (id, actor, action, target, detail) VALUES (?, ?, 'user.oauth_signup', ?, ?)").bind(crypto.randomUUID(), profile.email, profile.email, provider).run();
+  }
+  if (user.status !== "active") return fail("account_disabled");
+
+  const sessionId = await createSession(db, user.id);
+  return new Response(null, {
+    status: 302,
+    headers: { Location: landing(request), "Set-Cookie": sessionCookie(sessionId, undefined, sharedCookieDomain(new URL(request.url).hostname)) },
+  });
+}
+
+/** Which providers this deployment can offer on the sign-in buttons. */
+export function oauthProviders(env: OAuthEnv): { github: boolean; google: boolean } {
+  return { github: providerConfigured(env, "github"), google: providerConfigured(env, "google") };
+}

@@ -1,0 +1,84 @@
+# Bridgistic — https://bridgistic.app
+# Regenerated from the public pages. Last content date: 2026-10-23
+# Human sitemap: https://bridgistic.app/sitemap.html
+# Machine sitemap: https://bridgistic.app/sitemap.xml
+# Answer-engine summary: https://bridgistic.app/llms.txt
+# Full answer-engine context: https://bridgistic.app/llms-full.txt
+#
+# Policy: this public marketing site may be indexed by search engines,
+# cited in AI Overviews and answer engines, and used as model context.
+# Private product surfaces are not on this host.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Search
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# AI Overviews, grounding and answer engines
+User-agent: Google-Extended
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://bridgistic.app/sitemap.xml

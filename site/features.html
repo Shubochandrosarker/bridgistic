@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B1F3A" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Feature guide · Bridgistic</title>
+  <meta name="description" content="Every Bridgistic feature, with what ships in the free plugin today and what is still marked coming soon on the paid plans." />
+  <link rel="canonical" href="https://bridgistic.app/features" />
+  <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
+  <link rel="stylesheet" href="/assets/legal.css" />
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="https://bridgistic.app/sitemap.xml" />
+  <meta name="author" content="WordPressistic LLC" />
+  <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Bridgistic feature guide",
+    "url": "https://bridgistic.app/features",
+    "description": "What the free Bridgistic plugin ships, and which paid lines are still locked.",
+    "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
+    "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
+    "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" },
+    "about": { "@type": "SoftwareApplication", "name": "Bridgistic", "url": "https://bridgistic.app/" }
+  }
+  </script>
+  <style>
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px; }
+    .card { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--panel); padding:16px 16px 14px; }
+    .card h2 { font-size:18px; margin:8px 0 6px; }
+    .card p { margin:0; font-size:14px; }
+    .status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    .ship { color:#F4F1EA; background:#1F8A70; }
+    .live { color:#F4F1EA; background:#0B1F3A; }
+    .wait { color:#0B1F3A; background:#C6A15B; }
+    .card a { font-size:13px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .card { animation: rise .55s ease both; }
+      .card:nth-child(2) { animation-delay:.05s; }
+      .card:nth-child(3) { animation-delay:.1s; }
+      .scan { position:absolute; left:0; right:0; height:18px; top:0; background:linear-gradient(transparent, color-mix(in srgb, var(--accent) 35%, transparent), transparent); animation: sweep 8s linear infinite; pointer-events:none; }
+    }
+    @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    @keyframes sweep { 0% { transform:translateY(-20px); opacity:0; } 15% { opacity:.7; } 100% { transform:translateY(220px); opacity:0; } }
+    @media (max-width:820px) { .cards { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="brand" href="/"><img src="/assets/bridgistic-icon.png" alt="" width="28" height="28" /><b class="word">Bridg<span>istic</span></b></a>
+      <nav class="top-nav" aria-label="Site"><a href="/#pricing">Pricing</a><a href="/docs">Docs</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
+        <button class="theme" type="button" id="themeToggle" aria-label="Switch colour theme">Theme</button></nav>
+    </div>
+  </header>
+  <main id="content" class="wrap doc">
+    <nav class="doc-nav" aria-label="Features">
+      <a href="#shipping">Shipping now</a>
+      <a href="#schedules">Schedules</a>
+      <a href="#snapshots">Snapshots</a>
+      <a href="#audit">Audit log</a>
+      <a href="#paid">Still coming soon</a>
+      <a href="#plans">Plans</a>
+    </nav>
+    <article>
+      <p class="eyebrow">Feature guide</p>
+      <h1>Every feature, as the code ships it</h1>
+      <p class="meta">Published by <a href="https://wpistic.com/">WordPressistic LLC</a>. Source: <a href="https://github.com/Wordpressistic/bridgistic">GitHub</a>. Protocol: <a href="https://modelcontextprotocol.io/">Model Context Protocol</a>.</p>
+      <div class="lead"><p>This page is the citation for the <a href="/#pricing">pricing section</a>. A green label is in the free plugin. A license label opens only after the WPistic license server marks the site active. A gold label is not in this release. Setup steps are in the <a href="/docs">docs</a>.</p></div>
+
+      <section id="shipping"><h2>Shipping in the free plugin</h2>
+        <div class="cards">
+          <article class="card" id="keys"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Scoped connection keys</h2><p>Each AI client gets its own key. Start with Read-only. Content Manager, Safe Admin and Developer Mode are wider presets. The WordPress administrator password is not the credential.</p><p><a href="/docs#key">Create a key</a> · <a href="/#security">Security model</a></p></article>
+          <article class="card" id="signed"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Signed requests</h2><p>Local requests are HMAC-signed. The plugin checks the signature, the timestamp and the nonce before a tool runs.</p><p><a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/SECURITY.md">Security notes</a></p></article>
+          <article class="card" id="approvals"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Approvals</h2><p>A key can require a person to allow writes. Pending actions sit in Bridgistic, then Approvals.</p><p><a href="/docs#approvals">How approval works</a></p></article>
+          <article class="card" id="playbooks"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Manual playbooks</h2><p>A playbook is an ordered list of bridge steps. You run it from WordPress or from the MCP tool. It does not recurse into other playbooks.</p><p><a href="/docs#playbooks">Playbooks</a></p></article>
+          <article class="card" id="woo"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>WooCommerce tools</h2><p>Commerce tools use the same key, scopes and approval rules. They are not a separate plan.</p><p><a href="/#features">Feature grid</a></p></article>
+          <article class="card" id="multisite"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Multi-site connections</h2><p>A local client can keep several sites in one connections file and call them by alias.</p><p><a href="/docs#clients">Connect a client</a></p></article>
+          <article class="card" id="health"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Health check and setup export</h2><p>Health Check looks at REST, permalinks and signing. Export Package builds a setup zip for a client. That export is not an audit-log download.</p><p><a href="/docs#install">Install</a></p></article>
+        </div>
+      </section>
+
+      <section id="schedules"><h2>Scheduled playbooks</h2>
+        <div class="cards">
+          <article class="card"><span class="status ship">Shipping</span><h2>Up to 3 schedules</h2><p>The free plugin allows 3 enabled schedules. The cap is enforced in code before a schedule is created or enabled. The message on the REST API says 3 enabled schedules are included in the free plugin.</p></article>
+          <article class="card" id="unlimited"><span class="status live">With a license</span><h2>Unlimited scheduled playbooks</h2><p>The free cap is 3 enabled schedules. When the license link reports active, trialing, or grace, that cap is skipped. The key is the one emailed after checkout, checked by the plugin and the dashboard against api.wpistic.com.</p></article>
+        </div>
+      </section>
+
+      <section id="snapshots"><h2>Snapshots</h2>
+        <div class="cards">
+          <article class="card"><span class="status ship">Shipping</span><h2>Snapshots and restore</h2><p>Destructive writes can store a snapshot first. You can also take a manual snapshot of posts and post meta, and restore one. The free screen keeps up to 50 snapshots.</p></article>
+          <article class="card" id="advanced-snapshots"><span class="status live">With a license</span><h2>Advanced snapshots</h2><p>The free screen keeps up to 50 snapshots. A live license lifts that cap. Retention policies and rollback analytics are not a separate screen.</p></article>
+        </div>
+      </section>
+
+      <section id="audit"><h2>Audit log</h2>
+        <div class="cards">
+          <article class="card"><span class="status ship">Shipping</span><h2>Audit log, 90 days</h2><p>Requests are logged with the key, action, status and time. Secrets are not written into the log. Rows older than 90 days are pruned.</p></article>
+          <article class="card" id="audit-export"><span class="status live">With a license</span><h2>Audit log export</h2><p>The on-screen log stays free for 90 days. A live license opens <code>GET /wp-json/bridgistic/v1/audit/export</code> for the same rows. The Export Package screen is still a setup zip, not the log.</p></article>
+        </div>
+      </section>
+
+      <section id="paid"><h2>Still marked coming soon</h2>
+        <div class="cards">
+          <article class="card" id="skills"><span class="status wait">Coming soon</span><h2>Skills marketplace</h2><p>The public plugin does not install a skills marketplace. The directory discussed for the product is not part of the free zip.</p><p><a href="/#pricing">Pricing</a></p></article>
+          <article class="card"><span class="status wait">Coming soon</span><h2>Agency dashboard and team permissions</h2><p>Named in the plugin and not a working multi-user product yet. The hosted dashboard is a separate surface.</p></article>
+          <article class="card" id="white-label"><span class="status wait">Coming soon</span><h2>White-label</h2><p>Not in this release. A license does not remove the Bridgistic name.</p></article>
+          <article class="card" id="credits"><span class="status wait">Coming soon</span><h2>Cloud Agent credits</h2><p>Not part of the license. A later credit price would be billed separately from the site count.</p></article>
+        </div>
+      </section>
+
+      <section id="plans"><h2>Plans, unchanged</h2>
+        <p>Free is $0, with no license key. The Lifetime Deal is $49 once for <strong>1 license · 1 site</strong>, through 31 December 2026 or 100 licenses, whichever comes first. Pro is $12 a month or $99 a year for <strong>1 license · 5 sites</strong>. Every purchase has a 7-day refund guarantee. Paddle is the merchant of record. Full terms: <a href="/terms">Terms</a>, <a href="/refund-policy">Refunds</a>, <a href="/how-purchases-work">How purchases work</a>.</p>
+        <p>WordPress itself is documented at <a href="https://wordpress.org/documentation/">wordpress.org/documentation</a>. Bridgistic needs WordPress 6.4 or newer and PHP 8.0 or newer.</p>
+      </section>
+
+      <section><h2>Publisher</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address><p>Support: <a href="mailto:support@wpistic.com">support@wpistic.com</a>. Company site: <a href="https://wordpressistic.com/">wordpressistic.com</a>.</p></section>
+    </article>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span>© 2026 WordPressistic LLC. Bridgistic is licensed GPL-2.0-or-later.</span>
+      <nav aria-label="Legal"><a href="/">Home</a><a href="/docs">Docs</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/sitemap.html">Sitemap</a></nav>
+    </div>
+  </footer>
+  <script>document.getElementById('themeToggle').addEventListener('click',function(){var r=document.documentElement;var n=r.getAttribute('data-theme')==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('bridgistic-theme',n);}catch(e){}});</script>
+</body>
+</html>

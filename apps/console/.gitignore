@@ -5,3 +5,4 @@ seed-gz/
 cleanup.json
 .mimosa/
 *.tsbuildinfo
+.mimosa/

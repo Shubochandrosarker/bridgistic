@@ -1,10 +1,44 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, LoaderCircle, Shield } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "../components/Layout.tsx";
 import { signIn, signUp } from "../lib/account.ts";
 import { useStore } from "../lib/store.tsx";
+
+
+function OAuthButtons() {
+  const [providers, setProviders] = useState<{ github: boolean; google: boolean } | null>(null);
+  useEffect(() => {
+    fetch("https://admin.bridgistic.app/api/auth/oauth/providers", { credentials: "include" })
+      .then((r) => r.json())
+      .then((r) => setProviders(r.providers))
+      .catch(() => setProviders({ github: false, google: false }));
+  }, []);
+  if (!providers || (!providers.github && !providers.google)) return null;
+  return (
+    <div className="space-y-2">
+      <div className="relative py-1 text-center">
+        <span className="relative z-10 bg-white px-3 text-[11px] uppercase tracking-widest text-navy/40">or continue with</span>
+        <div className="absolute inset-x-0 top-1/2 h-px bg-navy/10" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {providers.google && (
+          <a href="https://admin.bridgistic.app/api/auth/oauth/google/start" className="flex items-center justify-center gap-2 rounded-xl border border-navy/10 bg-white px-3 py-2.5 text-sm font-medium text-navy hover:bg-ivory/70">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.02c2.2-2 3.5-5 3.5-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.14.01-3.6 2.8-.05.13C3.4 21.3 7.4 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.25-.75-.4-1.55-.4-2.4s.15-1.65.42-2.4l-.01-.16-3.65-2.8-.12.06C.5 8.2 0 10 0 12s.5 3.8 1.44 5.3l3.76-2.9z"/><path fill="#EB4335" d="M12 4.6c2.2 0 3.7 1 4.6 1.8l3.3-3.2C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.7l3.8 2.9c1-2.9 3.7-5 6.8-5z"/></svg>
+            Google
+          </a>
+        )}
+        {providers.github && (
+          <a href="https://admin.bridgistic.app/api/auth/oauth/github/start" className="flex items-center justify-center gap-2 rounded-xl border border-navy/10 bg-white px-3 py-2.5 text-sm font-medium text-navy hover:bg-ivory/70">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.4.6.1.82-.26.82-.58v-2c-3.34.72-4.04-1.42-4.04-1.42-.54-1.4-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.28-1.55 3.29-1.23 3.29-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function SignIn() {
   const { startDemo } = useStore();
@@ -14,7 +48,7 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(new URLSearchParams(window.location.search).get("oauth_error") ? "Sign-in with that provider did not complete. Try email and password." : null);
 
   // Standard autocomplete hints so password managers fill correctly.
   const passwordHint = mode === "signup" ? ["new", "password"].join("-") : "current-password";
@@ -39,7 +73,7 @@ export function SignIn() {
     <div className="grid min-h-screen lg:grid-cols-2 bg-ivory">
       {/* Left panel — brand */}
       <div className="relative hidden overflow-hidden bg-navy p-10 text-ivory lg:flex lg:flex-col lg:justify-between">
-        <Logo dark />
+        <img src="https://admin.bridgistic.app/brand/icon.png" alt="" className="mb-8 h-12 w-12" /><Logo dark />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -147,6 +181,8 @@ export function SignIn() {
               )}
             </p>
           </form>
+
+          <OAuthButtons />
 
           {/* Direct connection stays first-class */}
           <div className="space-y-3">
