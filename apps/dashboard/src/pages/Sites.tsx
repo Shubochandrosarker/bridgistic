@@ -14,8 +14,10 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
   const [step, setStep] = useState<"form" | "testing" | "ok">("form");
   const [err, setErr] = useState<ApiError | null>(null);
   const [urlErr, setUrlErr] = useState<string | null>(null);
+  const [keyErr, setKeyErr] = useState<string | null>(null);
   const submit = async (e: FormEvent) => {
-    e.preventDefault(); setErr(null); setUrlErr(null);
+    e.preventDefault(); setErr(null); setUrlErr(null); setKeyErr(null);
+    if (!f.keyId.trim().startsWith("wpk_")) { setKeyErr("A key ID starts with wpk_ — mint one in WP Admin → Bridgistic → Keys (your email is not the key)."); return; }
     let siteUrl: string;
     try { siteUrl = normalizeSiteUrl(f.siteUrl); } catch (x) { setUrlErr(x instanceof Error ? x.message : "Invalid URL"); return; }
     setStep("testing");
@@ -36,8 +38,8 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label><span className="label">Site URL</span><input required className="input" value={f.siteUrl} onChange={set("siteUrl")} placeholder="https://example.com" inputMode="url" aria-invalid={!!urlErr} />{urlErr && <span className="mt-1 block text-xs text-red-800">{urlErr}</span>}</label>
         <label><span className="label">Name (optional)</span><input className="input" value={f.alias} onChange={set("alias")} placeholder="Client store" /></label>
-        <label><span className="label">Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} autoComplete="off" /></label>
-        <label><span className="label">Key secret</span><input required type="password" className="input font-mono" value={f.secret} onChange={set("secret")} autoComplete="off" /></label>
+        <label><span className="label">Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} placeholder="wpk_…" autoComplete="off" aria-invalid={!!keyErr} /><span className="mt-1 block text-xs text-navy/50">Starts with <code>wpk_</code> — mint one in WP Admin → Bridgistic → Keys. Your email is not the key.</span>{keyErr && <span className="mt-1 block text-xs text-red-800">{keyErr}</span>}</label>
+        <label><span className="label">Key secret</span><input required type="password" className="input font-mono" value={f.secret} onChange={set("secret")} placeholder="wps_…" autoComplete="off" /></label>
       </div>
       {err && <div className="rounded-xl ring-1 ring-red-800/20"><ErrorState error={err} /></div>}
       <div className="flex items-center gap-3">
@@ -72,7 +74,7 @@ export function Sites() {
           </ul>)}
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
-        <ComingSoonPanel title="Saved connections across devices" body="Encrypted server-side storage with team access, when the hosted API ships." />
+        <Card><div className="p-4"><h3 className="text-sm font-semibold">Licensed sites connect themselves</h3><p className="mt-1 text-sm text-navy/65">Sites with an active license pair automatically: sign in on any device and they appear here — no keys to copy. Activate in WP Admin → Bridgistic → Premium Features.</p></div></Card>
         <ComingSoonPanel title="Bulk onboarding" body="Connect many sites from one CSV with per-site scope presets." />
       </div>
     </div>

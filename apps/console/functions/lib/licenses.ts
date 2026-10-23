@@ -13,7 +13,7 @@
  * the verification_key issued once at activation; the raw key is never stored.
  */
 
-import { randomHex, signLicenseResponse } from "./crypto.ts";
+import { randomHex, signLicenseResponse, encryptSecret } from "./crypto.ts";
 import { syncLog } from "./auth.ts";
 
 export interface LicenseRow {
@@ -26,6 +26,7 @@ export interface LicenseRow {
   owner_email: string;
   org_id: string | null;
   notes: string;
+  site_connection: string;
   issued_at: string;
   expires_at: string | null;
 }
@@ -38,6 +39,33 @@ export function licenseKey(plan: string): string {
 
 export function maskKey(key: string): string {
   return key.length <= 10 ? "••••••" : `${key.slice(0, 7)}…${key.slice(-4)}`;
+}
+
+/** Masked license-owner email so a site can show which account unlocks Pro. */
+export function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return "";
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 2)}${"•".repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
+
+/**
+ * The plugin pairs its dashboard key at activation: the console stores it
+ * encrypted so the license owner's dashboard connects the site with zero
+ * manual steps. Same trust model as org-connected sites (AES-GCM at rest).
+ */
+async function storeConnection(db: D1Database, licenseId: string, siteUrl: string, dk: { key_id?: unknown; secret?: unknown } | undefined, encryptionKey: string | undefined): Promise<void> {
+  const keyId = String(dk?.key_id ?? "").trim();
+  const secret = String(dk?.secret ?? "").trim();
+  if (!encryptionKey || !keyId || !secret) return;
+  const normalized = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
+  let host = normalized;
+  try {
+    host = new URL(normalized).origin;
+  } catch {
+    // keep raw
+  }
+  const payload = JSON.stringify({ site_url: host, key_id: keyId, secret_enc: await encryptSecret(secret, encryptionKey), updated_at: new Date().toISOString() });
+  await db.prepare("UPDATE licenses SET site_connection = ? WHERE id = ?").bind(payload, licenseId).run();
 }
 
 const BRIDGISTIC_ENTITLEMENTS: Record<string, unknown> = {
@@ -66,10 +94,12 @@ interface ActivationInput {
   product_version?: string;
   wp_version?: string;
   php_version?: string;
+  dashboard_key?: { key_id?: unknown; secret?: unknown };
 }
 
 /** POST /activate — binds one site to one license, up to site_limit. */
-export async function activateLicense(db: D1Database, input: ActivationInput): Promise<Response> {
+export async function activateLicense(env: LicenseEnv, input: ActivationInput): Promise<Response> {
+  const db = env.DB;
   const rawKey = String(input.key ?? "").trim();
   const domain = String(input.domain ?? "").toLowerCase().replace(/^www\./, "");
   const installationUuid = String(input.installation_uuid ?? "");
@@ -131,6 +161,7 @@ export async function activateLicense(db: D1Database, input: ActivationInput): P
       .run();
   }
   await syncLog(db, "activate", maskKey(license.key), domain, `plan=${license.plan}`);
+  await storeConnection(db, license.id, String(input.site_url ?? input.home_url ?? `https://${domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
 
   const body: Record<string, unknown> = {
     success: true,
@@ -138,6 +169,7 @@ export async function activateLicense(db: D1Database, input: ActivationInput): P
     status: "active",
     plan: license.plan,
     expires_at: license.expires_at,
+    member: maskEmail(license.owner_email),
     activation: { domain, environment: String(input.environment ?? "production"), installation_uuid: installationUuid },
     entitlements: BRIDGISTIC_ENTITLEMENTS,
     activation_token: activationToken,
@@ -153,10 +185,18 @@ interface ValidateInput {
   environment?: string;
   installation_uuid?: string;
   plugin_version?: string;
+  dashboard_key?: { key_id?: unknown; secret?: unknown };
+}
+
+/** The env the license engine needs: the database plus the at-rest key. */
+export interface LicenseEnv {
+  DB: D1Database;
+  SECRET_ENCRYPTION_KEY?: string;
 }
 
 /** POST /validate — replays the signed status for a live activation. */
-export async function validateLicense(db: D1Database, input: ValidateInput): Promise<Response> {
+export async function validateLicense(env: LicenseEnv, input: ValidateInput): Promise<Response> {
+  const db = env.DB;
   const token = String(input.activation_token ?? "");
   if (!token) return errorBody("invalid_token", "The activation token is required.", 400);
   const activation = await db.prepare("SELECT * FROM activations WHERE activation_token = ?").bind(token).first<{
@@ -182,6 +222,7 @@ export async function validateLicense(db: D1Database, input: ValidateInput): Pro
       status,
       plan: license?.plan ?? "",
       expires_at: license?.expires_at ?? null,
+      member: license ? maskEmail(license.owner_email) : "",
       entitlements: {},
       activation: { domain: activation.domain, environment: activation.environment, installation_uuid: activation.installation_uuid },
     };
@@ -190,6 +231,10 @@ export async function validateLicense(db: D1Database, input: ValidateInput): Pro
   }
   await db.prepare("UPDATE activations SET last_validated_at = ? WHERE id = ?").bind(new Date().toISOString(), activation.id).run();
   await syncLog(db, "validate", maskKey(license.key), activation.domain, "ok");
+  // A live site keeps its dashboard pairing fresh: every validate re-pushes
+  // the key, so "Check now" in WP Admin heals a lost or rotated pairing.
+  const activationRow = await db.prepare("SELECT site_url FROM activations WHERE id = ?").bind(activation.id).first<{ site_url: string }>();
+  await storeConnection(db, license.id, String(activationRow?.site_url ?? `https://${activation.domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
 
   const body: Record<string, unknown> = {
     success: true,
@@ -197,6 +242,7 @@ export async function validateLicense(db: D1Database, input: ValidateInput): Pro
     status: "active",
     plan: license.plan,
     expires_at: license.expires_at,
+    member: maskEmail(license.owner_email),
     activation: { domain: activation.domain, environment: activation.environment, installation_uuid: activation.installation_uuid },
     entitlements: BRIDGISTIC_ENTITLEMENTS,
   };

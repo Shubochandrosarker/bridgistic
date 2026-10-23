@@ -175,8 +175,8 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   }
 
   // ── WPistic license contract (plugin-facing) ──────────────────────────────
-  if (path === "/api/v1/licenses/activate" && method === "POST") return activateLicense(db, await request.json());
-  if (path === "/api/v1/licenses/validate" && method === "POST") return validateLicense(db, await request.json());
+  if (path === "/api/v1/licenses/activate" && method === "POST") return activateLicense(env, await request.json());
+  if (path === "/api/v1/licenses/validate" && method === "POST") return validateLicense(env, await request.json());
   if (path === "/api/v1/licenses/deactivate" && method === "POST") return deactivateLicense(db, await request.json());
 
   // ── Paddle webhook ─────────────────────────────────────────────────────────
@@ -297,6 +297,31 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       .bind(user.email)
       .all();
     return Response.json({ installs: results ?? [] });
+  }
+
+  // ── Auto-paired sites from license activations ─────────────────────────────
+  // The plugin pushes its dashboard key at activation/validate; the license
+  // owner's dashboard picks the connection up here with zero manual steps.
+  if (path === "/api/me/site-connections" && method === "GET") {
+    const unlock = await paidUnlock(db, user);
+    if (!unlock.unlocked) return Response.json({ connections: [] });
+    if (!env.SECRET_ENCRYPTION_KEY) return Response.json({ connections: [] });
+    const { results } = await db
+      .prepare("SELECT id, site_connection FROM licenses WHERE owner_email = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)")
+      .bind(user.email, new Date().toISOString())
+      .all<{ id: string; site_connection: string }>();
+    const connections: { site_url: string; key_id: string; secret: string; plan: string }[] = [];
+    for (const row of results ?? []) {
+      if (!row.site_connection) continue;
+      try {
+        const parsed = JSON.parse(row.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+        if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) continue;
+        connections.push({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY), plan: unlock.plan ?? "" });
+      } catch {
+        // corrupt row — skip rather than fail the whole list
+      }
+    }
+    return Response.json({ connections });
   }
 
   // ── Platform admin ─────────────────────────────────────────────────────────

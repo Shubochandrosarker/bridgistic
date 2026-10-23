@@ -47,16 +47,23 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <div key={g.group}>
           <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ivory/40">{g.group}</p>
           <ul className="space-y-0.5">
-            {g.items.map(({ to, label, icon: Icon, soon }) => (
-              <li key={to}>
-                <NavLink to={to} end={to === "/"} onClick={onNavigate}
-                  className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition ${isActive ? "bg-white/10 text-ivory" : "text-ivory/70 hover:bg-white/5 hover:text-ivory"}`}>
-                  {({ isActive }) => (<>
-                    {isActive && <motion.span layoutId="nav-active" className="absolute left-0 top-1.5 h-6 w-0.5 rounded bg-gold" />}
+            {g.items.map(({ to, label, icon: Icon, soon, href }) => (
+              <li key={href ?? to}>
+                {href ? (
+                  <a href={href} target="_blank" rel="noopener noreferrer" onClick={onNavigate}
+                    className="group relative flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition text-ivory/70 hover:bg-white/5 hover:text-ivory">
                     <Icon className="h-4 w-4" aria-hidden />{label}
-                    {soon && <span className="ml-auto rounded-full bg-gold/20 px-1.5 text-[10px] text-gold">soon</span>}
-                  </>)}
-                </NavLink>
+                  </a>
+                ) : (
+                  <NavLink to={to} end={to === "/"} onClick={onNavigate}
+                    className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition ${isActive ? "bg-white/10 text-ivory" : "text-ivory/70 hover:bg-white/5 hover:text-ivory"}`}>
+                    {({ isActive }) => (<>
+                      {isActive && <motion.span layoutId="nav-active" className="absolute left-0 top-1.5 h-6 w-0.5 rounded bg-gold" />}
+                      <Icon className="h-4 w-4" aria-hidden />{label}
+                      {soon && <span className="ml-auto rounded-full bg-gold/20 px-1.5 text-[10px] text-gold">soon</span>}
+                    </>)}
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>

@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS licenses (
   owner_email  TEXT NOT NULL DEFAULT '',
   org_id       TEXT REFERENCES orgs(id) ON DELETE SET NULL,
   notes        TEXT NOT NULL DEFAULT '',
+  site_connection TEXT NOT NULL DEFAULT '',       -- JSON {site_url,key_id,secret_enc} pushed by the plugin at activation
   issued_at    TEXT NOT NULL DEFAULT (datetime('now')),
   expires_at   TEXT
 );
