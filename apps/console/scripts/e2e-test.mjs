@@ -26,23 +26,32 @@ function check(name, condition, detail = "") {
 function makeSession() {
   let cookie = "";
   return async function call(method, path, body) {
-    const res = await fetch(`${base}${path}`, {
-      method,
-      headers: {
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(cookie ? { Cookie: cookie } : {}),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const setCookie = res.headers.get("set-cookie");
-    if (setCookie) cookie = setCookie.split(";")[0];
-    let json = null;
-    try {
-      json = await res.json();
-    } catch {
-      json = null;
+    // The *.pages.dev shared edge intermittently challenges datacenter POSTs
+    // with non-JSON HTML. When the response isn't API JSON, retry once after a
+    // beat; genuine API failures always return JSON bodies and never retry.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(`${base}${path}`, {
+        method,
+        headers: {
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+          ...(cookie ? { Cookie: cookie } : {}),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const setCookie = res.headers.get("set-cookie");
+      if (setCookie) cookie = setCookie.split(";")[0];
+      let json = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+      if (json !== null || attempt === 1) {
+        return { status: res.status, json, headers: res.headers };
+      }
+      await new Promise((r) => setTimeout(r, 1200));
     }
-    return { status: res.status, json, headers: res.headers };
+    throw new Error("unreachable");
   };
 }
 
@@ -86,15 +95,17 @@ console.log(`\nTesting ${base}\n`);
   const health = await anon("GET", "/api/health");
   check("health returns ok", health.status === 200 && health.json?.ok === true);
   const items = await anon("GET", "/api/market/items");
-  check("marketplace lists 162 skills", items.json?.items?.length === 162, `got ${items.json?.items?.length}`);
+  check("public directory lists the 100 free skills only", items.json?.items?.length === 100, `got ${items.json?.items?.length}`);
   const freeOnly = await anon("GET", "/api/market/items?tier=free");
   check("free filter returns 100", freeOnly.json?.items?.length === 100, `got ${freeOnly.json?.items?.length}`);
+  const proAnon = await anon("GET", "/api/market/items?tier=pro");
+  check("pro collection hidden from anonymous (401)", proAnon.status === 401, `got ${proAnon.status}`);
+  const archived = await anon("GET", "/api/market/item/claude-code");
+  check("archived rows listed nowhere", archived.status === 404, `got ${archived.status}`);
   const detail = await anon("GET", "/api/market/item/bridgistic-mcp");
   check("skill detail is public metadata", detail.json?.item?.slug === "bridgistic-mcp");
   const content = await anon("GET", "/api/market/content/bridgistic-mcp");
   check("anon gets no free file content", content.json?.authorized === false && content.json?.files?.length === 0);
-  const paid = await anon("GET", "/api/market/item/claude-code");
-  check("paid skill listed", paid.json?.item?.slug === "claude-code" && paid.json?.item?.tier === "paid");
   const download = await anon("GET", "/api/market/download/bridgistic-mcp");
   check("anon download refused with 401", download.status === 401);
 }
@@ -106,7 +117,7 @@ console.log(`\nTesting ${base}\n`);
   const me = await owner("GET", "/api/me");
   check("me returns owner + org", me.json?.user?.role === "owner" && me.json?.orgs?.length === 1);
   const stats = await owner("GET", "/api/admin/stats");
-  check("admin stats visible to owner", stats.status === 200 && Number(stats.json?.skills) === 162);
+  check("admin stats visible to owner", stats.status === 200 && Number(stats.json?.skills) === 192, `skills=${stats.json?.skills}`);
   const users = await owner("GET", "/api/admin/users");
   check("admin users list", users.json?.users?.length >= 1);
 }
@@ -121,8 +132,8 @@ console.log(`\nTesting ${base}\n`);
   check("member refused on admin", adminProbe.status === 403);
   const freeContent = await member("GET", "/api/market/content/bridgistic-mcp");
   check("member sees free content", freeContent.json?.authorized === true && freeContent.json?.files?.length > 0);
-  const paidContent = await member("GET", "/api/market/content/claude-code");
-  check("member blocked from paid content", paidContent.json?.authorized === false);
+  const proRefused = await member("GET", "/api/market/items?tier=pro");
+  check("member without license refused on pro collection (403)", proRefused.status === 403, `got ${proRefused.status}`);
   const download = await member("GET", "/api/market/download/bridgistic-mcp");
   check("member downloads free zip", download.status === 200 && download.headers.get("content-type") === "application/zip");
 }
@@ -179,8 +190,10 @@ console.log(`\nTesting ${base}\n`);
   check("license reassigned to buyer email", patch.status === 200);
   const meAfter = await member("GET", "/api/me");
   check("member now paid_unlocked", meAfter.json?.paid_unlock?.unlocked === true, JSON.stringify(meAfter.json?.paid_unlock));
-  const paidContent = await member("GET", "/api/market/content/claude-code");
-  check("member now reads paid content", paidContent.json?.authorized === true && paidContent.json?.files?.length > 0);
+  const proVisible = await member("GET", "/api/market/items?tier=pro");
+  check("licensed member sees the Pro collection", proVisible.status === 200 && (proVisible.json?.items?.length ?? 0) === 30, `got ${proVisible.status} / ${proVisible.json?.items?.length}`);
+  const proContent = await member("GET", "/api/market/content/wpistic-maps");
+  check("member now reads pro content", proContent.json?.authorized === true && proContent.json?.files?.length > 0);
 
   const suspend = await owner("PATCH", `/api/admin/licenses/${row.id}`, { status: "suspended" });
   check("license suspended", suspend.status === 200);

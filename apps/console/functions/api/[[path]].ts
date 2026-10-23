@@ -424,8 +424,9 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
   }
 
   if (seg[2] === "item" && seg[3] && method === "GET") {
+    // Archived rows are listed nowhere and fetched nowhere.
     const item = await db
-      .prepare("SELECT slug, name, description, category, author, handle, tier, version, installs, updated FROM skills WHERE slug = ?")
+      .prepare("SELECT slug, name, description, category, author, handle, tier, version, installs, updated FROM skills WHERE slug = ? AND tier != 'archive'")
       .bind(seg[3])
       .first();
     if (!item) return Response.json({ error: "not_found", message: "Skill not found." }, { status: 404 });
