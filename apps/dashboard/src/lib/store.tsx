@@ -5,9 +5,11 @@ import { DemoClient } from "./api/demo.ts";
 import type { SiteConnection } from "./api/types.ts";
 
 /**
- * Site connections live in sessionStorage: the key secret is never sent to any
- * Bridgistic server and is dropped when the tab closes. When api.bridgistic.app
- * ships (BR-007), connections move server-side and this becomes a token.
+ * Site connections live in sessionStorage and are dropped when the tab closes.
+ * Each bridge call carries the key through the console relay (server-side
+ * signing; the relay never stores it) because some hosts answer browser
+ * preflights without CORS headers, which blocks every direct call. See
+ * lib/api/bridge.ts.
  */
 const KEY = "bridgistic.sites.v1";
 const MODE = "bridgistic.mode.v1";

@@ -203,7 +203,7 @@ export function SignIn() {
           </div>
 
           <p className="text-center text-xs leading-relaxed text-navy/45">
-            Direct connections keep the key secret in this browser tab only (session storage). It is never sent to a Bridgistic server.
+            Direct connections keep the key secret in this browser tab only (session storage). Calls are relayed through our server for signing and are never stored.
           </p>
         </div>
       </div>

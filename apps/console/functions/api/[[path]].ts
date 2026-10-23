@@ -264,6 +264,25 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   // ── AI generation (website agents) ─────────────────────────────────────────
   if (path === "/api/ai/generate" && method === "POST") return aiGenerate(request, env, user);
 
+  // ── Dashboard bridge relay ─────────────────────────────────────────────────
+  // dashboard.bridgistic.app signs site calls in the browser; on hosts whose
+  // edge answers CORS preflights without the right headers those calls can
+  // never start. This relay performs the same signed call server-side. The
+  // key stays in the caller's browser and is not stored here; the call is
+  // still authenticated by the site's HMAC check, and SSRF guards apply.
+  if (path === "/api/relay" && method === "POST") {
+    const body = await request.json<{ site_url?: string; key_id?: string; secret?: string; method?: string; path?: string; body?: Record<string, unknown> }>();
+    const siteUrl = normalizeSiteUrl(String(body.site_url ?? ""));
+    const keyId = String(body.key_id ?? "").trim();
+    const secret = String(body.secret ?? "").trim();
+    const routePath = String(body.path ?? "site-info").replace(/[^a-z0-9_\-/.?=&]/gi, "");
+    const httpMethod = ["GET", "POST", "PUT", "DELETE"].includes(String(body.method ?? "").toUpperCase()) ? (String(body.method).toUpperCase() as "GET" | "POST" | "PUT" | "DELETE") : "GET";
+    if (!keyId || !secret) return Response.json({ error: "missing_key", message: "The relay needs the site URL, key ID and secret." }, { status: 400 });
+    if (routePath.length > 200) return Response.json({ error: "bad_path", message: "The bridge path is too long." }, { status: 400 });
+    const result = await callSite(siteUrl, keyId, secret, httpMethod, routePath, body.body);
+    return Response.json(result, { status: result.ok ? 200 : result.status >= 400 && result.status < 600 ? result.status : 502 });
+  }
+
   if (path === "/api/me/installs" && method === "GET") {
     const { results } = await db
       .prepare("SELECT target AS slug, at, detail FROM audit WHERE actor = ? AND action = 'market.install' ORDER BY at DESC LIMIT 100")

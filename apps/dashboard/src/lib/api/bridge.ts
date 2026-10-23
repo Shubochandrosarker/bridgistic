@@ -1,6 +1,7 @@
 import { callBridge, BridgeRequestError, type BridgeMethod } from "@bridgistic/wp-client";
 import { firstArray, type BridgisticClient, type ListResource } from "./client.ts";
 import { ApiError, classify } from "./errors.ts";
+import { RELAY_URL } from "../config.ts";
 import type { AuditEntry, Approval, LicenseStatus, Playbook, Row, Schedule, SiteConnection, SiteInfo, Snapshot, UsageInfo } from "./types.ts";
 
 /** The plugin's default options allowlist (rest/class-options-controller.php). */
@@ -12,6 +13,28 @@ export class BridgeClient implements BridgisticClient {
   constructor(private conn: SiteConnection, private fetchImpl: typeof fetch = (...a) => fetch(...a)) {}
 
   private async call<T>(method: BridgeMethod, route: string, body?: Record<string, unknown>): Promise<T> {
+    // Preferred path: the console relay. Some hosts answer browser preflights
+    // for the plugin namespace without CORS headers, which blocks every direct
+    // call at the network layer; the relay performs the same signed call
+    // server-side. Falls back to the direct browser call when the relay is
+    // unreachable. The key stays in this browser either way — the relay does
+    // not store it.
+    try {
+      const res = await this.fetchImpl(RELAY_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_url: this.conn.siteUrl, key_id: this.conn.keyId, secret: this.conn.secret, method, path: route, body }),
+      });
+      const relayed = (await res.json().catch(() => null)) as { ok?: boolean; data?: unknown; error?: { code?: string; message?: string } } | null;
+      if (relayed && typeof relayed === "object" && "ok" in relayed) {
+        if (relayed.ok) return relayed.data as T;
+        throw new ApiError(relayed.error?.message ?? "The site refused the call.", classify(res.status, relayed.error?.code), res.status);
+      }
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      // Relay unreachable — fall through to the direct call.
+    }
     try {
       const res = await callBridge<unknown>(
         { alias: this.conn.alias, siteUrl: this.conn.siteUrl, keyId: this.conn.keyId, secret: this.conn.secret },
