@@ -47,11 +47,11 @@ async function createState(db: D1Database): Promise<string> {
 
 async function consumeState(db: D1Database, state: string): Promise<boolean> {
   const row = await db
-    .prepare("SELECT id FROM oauth_states WHERE state = ? AND expires_at > ?")
+    .prepare("SELECT state FROM oauth_states WHERE state = ? AND expires_at > ?")
     .bind(state, new Date().toISOString())
-    .first<{ id: string }>();
+    .first<{ state: string }>();
   if (!row) return false;
-  await db.prepare("DELETE FROM oauth_states WHERE id = ?").bind(row.id).run();
+  await db.prepare("DELETE FROM oauth_states WHERE state = ?").bind(state).run();
   return true;
 }
 
