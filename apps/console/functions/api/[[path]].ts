@@ -275,10 +275,18 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     const siteUrl = normalizeSiteUrl(String(body.site_url ?? ""));
     const keyId = String(body.key_id ?? "").trim();
     const secret = String(body.secret ?? "").trim();
-    const routePath = String(body.path ?? "site-info").replace(/[^a-z0-9_\-/.?=&]/gi, "");
+    let routePath = String(body.path ?? "site-info").replace(/[^a-z0-9_\-/.?=&]/gi, "");
     const httpMethod = ["GET", "POST", "PUT", "DELETE"].includes(String(body.method ?? "").toUpperCase()) ? (String(body.method).toUpperCase() as "GET" | "POST" | "PUT" | "DELETE") : "GET";
     if (!keyId || !secret) return Response.json({ error: "missing_key", message: "The relay needs the site URL, key ID and secret." }, { status: 400 });
     if (routePath.length > 200) return Response.json({ error: "bad_path", message: "The bridge path is too long." }, { status: 400 });
+    // Some host edges cache bridge GETs by URL alone until the plugin marks
+    // the namespace no-store (1.5.6). The per-request buster keeps live data
+    // correct on 1.5.4/1.5.5 sites too; the signature covers the full path,
+    // query included.
+    if (httpMethod === "GET") {
+      const buster = `_cb=${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      routePath = `${routePath}${routePath.includes("?") ? "&" : "?"}${buster}`;
+    }
     const result = await callSite(siteUrl, keyId, secret, httpMethod, routePath, body.body);
     return Response.json(result, { status: result.ok ? 200 : result.status >= 400 && result.status < 600 ? result.status : 502 });
   }
