@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout.tsx";
-import { loadAccount, refreshAccount, type Account } from "./lib/account.ts";
 import { BridgeClient } from "./lib/api/bridge.ts";
 import { useStore } from "./lib/store.tsx";
 import { Approvals } from "./pages/Approvals.tsx";
@@ -17,19 +16,8 @@ import { Snapshots } from "./pages/Snapshots.tsx";
 import { Usage } from "./pages/Usage.tsx";
 
 export function App() {
-  const { mode, sites, addSite } = useStore();
-  // An account session (shared cookie with the console) or a direct bridge
-  // session both open the dashboard; the cache is validated against the API.
-  const [account, setAccount] = useState<Account | null>(loadAccount);
-  useEffect(() => {
-    let live = true;
-    void refreshAccount().then((a) => {
-      if (live) setAccount(a);
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { mode, sites, account, addSite } = useStore();
+
   // Auto-pairing: the plugin pushes its dashboard key to the license server at
   // activation, and licensed sites appear here with zero manual steps.
   useEffect(() => {
@@ -62,6 +50,7 @@ export function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account?.email]);
+
   const signedIn = account !== null || mode === "demo" || sites.length > 0;
   return (
     <Routes>

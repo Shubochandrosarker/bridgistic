@@ -299,6 +299,37 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     return Response.json({ installs: results ?? [] });
   }
 
+  // ── Connect with the license key ───────────────────────────────────────────
+  // Customers naturally paste their BRG- license key into the connect form.
+  // When the licensed site has pushed its auto-paired dashboard key, resolve
+  // the license to that connection — the site connects with zero further
+  // steps. Only the license owner (or platform staff) may resolve it.
+  if (path === "/api/me/resolve-license" && method === "POST") {
+    const body = await request.json<{ key?: string }>();
+    const key = String(body.key ?? "").trim();
+    if (!key.startsWith("BRG-")) return Response.json({ error: "not_a_license", message: "That is not a license key (BRG-…)." }, { status: 400 });
+    const license = await db
+      .prepare("SELECT id, owner_email, status, site_connection FROM licenses WHERE key = ?")
+      .bind(key)
+      .first<{ id: string; owner_email: string; status: string; site_connection: string }>();
+    if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
+    const staff = user.role === "owner" || user.role === "admin";
+    if (license.owner_email !== user.email && !staff) {
+      return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
+    }
+    if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
+    if (!license.site_connection || !env.SECRET_ENCRYPTION_KEY) {
+      return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
+    }
+    try {
+      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
+      return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY) });
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
+    }
+  }
+
   // ── Auto-paired sites from license activations ─────────────────────────────
   // The plugin pushes its dashboard key at activation/validate; the license
   // owner's dashboard picks the connection up here with zero manual steps.
@@ -353,13 +384,39 @@ async function paidUnlock(db: D1Database, user: User): Promise<{ unlocked: boole
 async function connectSite(request: Request, env: Env, user: User, orgId: string): Promise<Response> {
   if (!env.SECRET_ENCRYPTION_KEY) return Response.json({ error: "not_configured", message: "SECRET_ENCRYPTION_KEY is not set on the deployment." }, { status: 503 });
   const body = await request.json<{ url?: string; name?: string; key_id?: string; secret?: string }>();
-  const url = normalizeSiteUrl(String(body.url ?? ""));
-  const keyId = String(body.key_id ?? "").trim();
-  const secret = String(body.secret ?? "").trim();
+  let url = String(body.url ?? "");
+  let keyId = String(body.key_id ?? "").trim();
+  let secret = String(body.secret ?? "").trim();
   const name = String(body.name ?? "").trim();
+
+  // A BRG- license key resolves to the licensed site's auto-paired key —
+  // customers paste the one code they have.
+  if (keyId.startsWith("BRG-")) {
+    const license = await env.DB.prepare("SELECT owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ owner_email: string; status: string; site_connection: string }>();
+    const staff = user.role === "owner" || user.role === "admin";
+    if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
+    if (license.owner_email !== user.email && !staff) {
+      return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
+    }
+    if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
+    if (!license.site_connection) {
+      return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
+    }
+    try {
+      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
+      url = parsed.site_url;
+      keyId = parsed.key_id;
+      secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
+    }
+  }
+
+  const normalized = normalizeSiteUrl(url);
   if (!keyId || !secret) return Response.json({ error: "missing_key", message: "A key ID and secret from the site's WP Admin are required." }, { status: 400 });
 
-  const probe = await callSite(url, keyId, secret, "GET", "site-info");
+  const probe = await callSite(normalized, keyId, secret, "GET", "site-info");
   if (!probe.ok) {
     return Response.json(
       { error: "connect_failed", message: probe.error?.message ?? "The site did not accept the key. Check the key ID and secret." },
@@ -379,8 +436,8 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
     .bind(
       id,
       orgId,
-      url,
-      name || info?.site?.name || new URL(url).hostname,
+      normalized,
+      name || info?.site?.name || new URL(normalized).hostname,
       String(info?.wordpress?.version ?? ""),
       String(info?.php?.version ?? ""),
       keyId,
@@ -390,7 +447,7 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
       new Date().toISOString()
     )
     .run();
-  await audit(env.DB, user.email, "site.connect", url);
+  await audit(env.DB, user.email, "site.connect", normalized);
   return Response.json({ ok: true, id, site: { name: info?.site?.name ?? "", wp_version: info?.wordpress?.version ?? "", scopes: info?.bridge?.scopes ?? [] } });
 }
 

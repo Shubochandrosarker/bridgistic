@@ -17,11 +17,41 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
   const [keyErr, setKeyErr] = useState<string | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setErr(null); setUrlErr(null); setKeyErr(null);
-    if (!f.keyId.trim().startsWith("wpk_")) { setKeyErr("A key ID starts with wpk_ — mint one in WP Admin → Bridgistic → Keys (your email is not the key)."); return; }
+    // A BRG- license key resolves to the licensed site's auto-paired key:
+    // the customer pastes the one code they actually have.
+    const pasted = f.keyId.trim();
+    if (pasted.startsWith("BRG-")) {
+      setStep("testing");
+      try {
+        const res = await fetch("https://admin.bridgistic.app/api/me/resolve-license", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: pasted }),
+        });
+        const body = (await res.json().catch(() => null)) as { site_url?: string; key_id?: string; secret?: string; message?: string } | null;
+        if (!res.ok || !body?.site_url || !body?.key_id) {
+          setKeyErr(body?.message ?? "This license key did not resolve to a site. Make sure the license is active and the plugin (1.5.7+) has pushed its key — Premium Features → Check now.");
+          setStep("form");
+          return;
+        }
+        const conn = { siteUrl: body.site_url, keyId: body.key_id, secret: body.secret!, id: "test", alias: f.alias.trim() || new URL(body.site_url).host };
+        await new BridgeClient(conn).siteInfo();
+        addSite({ alias: conn.alias, siteUrl: conn.siteUrl, keyId: conn.keyId, secret: conn.secret });
+        setStep("ok"); setTimeout(() => onDone?.(), 700);
+      } catch (x) {
+        setErr(x instanceof ApiError ? x : new ApiError(String(x), "server"));
+        setStep("form");
+      }
+      return;
+    }
+    if (!pasted.startsWith("wpk_")) { setKeyErr("Paste a key ID (wpk_…) or your license key (BRG-…) and we connect the licensed site for you."); return; }
+    if (!f.siteUrl.trim()) { setUrlErr("The site URL is required with a wpk_ key."); return; }
+    if (!f.secret.trim()) { setKeyErr("The key secret is required with a wpk_ key. It is shown once in WP Admin → Bridgistic → Keys."); return; }
     let siteUrl: string;
     try { siteUrl = normalizeSiteUrl(f.siteUrl); } catch (x) { setUrlErr(x instanceof Error ? x.message : "Invalid URL"); return; }
     setStep("testing");
-    const conn = { siteUrl, keyId: f.keyId.trim(), secret: f.secret.trim(), id: "test", alias: f.alias.trim() || new URL(siteUrl).host };
+    const conn = { siteUrl, keyId: pasted, secret: f.secret.trim(), id: "test", alias: f.alias.trim() || new URL(siteUrl).host };
     try {
       await new BridgeClient(conn).siteInfo();
       addSite({ alias: conn.alias, siteUrl, keyId: conn.keyId, secret: conn.secret });
@@ -32,14 +62,14 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
   return (
     <form onSubmit={submit} className="space-y-4" aria-describedby="connect-help">
       <ol id="connect-help" className="grid gap-2 text-sm text-navy/70 sm:grid-cols-3">
-        {["Install and activate the Bridgistic plugin (1.5.3 or later).", "In WP Admin → Bridgistic → Keys, mint a key with the scopes you want.", "Paste the site URL, key ID and secret below. The secret is shown once in WP Admin."].map((t, i) => (
+        {["Have a license (BRG-…)? Paste it as the Key ID below — the licensed site connects itself.", "No license? In WP Admin → Bridgistic → Keys, mint a key (wpk_…) and paste it with its secret.", "Everything is verified against the live site before it is saved."].map((t, i) => (
           <li key={i} className="rounded-xl bg-ivory p-3"><span className="mb-1 block text-xs font-semibold text-gold">Step {i + 1}</span>{t}</li>))}
       </ol>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label><span className="label">Site URL</span><input required className="input" value={f.siteUrl} onChange={set("siteUrl")} placeholder="https://example.com" inputMode="url" aria-invalid={!!urlErr} />{urlErr && <span className="mt-1 block text-xs text-red-800">{urlErr}</span>}</label>
+        <label><span className="label">Site URL</span><input className="input" value={f.siteUrl} onChange={set("siteUrl")} placeholder="https://example.com (not needed with a license key)" inputMode="url" aria-invalid={!!urlErr} />{urlErr && <span className="mt-1 block text-xs text-red-800">{urlErr}</span>}</label>
         <label><span className="label">Name (optional)</span><input className="input" value={f.alias} onChange={set("alias")} placeholder="Client store" /></label>
-        <label><span className="label">Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} placeholder="wpk_…" autoComplete="off" aria-invalid={!!keyErr} /><span className="mt-1 block text-xs text-navy/50">Starts with <code>wpk_</code> — mint one in WP Admin → Bridgistic → Keys. Your email is not the key.</span>{keyErr && <span className="mt-1 block text-xs text-red-800">{keyErr}</span>}</label>
-        <label><span className="label">Key secret</span><input required type="password" className="input font-mono" value={f.secret} onChange={set("secret")} placeholder="wps_…" autoComplete="off" /></label>
+        <label><span className="label">License key or Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} placeholder="BRG-LTD-… (license) or wpk_… (key)" autoComplete="off" aria-invalid={!!keyErr} />{keyErr && <span className="mt-1 block text-xs text-red-800">{keyErr}</span>}</label>
+        <label><span className="label">Key secret <span className="font-normal text-navy/40">(leave empty with a license key)</span></span><input type="password" className="input font-mono" value={f.secret} onChange={set("secret")} placeholder="wps_…" autoComplete="off" /></label>
       </div>
       {err && <div className="rounded-xl ring-1 ring-red-800/20"><ErrorState error={err} /></div>}
       <div className="flex items-center gap-3">

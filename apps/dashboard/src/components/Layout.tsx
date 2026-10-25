@@ -1,8 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, UserRound, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { loadAccount, refreshAccount, signOutAccount, type Account } from "../lib/account.ts";
 import { useStore } from "../lib/store.tsx";
 import { NAV } from "./nav.ts";
 
@@ -24,21 +23,9 @@ export function DemoBanner() {
 }
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { signOut, mode } = useStore();
-  const [account, setAccount] = useState<Account | null>(loadAccount);
-  useEffect(() => {
-    let live = true;
-    void refreshAccount().then((a) => {
-      if (live) setAccount(a);
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { signOut, mode, account } = useStore();
   const handleSignOut = () => {
-    if (account) void signOutAccount();
-    setAccount(null);
-    signOut();
+    void signOut();
   };
   return (
     <nav aria-label="Main" className="flex h-full flex-col gap-6 overflow-y-auto bg-navy px-4 py-6 text-ivory">

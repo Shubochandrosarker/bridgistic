@@ -148,15 +148,14 @@ export function Sites() {
         <div className="space-y-4">
           <ErrorNote error={error} />
           <ol className="list-inside list-decimal space-y-1 rounded-lg bg-navy/[0.04] p-3 text-xs text-navy/70">
-            <li>In the site's WP Admin open <b>Bridgistic → Keys</b> and mint a scoped key.</li>
-            <li>Start with Read-only; widen scopes when you trust the workflow.</li>
-            <li>Paste the key ID and secret here — the secret is encrypted at rest.</li>
+            <li><b>Have a license (BRG-…)?</b> Paste it as the Key ID below — the licensed site connects itself, no secret needed.</li>
+            <li>No license? In WP Admin open <b>Bridgistic → Keys</b>, mint a scoped key (starts wpk_) and paste the key ID and secret here.</li>
           </ol>
-          <Field label="Site URL"><input className={inputClass} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" /></Field>
+          <Field label="Site URL" hint="Not needed with a license key."><input className={inputClass} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" /></Field>
           <Field label="Display name"><input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="My blog" /></Field>
-          <Field label="Key ID"><input className={inputClass} value={keyId} onChange={(e) => setKeyId(e.target.value)} placeholder="brg_…" /></Field>
-          <Field label="Key secret"><input className={inputClass} type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Shown once when the key was minted" /></Field>
-          <Btn onClick={connect} disabled={busy || !url || !keyId || !secret}>{busy ? "Verifying with the site…" : "Verify & connect"}</Btn>
+          <Field label="License key or Key ID"><input className={inputClass} value={keyId} onChange={(e) => setKeyId(e.target.value)} placeholder="BRG-LTD-… (license) or wpk_… (key)" /></Field>
+          <Field label="Key secret" hint="Leave empty with a license key."><input className={inputClass} type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Shown once when the key was minted" /></Field>
+          <Btn onClick={connect} disabled={busy || !keyId || (keyId.trim().startsWith("BRG-") ? false : !url || !secret)}>{busy ? "Verifying with the site…" : "Verify & connect"}</Btn>
         </div>
       </Modal>
       <Modal open={Boolean(confirmId)} onClose={() => setConfirmId(null)} title="Disconnect this site?">
