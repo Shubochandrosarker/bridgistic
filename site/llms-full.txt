@@ -12,7 +12,7 @@ Give AI a safe control plane for WordPress. Connect Claude, ChatGPT, Codex, Gemi
 Bridgistic connects MCP clients to WordPress without handing over a WordPress administrator password. A site owner mints a scoped key. Requests are HMAC-signed. Writes can require human approval. Destructive operations can be snapshotted and restored. The local connection is the recommended default. Bridgistic Cloud is a public beta and has not completed an independent third-party security review.
 
 ## Pricing
-Free is $0. The Lifetime Deal welcome offer is $49 once for 1 license · 1 site, available until 31 December 2026 or 100 licenses, whichever comes first. Pro Monthly is $12 USD per month for 1 license · 5 sites. Pro Yearly is $99 USD per year for 1 license · 5 sites. Paddle is the merchant of record. Every purchase has a 7-day refund guarantee.
+Free is $0. The Lifetime Deal welcome offer is $49 once for 1 license · 1 site, available until 31 December 2026 or 100 licenses, whichever comes first. Pro Monthly is $12 USD per month for 1 license · 3 sites. Pro Yearly is $99 USD per year for 1 license · 3 sites. Paddle is the merchant of record. Every purchase has a 7-day refund guarantee.
 
 ## Bridgistic: Safe AI Control for WordPress via MCP
 URL: https://bridgistic.app/

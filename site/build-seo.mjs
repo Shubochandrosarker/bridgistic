@@ -214,8 +214,8 @@ ${SECTIONS.map(([id, label]) => `- [${label}](${ORIGIN}/#${id})`).join("\n")}
 ## Pricing (as published)
 - Free: $0. Local MCP bridge, GPL-2.0-or-later.
 - Pro Lifetime Deal, while the welcome offer is open: $49 once, 1 license · 1 site, through 31 December 2026 or 100 licenses, whichever comes first.
-- Pro Monthly: $12 USD per month, 1 license · 5 sites.
-- Pro Yearly: $99 USD per year, 1 license · 5 sites.
+- Pro Monthly: $12 USD per month, 1 license · 3 sites.
+- Pro Yearly: $99 USD per year, 1 license · 3 sites.
 - Every purchase has a 7-day refund guarantee. Taxes are calculated by Paddle at checkout.
 
 ## Optional
@@ -241,7 +241,7 @@ ${home.h1} ${home.description}
 Bridgistic connects MCP clients to WordPress without handing over a WordPress administrator password. A site owner mints a scoped key. Requests are HMAC-signed. Writes can require human approval. Destructive operations can be snapshotted and restored. The local connection is the recommended default. Bridgistic Cloud is a public beta and has not completed an independent third-party security review.
 
 ## Pricing
-Free is $0. The Lifetime Deal welcome offer is $49 once for 1 license · 1 site, available until 31 December 2026 or 100 licenses, whichever comes first. Pro Monthly is $12 USD per month for 1 license · 5 sites. Pro Yearly is $99 USD per year for 1 license · 5 sites. Paddle is the merchant of record. Every purchase has a 7-day refund guarantee.
+Free is $0. The Lifetime Deal welcome offer is $49 once for 1 license · 1 site, available until 31 December 2026 or 100 licenses, whichever comes first. Pro Monthly is $12 USD per month for 1 license · 3 sites. Pro Yearly is $99 USD per year for 1 license · 3 sites. Paddle is the merchant of record. Every purchase has a 7-day refund guarantee.
 
 ${pages.map((p) => `## ${p.title}
 URL: ${p.loc}
