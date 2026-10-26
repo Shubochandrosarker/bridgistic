@@ -126,6 +126,17 @@ export async function proxyActivate(env: SitesEnv, body: Record<string, unknown>
   return passthrough(r);
 }
 
+/**
+ * api.wpistic.com answers a deactivated/revoked token with
+ * 401 {error:{code:"unauthorized",message:"Activation token has been revoked"}}.
+ * Only that exact case counts as gone; any other 401 (bad signature, bad key) does not.
+ */
+export function isRevokedToken(status: number, json: unknown): boolean {
+  if (status !== 401 || !json || typeof json !== "object") return false;
+  const err = (json as { error?: { code?: unknown; message?: unknown } }).error;
+  return !!err && err.code === "unauthorized" && typeof err.message === "string" && /activation token has been revoked/i.test(err.message);
+}
+
 export async function proxyValidate(env: SitesEnv, body: Record<string, unknown>, fetchImpl: Fetch = fetch): Promise<Response> {
   const r = await forward(env, "validate", body, null, fetchImpl);
   const token = String(body.activation_token ?? "");
@@ -139,7 +150,7 @@ export async function proxyValidate(env: SitesEnv, body: Record<string, unknown>
         siteUrl: String(body.site_url ?? ""), domain: String(act.domain ?? body.domain ?? ""),
         status, dashboardKey: body.dashboard_key as DashboardKey | undefined,
       });
-    } else if (r.status === 404 || (r.status >= 200 && r.status < 300 && r.json && r.json.activation === null)) {
+    } else if (r.status === 404 || isRevokedToken(r.status, r.json) || (r.status >= 200 && r.status < 300 && r.json && r.json.activation === null)) {
       // Activation gone or suspended upstream: drop the pairing.
       await deletePairingByTokenHash(env.DB, tokenHash);
     }

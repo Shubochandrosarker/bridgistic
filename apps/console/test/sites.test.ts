@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { makeD1 } from "./d1.ts";
-import { proxyActivate, proxyValidate, proxyDeactivate, listMySites, claimLicense, resolveOwnedSite, sha256Hex, siteStatus, type SitesEnv } from "../functions/lib/sites.ts";
+import { isRevokedToken, proxyActivate, proxyValidate, proxyDeactivate, listMySites, claimLicense, resolveOwnedSite, sha256Hex, siteStatus, type SitesEnv } from "../functions/lib/sites.ts";
 import { activateLicense, deactivateLicense } from "../functions/lib/licenses.ts";
 
 const ENC = "a".repeat(64);
@@ -12,9 +12,11 @@ function fakeWpistic() {
   const licenses: any[] = [
     { id: "lic-paddle", key_hash: "", key_mask: "WPI-…ABCD", product: "bridgistic", plan: "pro", status: "active", effective_status: "active", max_activations: 3, expires_at: "2099-01-01T00:00:00Z", owner_email: "paddle-buyer@other.com", activations: [] as any[] },
   ];
+  const mode = { validate401: null as null | { code: string; message: string } };
   const fetchImpl = (async (url: string, init: any) => {
     const body = JSON.parse(init.body);
     calls.push({ url, body, headers: init.headers });
+    if (url.endsWith("/validate") && mode.validate401) return new Response(JSON.stringify({ error: { ...mode.validate401, correlation_id: "c1" } }), { status: 401 });
     if (url.endsWith("/activate")) {
       licenses[0].activations.push({ id: `act-${licenses[0].activations.length + 1}`, domain: body.domain, site_url: body.site_url, environment: "production", status: "active", last_seen_at: null, deactivated_at: null });
       const act = licenses[0].activations.at(-1);
@@ -37,7 +39,7 @@ function fakeWpistic() {
     }
     return new Response("{}", { status: 404 });
   }) as unknown as typeof fetch;
-  return { calls, licenses, fetchImpl };
+  return { calls, licenses, fetchImpl, mode };
 }
 
 let env: SitesEnv;
@@ -77,6 +79,36 @@ describe("plugin proxy to api.wpistic.com", () => {
     const res = await proxyValidate(env, { activation_token: "tok-act-1" }, wp.fetchImpl);
     expect(res.status).toBe(404);
     expect(await env.DB.prepare("SELECT id FROM site_connections").first()).toBeNull();
+  });
+});
+
+describe("revoked token (401) handling", () => {
+  it("validate 401 'Activation token has been revoked' drops the pairing like a 404, body passed through", async () => {
+    await proxyActivate(env, activateBody("a.test"), null, wp.fetchImpl);
+    wp.mode.validate401 = { code: "unauthorized", message: "Activation token has been revoked" };
+    const res = await proxyValidate(env, { activation_token: "tok-act-1" }, wp.fetchImpl);
+    expect(res.status).toBe(401);
+    expect(JSON.parse(await res.text()).error.message).toBe("Activation token has been revoked");
+    expect(await env.DB.prepare("SELECT id FROM site_connections").first()).toBeNull();
+  });
+
+  it("other 401s (bad signature, invalid token) keep the pairing", async () => {
+    await proxyActivate(env, activateBody("a.test"), null, wp.fetchImpl);
+    for (const e of [{ code: "unauthorized", message: "Invalid signature" }, { code: "unauthorized", message: "Invalid activation token" }, { code: "invalid_signature", message: "Activation token has been revoked" }]) {
+      wp.mode.validate401 = e;
+      const res = await proxyValidate(env, { activation_token: "tok-act-1" }, wp.fetchImpl);
+      expect(res.status).toBe(401);
+      expect((await env.DB.prepare("SELECT id FROM site_connections").first<any>())?.id).toBe("act-1");
+    }
+  });
+
+  it("isRevokedToken only matches 401 + unauthorized + revoked message", () => {
+    const rev = { error: { code: "unauthorized", message: "Activation token has been revoked" } };
+    expect(isRevokedToken(401, rev)).toBe(true);
+    expect(isRevokedToken(403, rev)).toBe(false);
+    expect(isRevokedToken(401, { error: { code: "unauthorized", message: "Missing signature" } })).toBe(false);
+    expect(isRevokedToken(401, null)).toBe(false);
+    expect(isRevokedToken(401, "revoked")).toBe(false);
   });
 });
 
