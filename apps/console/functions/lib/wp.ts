@@ -43,6 +43,24 @@ export function sitePath(route: string): string {
   return `/wp-json/bridgistic/v1/${route.replace(/^\/+/, "")}`;
 }
 
+/**
+ * The path the plugin's HmacVerifier actually checks.
+ *
+ * WordPress's WP_REST_Request::get_route() returns the namespace-prefixed
+ * route WITHOUT the /wp-json REST base and WITHOUT the query string. The
+ * plugin signs that exact string (tests/suite-hmac.php pins the vector
+ * "POST\n/bridgistic/v1/posts\n..."). Signing sitePath() instead — which
+ * includes /wp-json and any cache-buster query — makes every relay call fail
+ * "Invalid request signature", which the dashboard reports as a bad key or
+ * secret. The request URL still needs /wp-json in front; only the signature
+ * covers the route.
+ */
+export function signedSitePath(route: string): string {
+  const clean = route.replace(/^\/+/, "");
+  const withoutQuery = clean.split("?")[0] ?? "";
+  return `/bridgistic/v1/${withoutQuery}`;
+}
+
 async function sha256Hex(input: string): Promise<string> {
   return toHex(await crypto.subtle.digest("SHA-256", encoder.encode(input)));
 }
@@ -88,8 +106,9 @@ export async function callSite(
 ): Promise<SiteCallResult> {
   const origin = normalizeSiteUrl(siteUrl);
   const path = sitePath(route);
+  const signedPath = signedSitePath(route);
   const bodyText = body === undefined ? "" : JSON.stringify(body);
-  const headers = await signedHeaders(method, path, bodyText, keyId, secret);
+  const headers = await signedHeaders(method, signedPath, bodyText, keyId, secret);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20_000);
   let response: Response;
