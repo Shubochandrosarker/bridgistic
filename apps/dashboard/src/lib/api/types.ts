@@ -31,7 +31,21 @@ export interface LicenseStatus {
   domain: string | null;
   entitlements: Record<string, unknown>;
 }
-/** A connected site as the dashboard stores it. The secret never leaves this browser session. */
-export interface SiteConnection { id: string; alias: string; siteUrl: string; keyId: string; secret: string }
+/** Per-site status from the license server (api.wpistic.com via /api/me/sites). */
+export type PairedSiteStatus = "activated" | "deactivated" | "expired" | "suspended";
+/**
+ * A connected site as the dashboard stores it.
+ * Manual sites: the secret the user typed, held only in this browser session.
+ * Paired sites (pairedSiteId set): no secret in the browser; the console relay
+ * calls the site by id and decrypts its key server-side.
+ */
+export interface SiteConnection {
+  id: string; alias: string; siteUrl: string; keyId: string; secret: string;
+  pairedSiteId?: string;
+  status?: PairedSiteStatus;
+  plan?: string;
+  licenseMask?: string;
+  lastValidatedAt?: string | null;
+}
 
 export type Row = Record<string, unknown>;

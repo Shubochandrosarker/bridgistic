@@ -19,6 +19,26 @@ export class BridgeClient implements BridgisticClient {
     // server-side. Falls back to the direct browser call when the relay is
     // unreachable. The key stays in this browser either way — the relay does
     // not store it.
+    // Paired sites (from license activations) are called by id: the relay
+    // checks the session owns the site and uses the stored key server-side.
+    // There is no direct fallback for them — the browser never holds the key.
+    if (this.conn.pairedSiteId) {
+      let res: Response;
+      try {
+        res = await this.fetchImpl(RELAY_URL, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ site_id: this.conn.pairedSiteId, method, path: route, body }),
+        });
+      } catch (e) {
+        throw new ApiError(e instanceof Error ? e.message : "Request failed", "network");
+      }
+      const relayed = (await res.json().catch(() => null)) as { ok?: boolean; data?: unknown; error?: { code?: string; message?: string } | string; message?: string } | null;
+      if (relayed?.ok) return relayed.data as T;
+      const err = typeof relayed?.error === "object" ? relayed.error : { code: relayed?.error, message: relayed?.message };
+      throw new ApiError(err?.message ?? "The site refused the call.", classify(res.status, err?.code), res.status);
+    }
     try {
       const res = await this.fetchImpl(RELAY_URL, {
         method: "POST",

@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout.tsx";
-import { BridgeClient } from "./lib/api/bridge.ts";
+import { usePairedSitesSync } from "./lib/sites-sync.ts";
 import { useStore } from "./lib/store.tsx";
 import { Approvals } from "./pages/Approvals.tsx";
 import { Audit } from "./pages/Audit.tsx";
@@ -16,40 +15,11 @@ import { Snapshots } from "./pages/Snapshots.tsx";
 import { Usage } from "./pages/Usage.tsx";
 
 export function App() {
-  const { mode, sites, account, addSite } = useStore();
+  const { mode, sites, account, syncPairedSites } = useStore();
 
   // Auto-pairing: the plugin pushes its dashboard key to the license server at
   // activation, and licensed sites appear here with zero manual steps.
-  useEffect(() => {
-    if (!account) return;
-    let live = true;
-    void (async () => {
-      try {
-        const res = await fetch("https://admin.bridgistic.app/api/me/site-connections", { credentials: "include" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { connections?: { site_url: string; key_id: string; secret: string }[] };
-        for (const c of data.connections ?? []) {
-          if (!live) return;
-          const existing = JSON.parse(sessionStorage.getItem("bridgistic.sites.v1") ?? "[]") as { siteUrl?: string }[];
-          if (existing.some((s) => s.siteUrl === c.site_url)) continue;
-          const conn = { id: "pair-test", alias: new URL(c.site_url).host, siteUrl: c.site_url, keyId: c.key_id, secret: c.secret };
-          try {
-            await new BridgeClient(conn).siteInfo();
-          } catch {
-            continue; // site offline or key rotated — skip instead of blocking
-          }
-          if (!live) return;
-          addSite({ alias: conn.alias, siteUrl: c.site_url, keyId: c.key_id, secret: c.secret });
-        }
-      } catch {
-        // console unreachable — the manual connect flow still works
-      }
-    })();
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account?.email]);
+  usePairedSitesSync(account !== null && mode !== "demo", syncPairedSites);
 
   const signedIn = account !== null || mode === "demo" || sites.length > 0;
   return (

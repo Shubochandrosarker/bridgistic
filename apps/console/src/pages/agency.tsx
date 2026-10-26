@@ -101,12 +101,12 @@ export function AgencyDeals() {
         <Card className="p-5">
           <Badge tone="neutral">Monthly</Badge>
           <div className="mt-2 text-2xl font-bold text-navy">$12<span className="text-sm font-normal">/mo</span></div>
-          <p className="text-sm text-navy/60">1 license · 5 sites · after the welcome offer</p>
+          <p className="text-sm text-navy/60">1 license · 3 sites · after the welcome offer</p>
         </Card>
         <Card className="p-5">
           <Badge tone="neutral">Yearly</Badge>
           <div className="mt-2 text-2xl font-bold text-navy">$99<span className="text-sm font-normal">/yr</span></div>
-          <p className="text-sm text-navy/60">1 license · 5 sites · after the welcome offer</p>
+          <p className="text-sm text-navy/60">1 license · 3 sites · after the welcome offer</p>
         </Card>
       </div>
       <Card className="mt-4 p-4 text-xs text-navy/50">
