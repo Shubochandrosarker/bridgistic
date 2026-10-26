@@ -85,10 +85,18 @@ export async function signUp(email: string, password: string, name: string): Pro
 }
 
 export async function signOutAccount(): Promise<void> {
+  // Bound the round-trip. A stalled request used to leave this promise pending
+  // forever, so the caller's hard navigation to /sign-in never ran and the
+  // dashboard stayed on screen. With a timeout the call always settles, local
+  // state clears, and the redirect happens even when the network hangs.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
   try {
-    await fetch(`${CONSOLE_API}/api/auth/signout`, { method: "POST", credentials: "include" });
+    await fetch(`${CONSOLE_API}/api/auth/signout`, { method: "POST", credentials: "include", signal: controller.signal });
   } catch {
     // Local display state clears regardless; the session expires on its own.
+  } finally {
+    clearTimeout(timer);
   }
   saveAccount(null);
 }
