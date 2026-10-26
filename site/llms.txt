@@ -25,9 +25,9 @@ Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 120
 
 ## Pricing (as published)
 - Free: $0. Local MCP bridge, GPL-2.0-or-later.
-- Pro Lifetime Deal, while the welcome offer is open: $49 once, 1 license · 1 site, through 31 December 2026 or 100 licenses, whichever comes first.
-- Pro Monthly: $12 USD per month, 1 license · 5 sites.
-- Pro Yearly: $99 USD per year, 1 license · 5 sites.
+- Pro Lifetime Deal, while the welcome offer is open: $49.99 once, 1 license · 1 site, through 31 December 2026 or 100 licenses, whichever comes first.
+- Pro Monthly: $12 USD per month, 1 license · 3 sites.
+- Pro Yearly: $99 USD per year, 1 license · 3 sites.
 - Every purchase has a 7-day refund guarantee. Taxes are calculated by Paddle at checkout.
 
 ## Optional

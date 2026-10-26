@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: GET /api/offer-status
 //
-// Reports whether the $49 Lifetime Deal welcome offer is still open.
+// Reports whether the $49.99 Lifetime Deal welcome offer is still open.
 // Terms (set by Shuvo): open until 31 Dec 2026 23:59:59 Asia/Dhaka (UTC+6,
 // assumed) and capped at 100 licenses. The sold count is read server-side from
 // Paddle with a READ-ONLY API key (permission: transaction.read only). The key
