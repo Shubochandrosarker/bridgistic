@@ -13,6 +13,7 @@
  * the verification_key issued once at activation; the raw key is never stored.
  */
 
+import { upsertPairing, deletePairing } from "./sites.ts";
 import { randomHex, signLicenseResponse, encryptSecret } from "./crypto.ts";
 import { syncLog } from "./auth.ts";
 
@@ -50,22 +51,12 @@ export function maskEmail(email: string): string {
 
 /**
  * The plugin pairs its dashboard key at activation: the console stores it
- * encrypted so the license owner's dashboard connects the site with zero
- * manual steps. Same trust model as org-connected sites (AES-GCM at rest).
+ * encrypted, one row per activation (site_connections, migration 0002), so the
+ * owner's dashboard lists every site. Replaces the single licenses.site_connection slot.
+ * Legacy (console-issued BRG-) keys only; api.wpistic.com keys go through sites.ts.
  */
-async function storeConnection(db: D1Database, licenseId: string, siteUrl: string, dk: { key_id?: unknown; secret?: unknown } | undefined, encryptionKey: string | undefined): Promise<void> {
-  const keyId = String(dk?.key_id ?? "").trim();
-  const secret = String(dk?.secret ?? "").trim();
-  if (!encryptionKey || !keyId || !secret) return;
-  const normalized = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
-  let host = normalized;
-  try {
-    host = new URL(normalized).origin;
-  } catch {
-    // keep raw
-  }
-  const payload = JSON.stringify({ site_url: host, key_id: keyId, secret_enc: await encryptSecret(secret, encryptionKey), updated_at: new Date().toISOString() });
-  await db.prepare("UPDATE licenses SET site_connection = ? WHERE id = ?").bind(payload, licenseId).run();
+async function storeConnection(db: D1Database, licenseId: string, activationId: string, domain: string, siteUrl: string, dk: { key_id?: unknown; secret?: unknown } | undefined, encryptionKey: string | undefined): Promise<void> {
+  await upsertPairing({ DB: db, SECRET_ENCRYPTION_KEY: encryptionKey }, { id: `legacy:${activationId}`, source: "legacy", tokenHash: null, licenseRef: licenseId, siteUrl, domain, status: "active", dashboardKey: dk });
 }
 
 const BRIDGISTIC_ENTITLEMENTS: Record<string, unknown> = {
@@ -123,7 +114,9 @@ export async function activateLicense(env: LicenseEnv, input: ActivationInput): 
 
   let activationToken: string;
   let verificationKey: string;
+  let activationId: string;
   if (existing) {
+    activationId = existing.id;
     activationToken = existing.activation_token;
     verificationKey = existing.verification_key;
     await db.prepare("UPDATE activations SET last_validated_at = ? WHERE id = ?").bind(new Date().toISOString(), existing.id).run();
@@ -138,6 +131,7 @@ export async function activateLicense(env: LicenseEnv, input: ActivationInput): 
     }
     activationToken = randomHex(48);
     verificationKey = randomHex(32);
+    activationId = crypto.randomUUID();
     await db
       .prepare(
         `INSERT INTO activations (id, license_id, activation_token, verification_key, domain, environment,
@@ -145,7 +139,7 @@ export async function activateLicense(env: LicenseEnv, input: ActivationInput): 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        crypto.randomUUID(),
+        activationId,
         license.id,
         activationToken,
         verificationKey,
@@ -161,7 +155,7 @@ export async function activateLicense(env: LicenseEnv, input: ActivationInput): 
       .run();
   }
   await syncLog(db, "activate", maskKey(license.key), domain, `plan=${license.plan}`);
-  await storeConnection(db, license.id, String(input.site_url ?? input.home_url ?? `https://${domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
+  await storeConnection(db, license.id, activationId, domain, String(input.site_url ?? input.home_url ?? `https://${domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
 
   const body: Record<string, unknown> = {
     success: true,
@@ -234,7 +228,7 @@ export async function validateLicense(env: LicenseEnv, input: ValidateInput): Pr
   // A live site keeps its dashboard pairing fresh: every validate re-pushes
   // the key, so "Check now" in WP Admin heals a lost or rotated pairing.
   const activationRow = await db.prepare("SELECT site_url FROM activations WHERE id = ?").bind(activation.id).first<{ site_url: string }>();
-  await storeConnection(db, license.id, String(activationRow?.site_url ?? `https://${activation.domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
+  await storeConnection(db, license.id, activation.id, activation.domain, String(activationRow?.site_url ?? `https://${activation.domain}`), input.dashboard_key, env.SECRET_ENCRYPTION_KEY);
 
   const body: Record<string, unknown> = {
     success: true,
@@ -266,6 +260,7 @@ export async function deactivateLicense(db: D1Database, input: DeactivateInput):
   }>();
   if (activation) {
     await db.prepare("DELETE FROM activations WHERE id = ?").bind(activation.id).run();
+    await deletePairing(db, `legacy:${activation.id}`); // one pairing row per activation, gone with it
     const license = await db.prepare("SELECT * FROM licenses WHERE id = ?").bind(activation.license_id).first<LicenseRow>();
     await syncLog(db, "deactivate", maskKey(license?.key ?? ""), activation.domain, "released");
   }

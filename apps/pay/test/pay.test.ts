@@ -51,8 +51,8 @@ describe("pay.bridgistic.app", () => {
   });
   it("states the website allowance and refund guarantee", () => {
     expect((html.match(/>1 license · 1 site</g) || []).length).toBe(1);
-    expect((html.match(/>1 license · 5 sites</g) || []).length).toBe(2);
-    expect(text).toContain("Lifetime Deal: 1 license · 1 site. Monthly and Yearly: 1 license · 5 sites.");
+    expect((html.match(/>1 license · 3 sites</g) || []).length).toBe(2);
+    expect(text).toContain("Lifetime Deal: 1 license · 1 site. Monthly and Yearly: 1 license · 3 sites.");
     expect((text.match(/Coming soon/g) || []).length).toBe(12);
     expect(text).not.toContain("website connection");
     expect(text).toContain("7-day refund guarantee");

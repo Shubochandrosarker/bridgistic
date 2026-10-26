@@ -7,9 +7,15 @@ import { BridgeClient } from "../lib/api/bridge.ts";
 import { ApiError } from "../lib/api/errors.ts";
 import { Badge, Card, ComingSoonPanel, EmptyState, ErrorState, PageHeader } from "../components/ui.tsx";
 import { useStore } from "../lib/store.tsx";
+import { ACCOUNT_URL } from "../lib/config.ts";
+import { fetchPairedSites } from "../lib/sites-sync.ts";
+import type { PairedSiteStatus } from "../lib/api/types.ts";
+
+const STATUS_TONE: Record<PairedSiteStatus, "ok" | "pending" | "error"> = { activated: "ok", deactivated: "pending", expired: "error", suspended: "error" };
+const STATUS_LABEL: Record<PairedSiteStatus, string> = { activated: "license active", deactivated: "deactivated", expired: "license expired", suspended: "license suspended" };
 
 export function ConnectForm({ onDone }: { onDone?: () => void }) {
-  const { addSite } = useStore();
+  const { addSite, syncPairedSites } = useStore();
   const [f, setF] = useState({ alias: "", siteUrl: "", keyId: "", secret: "" });
   const [step, setStep] = useState<"form" | "testing" | "ok">("form");
   const [err, setErr] = useState<ApiError | null>(null);
@@ -17,27 +23,32 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
   const [keyErr, setKeyErr] = useState<string | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setErr(null); setUrlErr(null); setKeyErr(null);
-    // A BRG- license key resolves to the licensed site's auto-paired key:
-    // the customer pastes the one code they actually have.
+    // A license key (anything that is not a wpk_ bridge key) is claimed for
+    // this account — it may have been bought under another email — and every
+    // site activated with it appears from /api/me/sites. No secret comes back.
     const pasted = f.keyId.trim();
-    if (pasted.startsWith("BRG-")) {
+    if (pasted && !pasted.startsWith("wpk_")) {
       setStep("testing");
       try {
-        const res = await fetch("https://admin.bridgistic.app/api/me/resolve-license", {
+        const res = await fetch(`${ACCOUNT_URL}/api/me/claim-license`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key: pasted }),
         });
-        const body = (await res.json().catch(() => null)) as { site_url?: string; key_id?: string; secret?: string; message?: string } | null;
-        if (!res.ok || !body?.site_url || !body?.key_id) {
-          setKeyErr(body?.message ?? "This license key did not resolve to a site. Make sure the license is active and the plugin (1.5.7+) has pushed its key — Premium Features → Check now.");
+        const body = (await res.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+        if (!res.ok || !body?.ok) {
+          setKeyErr(body?.message ?? "This license key could not be added. Check the key and that you are signed in.");
           setStep("form");
           return;
         }
-        const conn = { siteUrl: body.site_url, keyId: body.key_id, secret: body.secret!, id: "test", alias: f.alias.trim() || new URL(body.site_url).host };
-        await new BridgeClient(conn).siteInfo();
-        addSite({ alias: conn.alias, siteUrl: conn.siteUrl, keyId: conn.keyId, secret: conn.secret });
+        const paired = await fetchPairedSites();
+        if (paired) syncPairedSites(paired);
+        if (!paired?.length) {
+          setKeyErr("License added. No site is activated with it yet — activate it in WP Admin → Bridgistic → Premium Features and it appears here automatically.");
+          setStep("form");
+          return;
+        }
         setStep("ok"); setTimeout(() => onDone?.(), 700);
       } catch (x) {
         setErr(x instanceof ApiError ? x : new ApiError(String(x), "server"));
@@ -97,9 +108,11 @@ export function Sites() {
             {sites.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center gap-3 py-3">
                 <Globe className="h-5 w-5 text-teal" aria-hidden />
-                <div className="min-w-0 flex-1"><p className="font-medium">{s.alias}</p><p className="truncate text-xs text-navy/55">{s.siteUrl} · key {s.keyId}</p></div>
+                <div className="min-w-0 flex-1"><p className="font-medium">{s.alias}</p><p className="truncate text-xs text-navy/55">{s.siteUrl}{s.pairedSiteId ? ` · ${s.plan ?? ""} ${s.licenseMask ?? ""}`.trimEnd() : ` · key ${s.keyId}`}{s.lastValidatedAt ? ` · checked ${new Date(s.lastValidatedAt).toLocaleString()}` : ""}</p></div>
+                {s.status && <Badge tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</Badge>}
+                {s.pairedSiteId && s.status === "activated" && !s.keyId && <Badge tone="pending">waiting for key — Check now in WP Admin</Badge>}
                 {s.id === activeId ? <Badge tone="ok">active</Badge> : <button className="btn-ghost" onClick={() => setActive(s.id)}>Make active</button>}
-                <button className="btn-danger" aria-label={`Disconnect ${s.alias}`} onClick={() => removeSite(s.id)}><Trash2 className="h-4 w-4" aria-hidden /></button>
+                {!s.pairedSiteId && <button className="btn-danger" aria-label={`Disconnect ${s.alias}`} onClick={() => removeSite(s.id)}><Trash2 className="h-4 w-4" aria-hidden /></button>}
               </li>))}
           </ul>)}
       </Card>
