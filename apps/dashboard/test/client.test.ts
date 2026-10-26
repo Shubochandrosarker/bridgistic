@@ -2,13 +2,27 @@ import { describe, expect, it } from "vitest";
 import { BridgeClient } from "../src/lib/api/bridge.ts";
 import { classify } from "../src/lib/api/errors.ts";
 import { firstArray } from "../src/lib/api/client.ts";
+import { RELAY_URL } from "../src/lib/config.ts";
 
 const conn = { id: "1", alias: "t", siteUrl: "https://example.com", keyId: "bk_test", secret: "s3cret" };
 
 describe("BridgeClient", () => {
-  it("signs requests against bridgistic/v1 and unwraps the {ok,data} envelope", async () => {
+  it("prefers the console relay and unwraps the relay envelope", async () => {
+    let relayed: Record<string, unknown> | null = null;
+    const fake = (async (url: string, init: RequestInit) => {
+      if (url !== RELAY_URL) throw new Error(`unexpected direct call: ${url}`);
+      relayed = JSON.parse(String(init.body)) as Record<string, unknown>;
+      return new Response(JSON.stringify({ ok: true, data: { snapshots: [{ snapshot_id: "a" }] } }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as unknown as typeof fetch;
+    const rows = await new BridgeClient(conn, fake).snapshots();
+    expect(rows).toEqual([{ snapshot_id: "a" }]);
+    expect(relayed).toMatchObject({ site_url: "https://example.com", key_id: "bk_test", secret: "s3cret", method: "GET", path: "snapshot" });
+  });
+
+  it("falls back to a signed direct request when the relay is unreachable", async () => {
     let seen: { url: string; headers: Record<string, string> } | null = null;
     const fake = (async (url: string, init: RequestInit) => {
+      if (url === RELAY_URL) throw new TypeError("relay unreachable");
       seen = { url, headers: init.headers as Record<string, string> };
       return new Response(JSON.stringify({ ok: true, data: { snapshots: [{ snapshot_id: "a" }] } }), { status: 200, headers: { "content-type": "application/json" } });
     }) as unknown as typeof fetch;

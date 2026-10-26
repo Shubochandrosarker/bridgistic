@@ -51,14 +51,20 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
 
   const startDemo = useCallback(() => { setMode("demo"); sessionStorage.setItem(MODE, "demo"); }, []);
   const signOut = useCallback(async () => {
-    await signOutAccount();
-    setAccount(null);
-    setMode(null);
-    sessionStorage.clear();
-    setSites([]);
-    setActiveId(null);
-    // Hard navigation guarantees no stale route state keeps the shell alive.
-    window.location.assign("/sign-in");
+    try {
+      await signOutAccount();
+    } finally {
+      // Even when the network call fails or times out, the local session must
+      // clear and the browser must leave the dashboard. This runs first in the
+      // finally block so a thrown error can never strand the user here.
+      setAccount(null);
+      setMode(null);
+      sessionStorage.clear();
+      setSites([]);
+      setActiveId(null);
+      // Hard navigation guarantees no stale route state keeps the shell alive.
+      window.location.assign("/sign-in");
+    }
   }, []);
   const addSite = useCallback((s: Omit<SiteConnection, "id">) => {
     const site = { ...s, id: crypto.randomUUID() };

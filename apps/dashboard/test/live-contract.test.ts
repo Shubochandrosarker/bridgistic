@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { BridgeClient } from "../src/lib/api/bridge.ts";
 import { classify } from "../src/lib/api/errors.ts";
+import { RELAY_URL } from "../src/lib/config.ts";
 
 const conn = { id: "1", alias: "t", siteUrl: "https://example.com", keyId: "bk_test", secret: "s3cret" };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-/** Records every call and answers from a route → response map (plugin 1.5.3 shapes). */
+/**
+ * Records direct calls and answers from a route → response map (plugin 1.5.3
+ * shapes). The console relay is treated as unreachable so these tests pin the
+ * signed direct contract; the relay path is covered in client.test.ts.
+ */
 function fakeSite(routes: Record<string, (init: RequestInit, url: string) => Response>) {
   const calls: { url: string; init: RequestInit }[] = [];
   const f = (async (url: string, init: RequestInit) => {
+    if (url === RELAY_URL) throw new TypeError("relay unreachable");
     calls.push({ url, init });
     const path = url.replace("https://example.com/wp-json/bridgistic/v1/", "");
     const key = Object.keys(routes).find((k) => path === k || path.startsWith(`${k}?`));
