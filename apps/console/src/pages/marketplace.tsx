@@ -65,7 +65,7 @@ function MarketHeader({ signedIn }: { signedIn: boolean }) {
           {signedIn ? (
             <a href="/installed" className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white hover:bg-white/15">My account</a>
           ) : (
-            <a href="/signin" className="rounded-full bg-[#C9A227] px-3.5 py-1.5 font-semibold text-[#05070D] hover:brightness-110">Sign in</a>
+            <a href="https://dashboard.bridgistic.app/sign-in" className="rounded-full bg-[#C9A227] px-3.5 py-1.5 font-semibold text-[#05070D] hover:brightness-110">Sign in</a>
           )}
         </nav>
       </div>
@@ -127,7 +127,7 @@ function Gate({ kind }: { kind: "signin" | "license" }) {
       </p>
       <div className="mt-4 flex justify-center gap-2">
         {kind === "signin" ? (
-          <a href="/signin"><Btn variant="gold" small>Sign in</Btn></a>
+          <a href="https://dashboard.bridgistic.app/sign-in"><Btn variant="gold" small>Sign in</Btn></a>
         ) : (
           <>
             <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $49.99</Btn></a>

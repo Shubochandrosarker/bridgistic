@@ -9,7 +9,11 @@
  *
  * Only FREE skills are served here (the CLI cannot authenticate). Pro skills
  * return 404 so the CLI reports "No skills found"; they stay behind the console.
- * Any other path under /<handle>/<slug>/ falls through to the SPA.
+ * Implemented as a root middleware that matches ONLY the well-known path
+ * pattern. (A `functions/[handle]/[slug]/[[rest]].ts` route took precedence
+ * over `functions/api/[[path]].ts` for /api/a/b/... and returned the SPA HTML,
+ * which emptied the marketplace list and hid the OAuth buttons — incident
+ * 2026-10-28.) Every other request goes straight to context.next().
  */
 import { gunzipSync } from "fflate";
 
@@ -26,12 +30,13 @@ function parseFiles(raw: string): SkillFile[] {
 
 const WELL_KNOWN = new Set(["agent-skills", "skills"]);
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const handle = String(context.params.handle ?? "");
-  const slug = String(context.params.slug ?? "");
-  const rest = (Array.isArray(context.params.rest) ? context.params.rest : [context.params.rest ?? ""]).map(String).filter(Boolean);
-
-  if (rest[0] !== ".well-known" || !WELL_KNOWN.has(rest[1] ?? "")) return context.next();
+export const onRequest: PagesFunction<Env> = async (context) => {
+  if (context.request.method !== "GET" && context.request.method !== "HEAD") return context.next();
+  const match = new URL(context.request.url).pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/(\.well-known\/.*)$/);
+  if (!match || match[1] === "api") return context.next();
+  const [, handle, slug, tail] = match;
+  const rest = tail.split("/").filter(Boolean).map(decodeURIComponent);
+  if (!WELL_KNOWN.has(rest[1] ?? "")) return context.next();
 
   const notFound = () => Response.json({ error: "not_found" }, { status: 404 });
   const item = await context.env.DB.prepare("SELECT slug, description, handle, tier, files FROM skills WHERE slug = ? AND handle = ?")
