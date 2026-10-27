@@ -58,7 +58,7 @@ Sections:
 
 ## Docs
 URL: https://bridgistic.app/docs
-Updated: 2026-10-26
+Updated: 2026-10-28
 Install Bridgistic, create a Read-only key, and connect Claude, Codex, Gemini or ChatGPT. WordPress 6.4+ and PHP 8.0+.
 
 Setup and configuration
@@ -116,7 +116,7 @@ Sections:
 
 ## Refund Policy
 URL: https://bridgistic.app/refund-policy
-Updated: 2026-10-26
+Updated: 2026-10-28
 Refunds for Bridgistic Pro monthly, yearly and Lifetime Deal purchases.
 
 Refund Policy
