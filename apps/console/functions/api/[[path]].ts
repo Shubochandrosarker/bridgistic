@@ -551,7 +551,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     const item = await db.prepare("SELECT slug, tier, installs, files, name, version, author FROM skills WHERE slug = ?").bind(seg[3]).first<{ slug: string; tier: string; installs: number; files: string; name: string; version: string; author: string }>();
     if (!item) return Response.json({ error: "not_found", message: "Skill not found." }, { status: 404 });
     const user = await requireUser(db, request);
-    if (item.tier === "paid" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
+    if (item.tier !== "free" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
       return Response.json({ error: "license_required", message: "This skill is part of Bridgistic Pro. Activate a license to install it." }, { status: 403 });
     }
     await db.prepare("UPDATE skills SET installs = installs + 1 WHERE slug = ?").bind(item.slug).run();
@@ -564,7 +564,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     if (!item) return Response.json({ error: "not_found", message: "Skill not found." }, { status: 404 });
     const user = await currentUser(db, request);
     if (!user) return Response.json({ error: "signin_required", message: "Create a free account to download." }, { status: 401 });
-    if (item.tier === "paid" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
+    if (item.tier !== "free" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
       return Response.json({ error: "license_required", message: "This pack is part of Bridgistic Pro." }, { status: 403 });
     }
     const files = parseFiles(item.files) as { path: string; text: string }[];
