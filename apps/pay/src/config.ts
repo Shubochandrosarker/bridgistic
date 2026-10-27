@@ -2,9 +2,9 @@ export type Plan = "lifetime" | "monthly" | "yearly";
 export interface PayConfig {
   token: string;
   env: "production" | "sandbox";
-  /** Lifetime Deal ($49.99 one time), the welcome offer. */
+  /** Lifetime Deal ($49.99 one time, all future updates, no deadline). */
   priceId: string;
-  /** Regular plans that apply after the welcome offer ends. */
+  /** Subscription plans offered alongside the Lifetime Deal. */
   prices: Record<Plan, string>;
   statusUrl: string;
 }
@@ -17,7 +17,7 @@ export const PADDLE_PRICES: Record<Plan, string> = {
 };
 
 /** Offer terms set by Shuvo. End time assumes Asia/Dhaka (UTC+6). */
-export const OFFER = { endsAt: "2026-12-31T23:59:59+06:00", cap: 100 } as const;
+export const OFFER = { endsAt: "9999-12-31T23:59:59Z", cap: Number.MAX_SAFE_INTEGER } as const; // no deadline, no cap (2026-10-28)
 
 const PRICE_RE = /^pri_[a-z0-9]{26}$/;
 const pick = (v: string | undefined, fallback: string) => (PRICE_RE.test((v ?? "").trim()) ? (v ?? "").trim() : fallback);
@@ -52,11 +52,9 @@ export function offerOpen(now: number, status?: { open?: unknown } | null): bool
   return !(status && status.open === false);
 }
 
-/** Only a number that came from the server-side Paddle count is ever shown. */
-export function remainingLabel(status?: { source?: unknown; remaining?: unknown } | null): string | null {
-  if (!status || status.source !== "paddle") return null;
-  const n = status.remaining;
-  return typeof n === "number" && Number.isInteger(n) && n > 0 && n <= OFFER.cap ? `${n} of ${OFFER.cap} licenses left` : null;
+/** No license count is shown: the Lifetime Deal has no cap (2026-10-28). */
+export function remainingLabel(_status?: { source?: unknown; remaining?: unknown } | null): string | null {
+  return null;
 }
 
 /**
