@@ -35,120 +35,181 @@
   <meta name="twitter:image:alt" content="Bridgistic — AI Control for WordPress" />
 
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "SoftwareApplication",
-        "@id": "https://bridgistic.app/#software",
-        "name": "Bridgistic",
-        "url": "https://bridgistic.app/",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "WordPress 6.4+, PHP 8.0+",
-        "softwareVersion": "__BRIDGISTIC_RELEASE_VERSION__",
-        "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
-        "description": "A secure MCP bridge that connects AI clients to WordPress using HMAC-signed requests, scoped keys, approvals, snapshots and audit logs.",
-        "offers": [
-          {
-            "@type": "Offer",
-            "name": "Bridgistic Free",
-            "price": "0",
-            "priceCurrency": "USD",
-            "availability": "https://schema.org/InStock"
-          },
-          {
-            "@type": "Offer",
-            "name": "Bridgistic Lifetime Deal",
-            "price": "49.99",
-            "priceCurrency": "USD",
-            "priceValidUntil": "2026-12-31",
-            "url": "https://pay.bridgistic.app/"
-          },
-          {
-            "@type": "Offer",
-            "name": "Bridgistic Pro Monthly",
-            "price": "12.00",
-            "priceCurrency": "USD",
-            "url": "https://bridgistic.app/#pricing"
-          },
-          {
-            "@type": "Offer",
-            "name": "Bridgistic Pro Yearly",
-            "price": "99.00",
-            "priceCurrency": "USD",
-            "url": "https://bridgistic.app/#pricing"
-          }
-        ],
-        "publisher": { "@id": "https://bridgistic.app/#organization" }
-      },
-      {
-        "@type": "Organization",
-        "@id": "https://bridgistic.app/#organization",
-        "name": "WordPressistic LLC",
-        "legalName": "WordPressistic LLC",
-        "alternateName": ["WPistic", "WordPressistic", "Bridgistic"],
-        "url": "https://wpistic.com/",
-        "logo": "https://bridgistic.app/assets/bridgistic-logo.png",
-        "email": "support@wpistic.com",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "1209 Mountain Road PL NE, STE N",
-          "addressLocality": "Albuquerque",
-          "addressRegion": "NM",
-          "postalCode": "87110",
-          "addressCountry": "US"
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://bridgistic.app/#software",
+      "name": "Bridgistic",
+      "url": "https://bridgistic.app/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "WordPress 6.4+, PHP 8.0+",
+      "softwareVersion": "__BRIDGISTIC_RELEASE_VERSION__",
+      "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+      "description": "A secure MCP bridge that connects AI clients to WordPress using HMAC-signed requests, scoped keys, approvals, snapshots and audit logs.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Bridgistic Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
         },
-        "sameAs": [
-          "https://github.com/Wordpressistic/bridgistic",
-          "https://wpistic.com/",
-          "https://wordpressistic.com/"
-        ]
-      },
-      {
-        "@type": "WebSite",
-        "@id": "https://bridgistic.app/#website",
-        "url": "https://bridgistic.app/",
-        "name": "Bridgistic",
-        "inLanguage": "en",
-        "publisher": { "@id": "https://bridgistic.app/#organization" }
-      },
-      {
-        "@type": "FAQPage",
-        "@id": "https://bridgistic.app/#faq",
-        "speakable": {
-          "@type": "SpeakableSpecification",
-          "cssSelector": [".faq", "#publisher"]
+        {
+          "@type": "Offer",
+          "name": "Bridgistic Lifetime Deal",
+          "price": "49.99",
+          "priceCurrency": "USD",
+          "url": "https://pay.bridgistic.app/",
+          "availability": "https://schema.org/InStock",
+          "description": "One payment of $49.99. 1 license, 1 site. All future updates included."
         },
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "What is Bridgistic?",
-            "acceptedAnswer": {"@type":"Answer","text":"Bridgistic is a WordPress plugin and MCP bridge that gives compatible AI clients controlled access to WordPress through signed, scoped and auditable requests."}
-          },
-          {
-            "@type": "Question",
-            "name": "Are unlimited schedules, advanced snapshots and audit export included today?",
-            "acceptedAnswer": {"@type":"Answer","text":"Without a license, the plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. A live license from the WPistic license server opens unlimited schedules, snapshot history past 50, and audit log export. The skills marketplace is live at https://marketplace.bridgistic.app/marketplace. The agency dashboard, team permissions and white-label are not in this release. Cloud Agent credits are a separate product."}
-          },
-          {
-            "@type": "Question",
-            "name": "Does Bridgistic require a WordPress administrator password?",
-            "acceptedAnswer": {"@type":"Answer","text":"No. Bridgistic uses its own scoped connection keys and HMAC-signed requests instead of sharing a WordPress administrator password with the AI client."}
-          },
-          {
-            "@type": "Question",
-            "name": "Can Bridgistic undo AI changes?",
-            "acceptedAnswer": {"@type":"Answer","text":"Risky writes can be previewed, held for human approval, snapshotted before execution and restored from snapshots when needed."}
-          },
-          {
-            "@type": "Question",
-            "name": "Is Bridgistic Cloud production ready?",
-            "acceptedAnswer": {"@type":"Answer","text":"Bridgistic Cloud is currently a public beta and has not yet completed an independent third-party security review. The local connection is the recommended default for supported local MCP clients."}
-          }
-        ]
+        {
+          "@type": "Offer",
+          "name": "Bridgistic Pro Monthly",
+          "price": "12.00",
+          "priceCurrency": "USD",
+          "url": "https://bridgistic.app/#pricing",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "Bridgistic Pro Yearly",
+          "price": "99.00",
+          "priceCurrency": "USD",
+          "url": "https://bridgistic.app/#pricing",
+          "availability": "https://schema.org/InStock"
+        }
+      ],
+      "publisher": {
+        "@id": "https://bridgistic.app/#organization"
       }
-    ]
-  }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://bridgistic.app/#organization",
+      "name": "WordPressistic LLC",
+      "legalName": "WordPressistic LLC",
+      "alternateName": [
+        "WPistic",
+        "WordPressistic",
+        "Bridgistic"
+      ],
+      "url": "https://wpistic.com/",
+      "logo": "https://bridgistic.app/assets/bridgistic-logo.png",
+      "email": "support@wpistic.com",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "1209 Mountain Road PL NE, STE N",
+        "addressLocality": "Albuquerque",
+        "addressRegion": "NM",
+        "postalCode": "87110",
+        "addressCountry": "US"
+      },
+      "sameAs": [
+        "https://github.com/Wordpressistic/bridgistic",
+        "https://wpistic.com/",
+        "https://wordpressistic.com/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://bridgistic.app/#website",
+      "url": "https://bridgistic.app/",
+      "name": "Bridgistic",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://bridgistic.app/#organization"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://bridgistic.app/#faq",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [
+          ".faq",
+          "#publisher"
+        ]
+      },
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What exactly does Bridgistic do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Bridgistic adds a policy-controlled MCP bridge to WordPress. Compatible AI clients call structured tools through a dedicated connection key; the WordPress plugin verifies authentication, scopes and safety rules before an operation runs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are unlimited schedules, advanced snapshots and audit export included today?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Without a license, no. The free plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, those three open on that site. The skills marketplace is live at marketplace.bridgistic.app/marketplace. The agency dashboard, team permissions and white-label stay marked coming soon. Cloud Agent credits are not part of the license. The feature guide and the setup docs describe the current behavior."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I give Claude, ChatGPT or Codex my WordPress admin password?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Bridgistic creates its own scoped key ID and secret for the connection. Local requests are HMAC-signed, and the WordPress administrator password is not the integration credential."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which permission preset should I use first?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Start with Read-only. Move to Content Manager or Safe Admin only when the workflow requires writes. Developer Mode exposes the highest-risk tools and should be reserved for sites you fully control."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I require approval before the AI changes my site?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Keys can require approval for writes or destructive operations. Pending actions appear in Bridgistic → Approvals so a human can allow or deny them."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can Bridgistic roll back a bad change?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Bridgistic can create snapshots before destructive writes, and snapshots can be restored from WordPress or via the relevant MCP operation. The exact coverage depends on the type of operation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Bridgistic Cloud the same security model as local mode?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The WordPress-side scopes, approvals and safety controls still apply, but the network path is different: the hosted relay participates in the connection. Bridgistic Cloud is currently a public beta without an independent security review, so local mode is the recommended default where available."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I manage several WordPress sites from one AI client?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes for local clients. Bridgistic supports a multi-site connections.json registry and site aliases. The WordPress Multi-Site screen helps build the file. The hosted cloud connector uses a separate connector entry per site."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Bridgistic work with WooCommerce?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The MCP surface includes structured WooCommerce tools behind the same authentication and guard model. The project’s testing documentation also explicitly notes that live WooCommerce behavior remains a larger integration surface to validate in real environments."
+          }
+        }
+      ]
+    }
+  ]
+}
   </script>
 
   <style>
