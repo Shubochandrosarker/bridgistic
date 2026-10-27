@@ -45,7 +45,7 @@ export function InstallGuide() {
         </p>
 
         <div className="mt-8 space-y-4">
-          <Section id="zip" title="Download zip (works with every tool)" status="verified">
+          <Section id="zip" title="Download zip (works with every tool)" status="unverified">
             <p>On a skill page click <b>Download zip</b>, then unzip into a folder named after the skill:</p>
             <Code>{"mkdir -p <skills-dir>/<skill>\nunzip <skill>.zip -d <skills-dir>/<skill>"}</Code>
             <p>The folder must contain <span className="font-mono">SKILL.md</span> at its top level.</p>
