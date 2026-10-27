@@ -90,7 +90,7 @@ export function AgencyBulk() {
 export function AgencyDeals() {
   return (
     <>
-      <PageHead title="LTD desk" sub="The Lifetime Deal: $49.99 one time, 1 site, until 31 Dec 2026 or 100 licenses." />
+      <PageHead title="LTD desk" sub="The Lifetime Deal: $49.99 one time, 1 site, all future updates, no deadline." />
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5">
           <Badge tone="gold">Lifetime</Badge>
@@ -101,12 +101,12 @@ export function AgencyDeals() {
         <Card className="p-5">
           <Badge tone="neutral">Monthly</Badge>
           <div className="mt-2 text-2xl font-bold text-navy">$12<span className="text-sm font-normal">/mo</span></div>
-          <p className="text-sm text-navy/60">1 license · 3 sites · after the welcome offer</p>
+          <p className="text-sm text-navy/60">1 license · 3 sites · subscription</p>
         </Card>
         <Card className="p-5">
           <Badge tone="neutral">Yearly</Badge>
           <div className="mt-2 text-2xl font-bold text-navy">$99<span className="text-sm font-normal">/yr</span></div>
-          <p className="text-sm text-navy/60">1 license · 3 sites · after the welcome offer</p>
+          <p className="text-sm text-navy/60">1 license · 3 sites · subscription</p>
         </Card>
       </div>
       <Card className="mt-4 p-4 text-xs text-navy/50">

@@ -19,15 +19,15 @@ describe("pay.bridgistic.app", () => {
     expect(PADDLE_PRICES.monthly).toBe("pri_01m1ykar8aq033865h68a4b9hh");
     expect(PADDLE_PRICES.yearly).toBe("pri_01m1ykaqyaaeewsbah07akmpka");
   });
-  it("offer closes after 31 Dec 2026 23:59:59 Asia/Dhaka or when the server says so", () => {
-    expect(offerOpen(Date.parse("2026-12-31T17:59:58Z"))).toBe(true);
-    expect(offerOpen(Date.parse("2026-12-31T18:00:00Z"))).toBe(false);
+  it("lifetime deal has no deadline and closes only when the server says so", () => {
+    expect(offerOpen(Date.parse("2026-12-31T18:00:00Z"))).toBe(true);
+    expect(offerOpen(Date.parse("2030-01-01T00:00:00Z"))).toBe(true);
     expect(offerOpen(Date.parse("2026-11-01T00:00:00Z"), { open: false })).toBe(false);
   });
   it("never shows an invented remaining count", () => {
     expect(remainingLabel(null)).toBeNull();
     expect(remainingLabel({ source: "none", remaining: 100 })).toBeNull();
-    expect(remainingLabel({ source: "paddle", remaining: 37 })).toBe("37 of 100 licenses left");
+    expect(remainingLabel({ source: "paddle", remaining: 37 })).toBeNull();
   });
   it("requires an email and passes it for license issuance", () => {
     expect(validEmail("nope")).toBe(false);
@@ -42,8 +42,9 @@ describe("pay.bridgistic.app", () => {
     expect(o.customData).toMatchObject({ source: "pay.bridgistic.app", product: "bridgistic", offer: "welcome-lifetime" });
   });
   it("shows only the real Paddle amounts and the offer terms", () => {
-    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$29.99", "$12", "$99"].includes(p))).toBe(true);
-    for (const t of ["31 December 2026", "100 licenses only"]) expect(text).toContain(t);
+    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$49.99", "$12", "$99"].includes(p))).toBe(true);
+    for (const t of ["Active now, no deadline", "All future updates included"]) expect(text).toContain(t);
+    for (const t of ["31 December 2026", "100 licenses", "has ended"]) expect(text).not.toContain(t);
     expect(text).toContain("All future paid features");
   });
   it("brand voice: no exclamation marks in visible copy", () => {

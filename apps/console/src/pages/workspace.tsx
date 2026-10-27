@@ -445,7 +445,7 @@ export function LicensePage() {
                 {paidUnlock.unlocked ? (
                   <>Pro is active on this account (<b>{paidUnlock.plan}</b>) — the paid skills marketplace is unlocked.</>
                 ) : (
-                  <>No license is attached to this account yet. The Lifetime Deal is $49.99 one time until 31 Dec 2026.</>
+                  <>No license is attached to this account yet. The Lifetime Deal is $49.99 one time with all future updates.</>
                 )}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">

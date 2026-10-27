@@ -1263,8 +1263,8 @@
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
           <div class="plan-chip offer-only">
-            <strong>Welcome offer: Lifetime Deal, $49.99 one time</strong>
-            <span>Until 31 December 2026 · 100 licenses only · all future updates included · no subscription and no renewal</span>
+            <strong>Lifetime Deal, $49.99 one time</strong>
+            <span>Active now · one payment · all future updates included · no subscription and no renewal</span>
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
           <div class="plan-chip closed-only">
@@ -1617,7 +1617,7 @@ Bridgistic Cloud is currently a public beta.</pre>
     <section class="section" id="pricing">
       <div class="wrap">
         <div class="section-head reveal">
-          <span class="eyebrow"><span class="dot"></span> <span class="offer-only">Welcome offer</span><span class="closed-only">Pricing</span></span>
+          <span class="eyebrow"><span class="dot"></span> <span class="offer-only">Lifetime Deal</span><span class="closed-only">Pricing</span></span>
           <h2 class="offer-only">Pay once for Bridgistic Pro, and never pay again.</h2>
           <h2 class="closed-only">Start free. Upgrade to Pro when you need it.</h2>
           <p>The plugin download is free and open source: the full local bridge. Bridgistic Pro is billed through Paddle.</p>
@@ -1632,14 +1632,13 @@ Bridgistic Cloud is currently a public beta.</pre>
 
         <article class="offer-card offer-only reveal" id="welcome-offer" aria-labelledby="offer-title">
           <div class="offer-main">
-            <span class="badge offer">Welcome offer: Lifetime Deal</span>
+            <span class="badge offer">Lifetime Deal · active now</span>
             <h3 id="offer-title">Bridgistic Pro for life, for one payment of $49.99</h3>
             <p class="offer-hook">One payment of $49.99 costs less than half of a single year on the yearly plan, and it keeps Bridgistic Pro with every future update. No subscription and no renewal.</p>
             <ul class="offer-terms" aria-label="Offer terms">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Available until 31 December 2026</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7z"/></svg>100 licenses only</li>
-              <li id="offer-remaining" hidden></li>
-            </ul>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Active now, no deadline</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7z"/></svg>All future updates included</li>
+                          </ul>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 1 site</strong></li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
@@ -1657,14 +1656,14 @@ Bridgistic Cloud is currently a public beta.</pre>
             </ul>
           </div>
           <div class="offer-side">
-            <div class="offer-was">After the offer: $12 per month or $99 per year</div>
+            <div class="offer-was">Prefer a subscription? $12 per month or $99 per year</div>
             <div class="price">$49.99 <small>USD, one time</small></div>
             <a class="btn btn-primary" data-checkout="lifetime" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose Lifetime · $49.99</a>
             <div class="price-fine">One payment. The key arrives by email after checkout. Activate it on the License screen. 7-day refund.</div>
           </div>
         </article>
 
-        <div class="offer-ended closed-only" role="status">The Lifetime Deal welcome offer has ended. Bridgistic Pro is available monthly or yearly.</div>
+        <div class="offer-ended closed-only" role="status">Bridgistic Pro is available monthly or yearly.</div>
 
         <p class="plans-label reveal">Same Pro features. Pick the term.</p>
         <div class="pricing-grid three" id="pricing-cards">
@@ -1890,8 +1889,8 @@ Bridgistic Cloud is currently a public beta.</pre>
 
 
   <script>
-  /* Welcome offer + Paddle checkout. Terms set by Shuvo: the Lifetime Deal ends
-     31 Dec 2026 23:59:59 (Asia/Dhaka, UTC+6, assumed) or at 100 licenses sold.
+  /* Lifetime Deal + Paddle checkout. Terms set by Shuvo (2026-10-28): $49.99 once,
+     all future updates, active now with no end date and no license cap.
      The sold count only ever comes from the server-side offer-status endpoint
      (Paddle, read-only key held server-side); no number is shown without it. */
   (function () {
@@ -1899,8 +1898,8 @@ Bridgistic Cloud is currently a public beta.</pre>
       token: "__BRIDGISTIC_PADDLE_CLIENT_TOKEN__",
       env: "__BRIDGISTIC_PADDLE_ENV__",
       statusUrl: "__BRIDGISTIC_OFFER_STATUS_URL__",
-      endsAt: Date.parse("2026-12-31T23:59:59+06:00"),
-      cap: 100,
+      endsAt: Infinity,
+      cap: Infinity,
       successUrl: "https://bridgistic.app/?checkout=success",
       prices: { lifetime: "pri_01m58k6epsqzbr3qbab84t6p90", monthly: "pri_01m1ykar8aq033865h68a4b9hh", yearly: "pri_01m1ykaqyaaeewsbah07akmpka" }
     };
@@ -1929,7 +1928,7 @@ Bridgistic Cloud is currently a public beta.</pre>
           if (!j || typeof j.open !== "boolean") return null;
           lastStatus = j;
           setOpen(j.open && Date.now() < CFG.endsAt);
-          showRemaining(j.source === "paddle" ? j.remaining : null);
+          showRemaining(null);
           return j;
         });
     }

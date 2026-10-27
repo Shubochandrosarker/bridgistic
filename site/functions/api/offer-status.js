@@ -1,8 +1,8 @@
 // Cloudflare Pages Function: GET /api/offer-status
 //
-// Reports whether the $49.99 Lifetime Deal welcome offer is still open.
-// Terms (set by Shuvo): open until 31 Dec 2026 23:59:59 Asia/Dhaka (UTC+6,
-// assumed) and capped at 100 licenses. The sold count is read server-side from
+// Reports whether the $49.99 Lifetime Deal is open.
+// Terms (set by Shuvo, 2026-10-28): active now, no end date, no license cap;
+// OFFER_FORCE_CLOSED=1 remains the kill switch. The sold count is read server-side from
 // Paddle with a READ-ONLY API key (permission: transaction.read only). The key
 // lives in the Pages project as the encrypted secret PADDLE_API_KEY and is never
 // sent to the browser. Without a key the endpoint closes by date only and
@@ -17,8 +17,8 @@
 //   OFFER_FORCE_CLOSED optional        "1" closes the offer immediately
 
 const DEFAULTS = {
-  endsAt: "2026-12-31T23:59:59+06:00",
-  cap: 100,
+  endsAt: "9999-12-31T23:59:59Z", // no deadline (Shuvo, 2026-10-28)
+  cap: Number.MAX_SAFE_INTEGER, // no license cap
   priceId: "pri_01m58k6epsqzbr3qbab84t6p90",
 };
 const ALLOWED_ORIGINS = new Set([
