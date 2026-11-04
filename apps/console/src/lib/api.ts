@@ -12,6 +12,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
+    cache: "no-store",
   });
   const text = await res.text();
   let json: unknown = null;

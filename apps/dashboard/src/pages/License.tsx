@@ -62,8 +62,8 @@ export function License() {
           </Card>
           <Card delay={0.05}>
             <h2 className="text-sm font-semibold">Lifetime Deal</h2>
-            <p className="mt-1 text-3xl font-semibold">$49.99 <span className="text-sm font-normal text-navy/55">one time</span></p>
-            <p className="mt-2 text-sm text-navy/65">Lifetime use with all future updates included. One payment of $49.99.</p>
+            <p className="mt-1 text-3xl font-semibold">$69 <span className="text-sm font-normal text-navy/55">one time</span></p>
+            <p className="mt-2 text-sm text-navy/65">Lifetime use with all future updates included. One payment of $69.</p>
             <a href={PAY_URL} className="btn-primary mt-4 w-full justify-center">View the offer</a>
             <a href={ACCOUNT_URL} className="mt-3 block text-center text-xs text-navy/55 underline">Manage licenses at WPistic</a>
           </Card>

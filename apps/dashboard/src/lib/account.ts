@@ -38,7 +38,7 @@ interface ApiResponse {
 /** Verify the shared session against the console and cache who we are. */
 export async function refreshAccount(): Promise<Account | null> {
   try {
-    const res = await fetch(`${CONSOLE_API}/api/me`, { credentials: "include" });
+    const res = await fetch(`${CONSOLE_API}/api/me`, { credentials: "include", cache: "no-store" });
     if (!res.ok) {
       saveAccount(null);
       return null;
@@ -52,7 +52,10 @@ export async function refreshAccount(): Promise<Account | null> {
     saveAccount(account);
     return account;
   } catch {
-    return loadAccount();
+    // A cached account is display-only state. Never treat it as proof of a
+    // valid session when the authority endpoint is unavailable.
+    saveAccount(null);
+    return null;
   }
 }
 
@@ -61,6 +64,7 @@ export async function signIn(email: string, password: string): Promise<Account> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
+    cache: "no-store",
     body: JSON.stringify({ email, password }),
   });
   const json = (await res.json().catch(() => null)) as ApiResponse | null;
@@ -75,6 +79,7 @@ export async function signUp(email: string, password: string, name: string): Pro
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
+    cache: "no-store",
     body: JSON.stringify({ email, password, name }),
   });
   const json = (await res.json().catch(() => null)) as ApiResponse | null;

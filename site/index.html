@@ -1114,18 +1114,21 @@
         <details class="nav-menu">
           <summary>Product</summary>
           <div class="nav-menu-panel">
+            <a href="/features">Feature guide</a>
             <a href="#how">How it works</a>
             <a href="#connect">Connect</a>
             <a href="#security">Security</a>
             <a href="#clients">AI clients</a>
-            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
           </div>
         </details>
         <details class="nav-menu">
           <summary>Resources</summary>
           <div class="nav-menu-panel">
-            <a href="/features">Guide</a>
-            <a href="/docs">Docs</a>
+            <a href="/docs">Setup docs</a>
+            <a href="https://marketplace.bridgistic.app/">Skills marketplace</a>
+            <a href="https://dashboard.bridgistic.app/">Customer dashboard</a>
+            <a href="https://github.com/Wordpressistic/bridgistic/releases" target="_blank" rel="noopener">Release notes</a>
           </div>
         </details>
         <a href="#pricing">Pricing</a>
@@ -1648,11 +1651,6 @@ Bridgistic Cloud is currently a public beta.</pre>
           <p>The plugin download is free and open source: the full local bridge. Stripe is the default checkout for Bridgistic, with Paddle available as an optional payment provider.</p>
         </div>
 
-        <div class="plan-chooser reveal" role="group" aria-label="Choose a plan">
-          <a class="btn btn-primary" data-checkout="lifetime" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose Lifetime · $69</a>
-        </div>
-        <p class="plan-chooser-note reveal">Checkout asks for the email. The license key is sent to that inbox. Paste it on the License screen. The plugin and the dashboard both check that same key with the WPistic license server.</p>
-
         <article class="offer-card offer-only reveal" id="welcome-offer" aria-labelledby="offer-title">
           <div class="offer-main">
             <span class="badge offer">Welcome offer: Lifetime Deal</span>
@@ -1862,6 +1860,15 @@ Bridgistic Cloud is currently a public beta.</pre>
         link.addEventListener('click', () => {
           navLinks.classList.remove('open');
           menuBtn.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      // Keep only one product/resources menu open and make the disclosure
+      // controls behave consistently on touch and keyboard navigation.
+      navLinks.querySelectorAll('.nav-menu').forEach(menu => {
+        menu.addEventListener('toggle', () => {
+          if (!menu.open) return;
+          navLinks.querySelectorAll('.nav-menu').forEach(other => { if (other !== menu) other.open = false; });
         });
       });
 

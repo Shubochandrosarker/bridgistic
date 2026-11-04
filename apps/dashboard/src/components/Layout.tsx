@@ -58,9 +58,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       ))}
       {account ? (
         <div className="mt-auto space-y-1 border-t border-white/10 px-2 pt-4">
-          <a href="https://admin.bridgistic.app/admin" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-gold hover:bg-white/5">
-            <UserRound className="h-4 w-4" aria-hidden />Console
-          </a>
+          {account.role === "owner" && (
+            <a href="https://admin.bridgistic.app/admin" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-gold hover:bg-white/5">
+              <UserRound className="h-4 w-4" aria-hidden />Owner console
+            </a>
+          )}
           <div className="px-2">
             <p className="truncate text-xs font-semibold text-ivory/90">{account.name || account.email}</p>
             <p className="truncate text-[11px] text-ivory/50">{account.email}</p>

@@ -23,6 +23,9 @@ export function App() {
   usePairedSitesSync(account !== null && mode !== "demo", syncPairedSites);
 
   const signedIn = account !== null || mode === "demo" || sites.length > 0;
+  // Keep the router deterministic while the shared cookie is being checked.
+  // SignIn will forward an already-authenticated session once verification
+  // completes, while an unauthenticated visit immediately gets the form.
   return (
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
