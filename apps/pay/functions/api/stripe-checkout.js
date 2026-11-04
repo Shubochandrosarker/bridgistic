@@ -45,10 +45,11 @@ export async function onRequestPost({ request, env }) {
     return json({ message: "Stripe checkout is not available right now." }, 502);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok || !data?.url || !/^https:\/\/checkout\.stripe\.com\//.test(data.url)) {
+  const checkoutUrl = data?.checkout_url ?? data?.url;
+  if (!res.ok || !checkoutUrl || !/^https:\/\/checkout\.stripe\.com\//.test(checkoutUrl)) {
     return json({ message: data?.error?.message ?? "Stripe checkout is not available right now." }, res.ok ? 502 : res.status === 409 ? 409 : 502);
   }
-  return json({ url: data.url });
+  return json({ url: checkoutUrl });
 }
 
 export function onRequestOptions() {

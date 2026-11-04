@@ -70,6 +70,12 @@ describe("pay.bridgistic.app", () => {
     expect(main).toContain('fetch(cfg.stripeSessionUrl || "/api/stripe-checkout"');
   });
 
+  it("accepts the API's checkout_url response shape", () => {
+    const fn = readFileSync(resolve(__dirname, "../functions/api/stripe-checkout.js"), "utf8");
+    expect(fn).toContain("data?.checkout_url ?? data?.url");
+    expect(fn).toContain("return json({ url: checkoutUrl });");
+  });
+
   it("resets any Paddle quantity change back to one", () => {
     const ev = (q: number, extra = false) => ({ name: "checkout.items.updated", data: { items: [{ price_id: "pri_x", quantity: q }, ...(extra ? [{ price_id: "pri_y", quantity: 1 }] : [])] } });
     expect(quantityReset(ev(3), "pri_x")).toEqual([{ priceId: "pri_x", quantity: 1 }]);
