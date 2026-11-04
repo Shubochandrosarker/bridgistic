@@ -27,6 +27,7 @@ const SESSION_DAYS = 30;
 
 export interface AuthEnv {
   DB: D1Database;
+  PLATFORM_OWNER_EMAIL?: string;
 }
 
 export function nowIso(): string {
@@ -123,7 +124,16 @@ export async function requireUser(db: D1Database, request: Request): Promise<Use
 
 export async function requireStaff(db: D1Database, request: Request): Promise<User> {
   const user = await requireUser(db, request);
-  if (user.role !== "owner" && user.role !== "admin") throw new HttpError(403, "forbidden", "Platform staff only.");
+  if (user.role !== "owner") throw new HttpError(403, "forbidden", "The platform console is owner-only.");
+  return user;
+}
+
+export async function requireOwner(db: D1Database, request: Request, ownerEmail?: string): Promise<User> {
+  const user = await requireUser(db, request);
+  const allow = String(ownerEmail ?? "").trim().toLowerCase();
+  if (user.role !== "owner" || (allow && user.email.toLowerCase() !== allow)) {
+    throw new HttpError(403, "forbidden", "The platform console is restricted to the owner account.");
+  }
   return user;
 }
 

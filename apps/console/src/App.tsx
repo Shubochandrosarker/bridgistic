@@ -33,7 +33,7 @@ function RequireAuth({ children, staff = false }: { children: React.ReactNode; s
   const location = useLocation();
   if (loading) return <Spinner label="Loading your workspace…" />;
   if (!user) return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
-  if (staff && user.role !== "owner" && user.role !== "admin") return <Navigate to="/" replace />;
+  if (staff && user.role !== "owner") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -42,8 +42,8 @@ function RequireAuth({ children, staff = false }: { children: React.ReactNode; s
  * dashboard host — the admin console is staff-only. */
 function RootRoute() {
   const { user } = useSession();
-  if (window.location.hostname.startsWith("marketplace")) return <Navigate to="/marketplace" replace />;
-  if (user && user.role !== "owner" && user.role !== "admin") {
+  if (window.location.hostname.startsWith("marketplace")) return <MarketDirectory />;
+  if (user && user.role !== "owner") {
     window.location.replace("https://dashboard.bridgistic.app/");
     return <Spinner label="Taking you to your dashboard…" />;
   }

@@ -23,7 +23,7 @@ import {
   getSetting,
   putSetting,
   requireOrgMember,
-  requireStaff,
+  requireOwner,
   requireUser,
   sessionCookies,
   sharedCookieDomain,
@@ -97,6 +97,7 @@ interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  PLATFORM_OWNER_EMAIL?: string;
 }
 
 async function route(request: Request, env: Env, path: string, url: URL): Promise<Response> {
@@ -363,7 +364,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 
   // ── Platform admin ─────────────────────────────────────────────────────────
   if (seg[1] === "admin") {
-    await requireStaff(db, request);
+    await requireOwner(db, request, env.PLATFORM_OWNER_EMAIL);
     return adminRoutes(request, env, seg, method, url, user);
   }
 
@@ -816,7 +817,24 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
          FROM sites s JOIN orgs o ON o.id = s.org_id ORDER BY s.created_at DESC`
       )
       .all();
-    return Response.json({ sites: results ?? [] });
+    // License activation is the source of truth for sites activated directly
+    // from WP Admin. Older deployments did not create a workspace `sites`
+    // row, which made the owner console report zero sites while activations
+    // were healthy. Include those rows without exposing dashboard secrets.
+    const activations = await db
+      .prepare(
+        `SELECT a.id, a.site_url AS url, a.domain AS name, a.wp_version, a.php_version,
+                a.status, a.last_validated_at AS last_seen, l.plan, l.owner_email,
+                l.site_limit, l.key AS license_key
+         FROM activations a JOIN licenses l ON l.id = a.license_id
+         WHERE a.status = 'active' ORDER BY a.created_at DESC`
+      )
+      .all();
+    const existing = new Set((results ?? []).map((row) => String((row as { url?: string }).url ?? "")));
+    const activationRows = (activations.results ?? [])
+      .filter((row) => !existing.has(String((row as { url?: string }).url ?? "")))
+      .map((row) => ({ ...(row as Record<string, unknown>), key_mask: maskKey(String((row as { license_key?: string }).license_key ?? "")), org_name: String((row as { owner_email?: string }).owner_email ?? "") }));
+    return Response.json({ sites: [...(results ?? []), ...activationRows] });
   }
 
   if (seg[2] === "plans") {

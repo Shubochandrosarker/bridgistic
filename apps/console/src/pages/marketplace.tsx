@@ -43,7 +43,7 @@ const M = {
 
 function MarketLogo() {
   return (
-    <Link to="/marketplace" className="flex items-center gap-2.5">
+    <Link to="/" className="flex items-center gap-2.5">
       <img src="/brand/icon.png" alt="Bridgistic" className="h-7 w-7" />
       <span className="text-sm font-bold tracking-wide text-white">
         Bridgistic<span className="text-[#C9A227]"> Skills</span>
@@ -58,10 +58,10 @@ function MarketHeader({ signedIn }: { signedIn: boolean }) {
       <div className={`${M.container} flex h-14 items-center justify-between`}>
         <MarketLogo />
         <nav className="flex items-center gap-4 text-xs">
-          <Link to="/marketplace" className="text-white/70 hover:text-white">Directory</Link>
+          <Link to="/" className="text-white/70 hover:text-white">Directory</Link>
           <Link to="/pro" className="text-white/70 hover:text-white">Pro</Link>
           <a href="https://bridgistic.app/#pricing" className="hidden text-white/70 hover:text-white sm:block">Pricing</a>
-          <a href="https://admin.bridgistic.app" className="hidden text-white/70 hover:text-white sm:block">Console</a>
+          <a href="https://admin.bridgistic.app/" className="hidden text-white/70 hover:text-white sm:block">Console</a>
           {signedIn ? (
             <a href="/installed" className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white hover:bg-white/15">My account</a>
           ) : (
@@ -123,14 +123,14 @@ function Gate({ kind }: { kind: "signin" | "license" }) {
       <p className="mt-1.5 text-xs leading-relaxed text-white/55">
         {kind === "signin"
           ? "A free account unlocks all 100 free skills. Pro members get the battle-tested Pro collection."
-          : "30 battle-tested production skills, exclusive to license holders. The Lifetime Deal is $49.99 one time."}
+          : "30 battle-tested production skills, exclusive to license holders. The Lifetime Deal is $69 one time."}
       </p>
       <div className="mt-4 flex justify-center gap-2">
         {kind === "signin" ? (
           <a href="/signin"><Btn variant="gold" small>Sign in</Btn></a>
         ) : (
           <>
-            <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $49.99</Btn></a>
+            <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $69</Btn></a>
             <a href="/license"><Btn variant="ghost" small className="!bg-transparent !text-white">I have a key</Btn></a>
           </>
         )}
@@ -297,7 +297,7 @@ export function SkillDetail() {
         <MarketHeader signedIn={Boolean(user)} />
         <div className={`${M.container} py-24 text-center`}>
           <p className="text-lg font-semibold text-white">Skill not found</p>
-          <Btn variant="ghost" small className="mt-4 !bg-transparent !text-white" onClick={() => navigate("/marketplace")}>Back to the directory</Btn>
+          <Btn variant="ghost" small className="mt-4 !bg-transparent !text-white" onClick={() => navigate("/")}>Back to the directory</Btn>
         </div>
       </div>
     );
@@ -320,9 +320,9 @@ export function SkillDetail() {
       <MarketHeader signedIn={Boolean(user)} />
       <div className={`${M.container} max-w-5xl py-8`}>
         <nav className="mb-5 flex items-center gap-2 text-xs text-white/40">
-          <Link to="/marketplace" className="hover:text-white/70">Skills</Link>
+          <Link to="/" className="hover:text-white/70">Skills</Link>
           <span>/</span>
-          <Link to={`/marketplace?category=${encodeURIComponent(meta.category)}`} className="hover:text-white/70">{meta.category}</Link>
+          <Link to={`/?category=${encodeURIComponent(meta.category)}`} className="hover:text-white/70">{meta.category}</Link>
           <span>/</span>
           <span className="text-white/70">{meta.name}</span>
         </nav>

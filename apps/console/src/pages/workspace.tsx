@@ -436,7 +436,7 @@ export function LicensePage() {
                 <a href="/admin/licenses"><Btn>Open license management</Btn></a>
                 <a href="/admin/sync-logs"><Btn variant="ghost">View sync logs</Btn></a>
               </div>
-              <p className="mt-3 text-xs text-navy/50">Workspace plan: <b className="capitalize">{org?.plan ?? "platform"}</b> · purchases by customers are billed through Paddle and issued automatically by the webhook.</p>
+              <p className="mt-3 text-xs text-navy/50">Workspace plan: <b className="capitalize">{org?.plan ?? "platform"}</b> · Stripe is the default customer checkout; Paddle remains optional and both providers issue through the same license ledger.</p>
             </>
           ) : (
             <>
@@ -445,11 +445,11 @@ export function LicensePage() {
                 {paidUnlock.unlocked ? (
                   <>Pro is active on this account (<b>{paidUnlock.plan}</b>) — the paid skills marketplace is unlocked.</>
                 ) : (
-                  <>No license is attached to this account yet. The Lifetime Deal is $49.99 one time until 31 Dec 2026.</>
+                  <>No license is attached to this account yet. The Lifetime Deal is $69 one time, active now, with all future updates included.</>
                 )}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold">Get the Lifetime Deal · $49.99</Btn></a>
+                <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold">Get the Lifetime Deal · $69</Btn></a>
                 <a href="https://bridgistic.app/#pricing" target="_blank" rel="noreferrer"><Btn variant="ghost">Compare plans</Btn></a>
               </div>
               <p className="mt-3 text-xs text-navy/50">Licenses are issued and managed in Platform admin → Licenses, and activations follow the WPistic license contract.</p>

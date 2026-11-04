@@ -50,7 +50,7 @@ export function AdminOverview() {
         <Stat label="Plans" value={byPlan.map((p) => `${p.plan}:${p.n}`).join(" ") || "—"} sub="active by plan" />
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <QuickCard title="Sell" body="Issue a license manually after a Paddle sale, or wire the webhook for automatic issuance." to="/admin/licenses" link="Licenses" />
+        <QuickCard title="Sell" body="Stripe is the default checkout. Paddle remains optional. Issue or review licenses here." to="/admin/licenses" link="Licenses" />
         <QuickCard title="AI routing" body="Set the OpenAI-compatible endpoint, model and OpenRouter key the website agents use." to="/admin/ai" link="AI configuration" />
       </div>
     </>
@@ -354,7 +354,7 @@ export function AdminLicenses() {
           <div className="space-y-3">
             <Field label="Plan">
               <select className={inputClass} value={plan} onChange={(e) => { setPlan(e.target.value); setSiteLimit(e.target.value === "lifetime" ? "1" : "5"); }}>
-                <option value="lifetime">lifetime ($49.99 LTD)</option>
+                <option value="lifetime">lifetime ($69 LTD)</option>
                 <option value="monthly">monthly ($12)</option>
                 <option value="yearly">yearly ($99)</option>
               </select>
@@ -413,13 +413,13 @@ export function AdminReports() {
     <>
       <PageHead title="Reports" sub="Commercial snapshot from the ledger." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Lifetime value sold" value={`$${(((Number(stats.licenses_active) || 0) * 49.99)).toFixed(2)}`} sub="at LTD price" />
+        <Stat label="Lifetime value sold" value={`$${(((Number(stats.licenses_active) || 0) * 69)).toFixed(2)}`} sub="at LTD price" />
         <Stat label="Active licenses" value={String(stats.licenses_active)} />
         <Stat label="Marketplace installs" value={String(stats.installs)} />
         <Stat label="Skills" value={String(stats.skills)} />
       </div>
       <Card className="mt-4 p-4 text-sm text-navy/60">
-        Subscription MRR joins once Paddle webhooks stream in; the ledger records manual and webhook issuance identically.
+        Stripe is the default gateway for new checkout flows. Paddle remains available for customers who choose it; both providers feed the same license ledger.
       </Card>
     </>
   );

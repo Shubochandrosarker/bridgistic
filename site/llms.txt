@@ -2,11 +2,11 @@
 
 > Bridgistic is a WordPress plugin and local MCP bridge from WordPressistic LLC. It lets Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients act on WordPress through signed, scoped requests, with approvals, snapshots and an audit log. The administrator password is not the credential.
 
-Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Paid plans are sold by Paddle as merchant of record. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-10-23.
+Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Stripe is the default checkout and WordPressistic LLC is the seller for Stripe transactions; Paddle remains optional as a separate merchant-of-record checkout. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-10-26.
 
 ## Pages
 - [Bridgistic: Safe AI Control for WordPress via MCP](https://bridgistic.app/): Connect Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients to WordPress with signed requests, scoped access, approvals, snapshots, rollback and audit logs.
-- [Feature guide](https://bridgistic.app/features): Every Bridgistic feature, with what ships in the free plugin today and what is still marked coming soon on the paid plans.
+- [Feature guide](https://bridgistic.app/features): Every Bridgistic feature: what ships today in the free and Pro plans, plus the separate roadmap for future releases.
 - [Docs](https://bridgistic.app/docs): Install Bridgistic, create a Read-only key, and connect Claude, Codex, Gemini or ChatGPT. WordPress 6.4+ and PHP 8.0+.
 - [Terms of Service](https://bridgistic.app/terms): Terms for the Bridgistic plugin, Bridgistic Pro, the dashboard and the relay.
 - [Privacy Policy](https://bridgistic.app/privacy): What Bridgistic, its dashboard, relay and the WPistic license server store and send.
@@ -25,10 +25,10 @@ Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 120
 
 ## Pricing (as published)
 - Free: $0. Local MCP bridge, GPL-2.0-or-later.
-- Pro Lifetime Deal, while the welcome offer is open: $49 once, 1 license · 1 site, through 31 December 2026 or 100 licenses, whichever comes first.
+- Pro Lifetime Deal: $69 once, 1 license · 1 site, active now with all future updates included. Limited Time Offer.
 - Pro Monthly: $12 USD per month, 1 license · 3 sites.
 - Pro Yearly: $99 USD per year, 1 license · 3 sites.
-- Every purchase has a 7-day refund guarantee. Taxes are calculated by Paddle at checkout.
+- Every purchase has a 7-day refund guarantee. Taxes are shown at checkout by the selected provider.
 
 ## Optional
 - [Full context](https://bridgistic.app/llms-full.txt): Page summaries, headings and the FAQ, rebuilt with the site.
