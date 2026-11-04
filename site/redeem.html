@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Activate your AppSumo deal · Bridgistic</title>
+  <meta name="description" content="Redeem your Bridgistic AppSumo code and activate your lifetime license.">
+  <style>
+    :root { color-scheme: light; --ink:#0b2346; --muted:#5d708e; --line:#d9e0e7; --paper:#fbfaf6; --card:#fff; --gold:#d0aa5b; --green:#16866f; --danger:#a33b36; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); font:16px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 15% 0%,#f3f8f5,transparent 42%),radial-gradient(circle at 90% 12%,#e9f4f1,transparent 36%),var(--paper); }
+    a { color:inherit; }
+    .wrap { width:min(1120px,calc(100% - 40px)); margin:0 auto; }
+    header { border-bottom:1px solid rgba(11,35,70,.10); background:rgba(255,255,255,.78); backdrop-filter:blur(16px); }
+    .nav { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+    .brand { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:800; text-decoration:none; letter-spacing:-.04em; }
+    .mark { width:34px; height:34px; border:1px solid #9ccfd5; border-radius:11px; display:grid; place-items:center; color:#047fcb; background:linear-gradient(135deg,#effcff,#d9f0eb); font-size:18px; }
+    .brand em { color:var(--green); font-style:normal; }
+    .navlinks { display:flex; gap:20px; color:var(--muted); font-size:14px; }
+    .navlinks a { text-decoration:none; }
+    .navlinks a:hover { color:var(--ink); }
+    main { padding:72px 0 88px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:8px; border:1px solid #c8dfd8; border-radius:999px; padding:6px 11px; color:#147761; background:#f0faf6; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .eyebrow:before { content:""; width:7px; height:7px; border-radius:50%; background:#1a9b78; box-shadow:0 0 0 4px #d9f1e8; }
+    h1 { max-width:720px; margin:18px 0 12px; font-size:clamp(38px,6vw,66px); line-height:1.02; letter-spacing:-.065em; }
+    .lead { max-width:660px; margin:0; color:var(--muted); font-size:19px; }
+    .grid { display:grid; grid-template-columns:minmax(0,1.12fr) minmax(300px,.88fr); gap:24px; margin-top:42px; align-items:start; }
+    .card { border:1px solid var(--line); border-radius:24px; background:rgba(255,255,255,.9); box-shadow:0 18px 55px rgba(14,36,63,.08); padding:28px; }
+    .card h2 { margin:0 0 6px; font-size:22px; letter-spacing:-.03em; }
+    .sub { color:var(--muted); margin:0 0 22px; }
+    .modes { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border:1px solid var(--line); border-radius:13px; background:#f5f6f2; margin-bottom:22px; }
+    .mode { border:0; border-radius:9px; padding:10px 12px; background:transparent; color:var(--muted); font:inherit; font-weight:750; cursor:pointer; }
+    .mode.active { color:var(--ink); background:#fff; box-shadow:0 2px 8px rgba(11,35,70,.09); }
+    label { display:block; margin:15px 0 7px; font-size:13px; font-weight:750; }
+    input { width:100%; border:1px solid #cfd8e0; border-radius:11px; padding:13px 14px; color:var(--ink); background:#fff; font:inherit; outline:none; }
+    input:focus { border-color:#4b9e99; box-shadow:0 0 0 4px rgba(75,158,153,.13); }
+    .hint { color:var(--muted); font-size:12px; margin:7px 0 0; }
+    .submit { width:100%; border:0; border-radius:12px; padding:14px 16px; margin-top:22px; color:#102640; background:linear-gradient(135deg,#d9b665,#c99d4e); font:inherit; font-weight:850; cursor:pointer; box-shadow:0 8px 18px rgba(177,135,57,.22); }
+    .submit:disabled { opacity:.6; cursor:wait; }
+    .status { min-height:24px; margin:14px 0 0; font-size:14px; }
+    .status.error { color:var(--danger); }
+    .status.ok { color:#13725e; }
+    .success { display:none; margin-top:20px; padding:18px; border:1px solid #bde2d2; border-radius:16px; background:#effaf5; }
+    .success.show { display:block; }
+    .success strong { display:block; margin-bottom:7px; }
+    .license-key { display:block; overflow:auto; padding:12px; border-radius:9px; background:#fff; color:#14355b; font:700 13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; }
+    .success-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .small-btn { display:inline-block; border:1px solid #b5c9c7; border-radius:9px; padding:9px 11px; background:#fff; color:var(--ink); font-size:13px; font-weight:750; text-decoration:none; cursor:pointer; }
+    .side { padding:26px; border-radius:24px; border:1px solid rgba(21,122,103,.18); background:linear-gradient(145deg,#edf8f5,#fff); }
+    .side h2 { margin:0 0 18px; }
+    .step { display:grid; grid-template-columns:30px 1fr; gap:12px; margin:18px 0; }
+    .num { width:28px; height:28px; display:grid; place-items:center; border-radius:50%; color:#126c5a; background:#d3eee4; font-size:13px; font-weight:850; }
+    .step strong { display:block; font-size:15px; }
+    .step span { display:block; margin-top:3px; color:var(--muted); font-size:14px; }
+    .note { margin-top:24px; padding-top:18px; border-top:1px solid rgba(21,122,103,.18); color:var(--muted); font-size:13px; }
+    footer { padding:22px 0 34px; color:var(--muted); font-size:13px; }
+    footer .wrap { display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; border-top:1px solid var(--line); padding-top:20px; }
+    footer a { margin-left:14px; text-decoration:none; }
+    @media (max-width:780px) { .wrap { width:min(100% - 28px,620px); } .nav { min-height:66px; } .navlinks { gap:11px; font-size:12px; } main { padding:48px 0 60px; } .grid { grid-template-columns:1fr; margin-top:30px; } .card,.side { border-radius:18px; padding:22px; } h1 { font-size:44px; } .lead { font-size:17px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="/"><span class="mark">✦</span><span>Bridg<em>istic</em></span></a>
+      <nav class="navlinks" aria-label="Support navigation"><a href="/docs">Docs</a><a href="/support">Support</a></nav>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      <span class="eyebrow">AppSumo redemption</span>
+      <h1>Activate your Bridgistic deal.</h1>
+      <p class="lead">Use the code from your AppSumo purchase to unlock Bridgistic Pro for one WordPress site, with all future updates included.</p>
+      <div class="grid">
+        <section class="card" aria-labelledby="activate-title">
+          <h2 id="activate-title">Redeem your code</h2>
+          <p class="sub">Create or sign in to your Bridgistic account, then activate your purchase.</p>
+          <div class="modes" role="tablist" aria-label="Account action">
+            <button class="mode active" id="create-mode" type="button" role="tab" aria-selected="true">Create account</button>
+            <button class="mode" id="signin-mode" type="button" role="tab" aria-selected="false">Sign in</button>
+          </div>
+          <form id="redeem-form">
+            <label for="code">AppSumo code</label>
+            <input id="code" name="code" required autocomplete="one-time-code" placeholder="BRG-APP-…" spellcheck="false">
+            <p class="hint">Enter the code exactly as shown in your AppSumo account.</p>
+            <div id="name-field">
+              <label for="name">Your name</label>
+              <input id="name" name="name" autocomplete="name" placeholder="Shuvo Chandro">
+            </div>
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+            <p class="hint">Your Bridgistic account keeps your license and connected sites together.</p>
+            <button class="submit" id="submit" type="submit">Create account &amp; redeem</button>
+            <p class="status" id="status" role="status" aria-live="polite"></p>
+          </form>
+          <div class="success" id="success" aria-live="polite">
+            <strong>Your AppSumo deal is active.</strong>
+            <span>Keep this license key safe. You can also find it in your dashboard.</span>
+            <code class="license-key" id="license-key"></code>
+            <div class="success-actions"><button class="small-btn" id="copy" type="button">Copy license key</button><a class="small-btn" href="https://dashboard.bridgistic.app/license">Open dashboard</a></div>
+          </div>
+        </section>
+        <aside class="side" aria-labelledby="next-title">
+          <h2 id="next-title">What happens next?</h2>
+          <div class="step"><div class="num">1</div><div><strong>Redeem once</strong><span>Your code is securely checked and linked to your Bridgistic account.</span></div></div>
+          <div class="step"><div class="num">2</div><div><strong>Connect WordPress</strong><span>Open the dashboard and connect the site where Bridgistic is installed.</span></div></div>
+          <div class="step"><div class="num">3</div><div><strong>Activate your license</strong><span>Paste the license key in WordPress Admin → Bridgistic → License.</span></div></div>
+          <p class="note">Need help? Visit <a href="/support">Bridgistic Support</a> or email <a href="mailto:support@wpistic.com">support@wpistic.com</a>.</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <footer><div class="wrap"><span>© 2026 WordPressistic LLC · Bridgistic</span><span><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund-policy">Refund policy</a></span></div></footer>
+  <script>
+    (() => {
+      const API = "https://admin.bridgistic.app";
+      const form = document.getElementById("redeem-form");
+      const status = document.getElementById("status");
+      const submit = document.getElementById("submit");
+      const success = document.getElementById("success");
+      const key = document.getElementById("license-key");
+      const copy = document.getElementById("copy");
+      const nameField = document.getElementById("name-field");
+      const nameInput = document.getElementById("name");
+      const createMode = document.getElementById("create-mode");
+      const signinMode = document.getElementById("signin-mode");
+      let mode = "create";
+      function setMode(next) {
+        mode = next;
+        const create = next === "create";
+        createMode.classList.toggle("active", create); signinMode.classList.toggle("active", !create);
+        createMode.setAttribute("aria-selected", String(create)); signinMode.setAttribute("aria-selected", String(!create));
+        nameField.style.display = create ? "block" : "none"; nameInput.required = create;
+        submit.textContent = create ? "Create account & redeem" : "Sign in & redeem";
+        document.getElementById("password").autocomplete = create ? "new-password" : "current-password";
+      }
+      createMode.addEventListener("click", () => setMode("create")); signinMode.addEventListener("click", () => setMode("signin"));
+      function message(text, kind) { status.textContent = text || ""; status.className = "status" + (kind ? " " + kind : ""); }
+      async function post(path, body) {
+        const res = await fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || "We could not complete that request.");
+        return data;
+      }
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault(); success.classList.remove("show"); message("Checking your account and code…", ""); submit.disabled = true;
+        const fd = new FormData(form); const account = { email: String(fd.get("email") || "").trim(), password: String(fd.get("password") || "") };
+        try {
+          await post(mode === "create" ? "/api/auth/signup" : "/api/auth/signin", mode === "create" ? { ...account, name: String(fd.get("name") || "").trim() } : account);
+          const result = await post("/api/appsumo/redeem", { code: String(fd.get("code") || "").trim() });
+          key.textContent = result.license.key; success.classList.add("show"); message(result.message || "Redeemed successfully.", "ok");
+          form.querySelectorAll("input").forEach((input) => { if (input.id !== "code") input.value = ""; });
+        } catch (error) { message(error instanceof Error ? error.message : "We could not complete that request.", "error"); }
+        finally { submit.disabled = false; }
+      });
+      copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(key.textContent || ""); copy.textContent = "Copied"; setTimeout(() => { copy.textContent = "Copy license key"; }, 1600); } catch { copy.textContent = "Select the key to copy"; } });
+    })();
+  </script>
+</body>
+</html>

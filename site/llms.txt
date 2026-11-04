@@ -2,7 +2,7 @@
 
 > Bridgistic is a WordPress plugin and local MCP bridge from WordPressistic LLC. It lets Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients act on WordPress through signed, scoped requests, with approvals, snapshots and an audit log. The administrator password is not the credential.
 
-Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Stripe is the default checkout and WordPressistic LLC is the seller for Stripe transactions; Paddle remains optional as a separate merchant-of-record checkout. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-11-04.
+Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Stripe is the default checkout and WordPressistic LLC is the seller for Stripe transactions; Paddle remains optional as a separate merchant-of-record checkout. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-11-05.
 
 ## Pages
 - [Bridgistic: Safe AI Control for WordPress via MCP](https://bridgistic.app/): Connect Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients to WordPress with signed requests, scoped access, approvals, snapshots, rollback and audit logs.

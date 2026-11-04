@@ -19,6 +19,11 @@ export function randomId(prefix: string): string {
   return `${prefix}_${randomHex(12)}`;
 }
 
+/** SHA-256 hex for non-secret lookup tokens (for example AppSumo codes). */
+export async function sha256Hex(value: string): Promise<string> {
+  return toHex(await crypto.subtle.digest("SHA-256", encoder.encode(value)));
+}
+
 /** PBKDF2-SHA256 at 100k iterations (the Workers runtime maximum). Stored as pbkdf2$100000$saltHex$hashHex. */
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));

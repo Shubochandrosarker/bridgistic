@@ -12,7 +12,7 @@
  *   /api/webhooks/paddle            purchase webhook (when the secret is set)
  */
 
-import { hashPassword, verifyPassword, randomHex, encryptSecret, decryptSecret } from "../lib/crypto.ts";
+import { hashPassword, verifyPassword, randomHex, encryptSecret, decryptSecret, sha256Hex } from "../lib/crypto.ts";
 import {
   HttpError,
   audit,
@@ -247,6 +247,11 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 
   // Everything below needs an account.
   const user = await requireUser(db, request);
+
+  // AppSumo codes are an entitlement claim, not a second licensing system.
+  // The account session is required so a code cannot be redeemed to an
+  // arbitrary email address and the buyer can immediately use the dashboard.
+  if (path === "/api/appsumo/redeem" && method === "POST") return redeemAppSumoCode(request, env, user);
 
   if (path === "/api/me" && method === "GET") {
     const orgs = await userOrgs(db, user.id);
@@ -857,6 +862,90 @@ async function paddleCustomerEmail(env: Env, data: Record<string, unknown>): Pro
     }
   }
   return null;
+}
+
+// ── AppSumo redemption ──────────────────────────────────────────────────────
+
+const APPSUMO_CODE_PATTERN = /^BRG-APP-[A-Z0-9]{20}$/;
+
+function appSumoLicenseResponse(license: LicenseRow, replayed = false): Response {
+  return Response.json({
+    ok: true,
+    replayed,
+    message: replayed ? "This code is already activated on your account." : "Your AppSumo deal is activated.",
+    license: {
+      key: license.key,
+      plan: license.plan,
+      site_limit: license.site_limit,
+      status: license.status,
+      expires_at: license.expires_at,
+    },
+    next: "https://dashboard.bridgistic.app/license",
+  }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * POST /api/appsumo/redeem — claims one inventory code for the signed-in user.
+ *
+ * Only SHA-256(code) is persisted. The unique license index makes retries and
+ * concurrent submissions idempotent without ever putting raw codes in D1 or
+ * audit logs. The full license key is returned only to the authenticated buyer.
+ */
+async function redeemAppSumoCode(request: Request, env: Env, user: User): Promise<Response> {
+  const body = await request.json<{ code?: string }>();
+  const normalized = String(body.code ?? "").trim().toUpperCase();
+  const generic = () => Response.json({ error: "invalid_code", message: "That AppSumo code is invalid or has already been redeemed." }, { status: 400 });
+  if (!APPSUMO_CODE_PATTERN.test(normalized)) return generic();
+
+  const codeHash = await sha256Hex(normalized);
+  const code = await env.DB.prepare(
+    "SELECT code_hash, plan, site_limit, status, license_id, redeemed_by_user_id FROM appsumo_redemption_codes WHERE code_hash = ?"
+  ).bind(codeHash).first<{ code_hash: string; plan: string; site_limit: number; status: string; license_id: string | null; redeemed_by_user_id: string | null }>();
+  if (!code) return generic();
+
+  if (code.status === "redeemed" || code.license_id) {
+    if (code.redeemed_by_user_id !== user.id || !code.license_id) return generic();
+    const existing = await env.DB.prepare("SELECT * FROM licenses WHERE id = ? AND owner_email = ?").bind(code.license_id, user.email).first<LicenseRow>();
+    return existing ? appSumoLicenseResponse(existing, true) : generic();
+  }
+
+  const plan = ["lifetime", "monthly", "yearly"].includes(code.plan) ? code.plan : "lifetime";
+  const siteLimit = Math.max(1, Math.min(100, Number(code.site_limit) || 1));
+  let license = await env.DB.prepare("SELECT * FROM licenses WHERE appsumo_code_hash = ?").bind(codeHash).first<LicenseRow>();
+  if (!license) {
+    try {
+      license = await issueLicense(env.DB, {
+        plan,
+        ownerEmail: user.email,
+        siteLimit,
+        orgId: null,
+        notes: `AppSumo redemption ${codeHash.slice(0, 12)}`,
+        expiresAt: null,
+        appsumoCodeHash: codeHash,
+      });
+    } catch (error) {
+      // A simultaneous request may have inserted the unique license first.
+      // Recover that row; an unrelated database failure still propagates.
+      license = await env.DB.prepare("SELECT * FROM licenses WHERE appsumo_code_hash = ?").bind(codeHash).first<LicenseRow>();
+      if (!license) throw error;
+    }
+  }
+
+  const claimed = await env.DB.prepare(
+    `UPDATE appsumo_redemption_codes
+     SET status = 'redeemed', license_id = ?, redeemed_by_user_id = ?, redeemed_at = ?
+     WHERE code_hash = ? AND status = 'available' AND license_id IS NULL`
+  ).bind(license.id, user.id, new Date().toISOString(), codeHash).run();
+  const changes = Number((claimed.meta as { changes?: number } | undefined)?.changes ?? 0);
+  if (changes !== 1) {
+    const winner = await env.DB.prepare("SELECT license_id, redeemed_by_user_id FROM appsumo_redemption_codes WHERE code_hash = ?").bind(codeHash).first<{ license_id: string | null; redeemed_by_user_id: string | null }>();
+    if (!winner || winner.redeemed_by_user_id !== user.id || !winner.license_id) return generic();
+    const winnerLicense = await env.DB.prepare("SELECT * FROM licenses WHERE id = ? AND owner_email = ?").bind(winner.license_id, user.email).first<LicenseRow>();
+    return winnerLicense ? appSumoLicenseResponse(winnerLicense, true) : generic();
+  }
+
+  await audit(env.DB, user.email, "appsumo.redeem", `code:${codeHash.slice(0, 12)}`, `license:${license.id}`);
+  return appSumoLicenseResponse(license);
 }
 
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {

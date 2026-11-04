@@ -270,16 +270,16 @@ export async function deactivateLicense(db: D1Database, input: DeactivateInput):
 /** Admin issuance. Returns the full key once — it is never shown again. */
 export async function issueLicense(
   db: D1Database,
-  opts: { plan: string; ownerEmail: string; siteLimit: number; orgId: string | null; notes: string; expiresAt: string | null }
+  opts: { plan: string; ownerEmail: string; siteLimit: number; orgId: string | null; notes: string; expiresAt: string | null; appsumoCodeHash?: string | null }
 ): Promise<LicenseRow> {
   const id = crypto.randomUUID();
   const key = licenseKey(opts.plan);
   await db
     .prepare(
-      `INSERT INTO licenses (id, key, product, plan, status, site_limit, owner_email, org_id, notes, expires_at)
-       VALUES (?, ?, 'bridgistic', ?, 'active', ?, ?, ?, ?, ?)`
+      `INSERT INTO licenses (id, key, product, plan, status, site_limit, owner_email, org_id, notes, expires_at, appsumo_code_hash)
+       VALUES (?, ?, 'bridgistic', ?, 'active', ?, ?, ?, ?, ?, ?)`
     )
-    .bind(id, key, opts.plan, opts.siteLimit, opts.ownerEmail, opts.orgId, opts.notes, opts.expiresAt)
+    .bind(id, key, opts.plan, opts.siteLimit, opts.ownerEmail, opts.orgId, opts.notes, opts.expiresAt, opts.appsumoCodeHash ?? null)
     .run();
   await syncLog(db, "issue", maskKey(key), "", `plan=${opts.plan} for ${opts.ownerEmail || "unassigned"}`);
   const row = await db.prepare("SELECT * FROM licenses WHERE id = ?").bind(id).first<LicenseRow>();

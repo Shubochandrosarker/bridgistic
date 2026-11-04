@@ -31,6 +31,7 @@ site/dist-live-*/
 site/dist-verify/
 site/dist-release-*/
 site/dist-support-*/
+site/dist-redeem-*/
 
 # Internal briefs — see docs/BRIEFS.md.
 # These stay out of git while this repository is public: the licensing brief
