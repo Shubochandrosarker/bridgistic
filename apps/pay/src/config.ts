@@ -7,7 +7,13 @@ export interface PayConfig {
   /** Subscription plans offered alongside the Lifetime Deal. */
   prices: Record<Plan, string>;
   statusUrl: string;
+  /** Stripe as a second gateway: on when VITE_STRIPE_CHECKOUT=1. Same plans, same prices. */
+  stripe: boolean;
+  /** Same-origin Pages Function that asks api.wpistic.com for a Stripe Checkout session. */
+  stripeSessionUrl: string;
 }
+
+export type Provider = "paddle" | "stripe";
 
 /** Real Paddle prices on product "Bridgistic Pro" (pro_01m1ykaqjsgcgt6xvwsy4jpn83), read 2026-10-19. */
 export const PADDLE_PRICES: Record<Plan, string> = {
@@ -34,6 +40,8 @@ export function readConfig(env: Record<string, string | undefined>): PayConfig {
     priceId: prices.lifetime,
     prices,
     statusUrl: (env.VITE_OFFER_STATUS_URL ?? "/api/offer-status").trim(),
+    stripe: env.VITE_STRIPE_CHECKOUT === "1",
+    stripeSessionUrl: (env.VITE_STRIPE_SESSION_URL ?? "/api/stripe-checkout").trim(),
   };
 }
 
@@ -82,4 +90,24 @@ export function quantityReset(ev: { name?: string; data?: { items?: PaddleItem[]
   const items = ev.data.items;
   const ok = items.length === 1 && items[0]!.quantity === 1 && (items[0]!.price_id ?? items[0]!.price?.id) === priceId;
   return ok ? null : [{ priceId, quantity: 1 }];
+}
+
+/** Which gateways the page can offer right now. Paddle stays the default. */
+export function availableProviders(c: PayConfig, plan: Plan = "lifetime"): Provider[] {
+  const out: Provider[] = [];
+  if (checkoutReady(c, plan)) out.push("paddle");
+  if (c.stripe) out.push("stripe");
+  return out;
+}
+
+/** Body for POST /api/stripe-checkout (proxied to api.wpistic.com). Prices are resolved server-side. */
+export function stripeSessionRequest(email: string, plan: Plan, origin: string) {
+  return {
+    product: "bridgistic",
+    plan,
+    email,
+    success_url: `${origin}/?thanks=1&provider=stripe`,
+    cancel_url: `${origin}/`,
+    source: "pay.bridgistic.app",
+  };
 }

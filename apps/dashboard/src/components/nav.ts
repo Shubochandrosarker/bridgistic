@@ -1,4 +1,4 @@
-import { Activity, Archive, BookOpen, Boxes, CalendarClock, Database, FileText, FolderTree, Gauge, Globe, Image, KeyRound, LayoutDashboard, ListChecks, Map, Puzzle, ScrollText, Settings2, ShieldCheck, ShoppingBag, Sparkles, Users, Brain, type LucideIcon } from "lucide-react";
+import { Activity, Archive, BookOpen, Boxes, CalendarClock, CreditCard, Database, FileText, FolderTree, Gauge, Globe, Image, KeyRound, LayoutDashboard, ListChecks, Map, Puzzle, ScrollText, Settings2, ShieldCheck, ShoppingBag, Sparkles, Users, Brain, type LucideIcon } from "lucide-react";
 
 export interface NavItem { to: string; label: string; icon: LucideIcon; soon?: boolean; href?: string }
 export const NAV: { group: string; items: NavItem[] }[] = [
@@ -28,6 +28,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
   ]},
   { group: "Account", items: [
     { to: "/license", label: "License", icon: ShieldCheck },
+    { to: "/billing", label: "Billing", icon: CreditCard },
     { to: "/marketplace", label: "Skills marketplace", icon: Boxes, href: "https://marketplace.bridgistic.app/" },
     { to: "/roadmap", label: "Roadmap", icon: Map },
   ]},

@@ -148,7 +148,7 @@ export function AdminUsers() {
     <>
       <PageHead title="Users" sub="Every account on the platform." actions={<Btn onClick={() => setOpen(true)}>Add user</Btn>} />
       {error && <ErrorNote error={error} />}
-      <Table head={["Name", "Email", "Role", "Status", "Orgs", "Created", ""]} empty={users !== null && users.length === 0}>
+      <Table head={["Name", "Email", "Role", "Status", "Billing", "Orgs", "Created", ""]} empty={users !== null && users.length === 0}>
         {(users ?? []).map((u) => (
           <tr key={String(u.id)}>
             <Td className="font-semibold">{String(u.name)}</Td>
@@ -181,6 +181,14 @@ export function AdminUsers() {
                 <option value="active">active</option>
                 <option value="disabled">disabled</option>
               </select>
+            </Td>
+            <Td>
+              <span
+                title={u.billing_synced_at ? `Synced ${fmtDate(String(u.billing_synced_at))}` : "Not synced yet (refreshes when the user opens Billing)"}
+                className={`rounded px-1.5 py-0.5 text-xs font-semibold ${String(u.billing_provider) === "stripe" ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"}`}
+              >
+                {String(u.billing_provider ?? "paddle") === "stripe" ? "Stripe" : "Paddle"}
+              </span>
             </Td>
             <Td>{String(u.org_count ?? 0)}</Td>
             <Td>{fmtDate(String(u.created_at ?? ""))}</Td>

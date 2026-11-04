@@ -78,3 +78,35 @@ describe("pay.bridgistic.app", () => {
     expect(text).not.toMatch(/14[- ]day|14 days/i);
   });
 });
+
+describe("Stripe as a second gateway", async () => {
+  const { availableProviders, stripeSessionRequest } = await import("../src/config.ts");
+  // @ts-expect-error plain JS Pages Function
+  const { sessionBody } = await import("../functions/api/stripe-checkout.js");
+  const paddleCfg = readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123" });
+  it("Paddle stays the default; Stripe appears only when enabled", () => {
+    expect(availableProviders(paddleCfg)).toEqual(["paddle"]);
+    expect(availableProviders(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123", VITE_STRIPE_CHECKOUT: "1" }))).toEqual(["paddle", "stripe"]);
+    expect(availableProviders(readConfig({ VITE_STRIPE_CHECKOUT: "1" }))).toEqual(["stripe"]);
+    expect(availableProviders(readConfig({}))).toEqual([]);
+  });
+  it("offers both providers with the same prices and a provider-neutral note", () => {
+    expect(html).toContain('id="provider-choice" hidden');
+    expect(html).toContain('value="paddle" checked');
+    expect(html).toContain('value="stripe"');
+    expect(text).toContain("Same plans and prices either way");
+    expect(html).toContain("data-stripe-note=");
+  });
+  it("Stripe session request carries plan + email; prices are resolved server-side", () => {
+    const b = stripeSessionRequest("a@b.co", "yearly", "https://pay.bridgistic.app");
+    expect(b).toEqual({ product: "bridgistic", plan: "yearly", email: "a@b.co", success_url: "https://pay.bridgistic.app/?thanks=1&provider=stripe", cancel_url: "https://pay.bridgistic.app/", source: "pay.bridgistic.app" });
+    expect(JSON.stringify(b)).not.toMatch(/price_|pri_/);
+  });
+  it("the Pages Function validates input and pins return URLs to this origin", () => {
+    expect(sessionBody({ plan: "weekly", email: "a@b.co" }, "https://pay.bridgistic.app").error).toBeTruthy();
+    expect(sessionBody({ plan: "monthly", email: "nope" }, "https://pay.bridgistic.app").error).toBeTruthy();
+    const ok = sessionBody({ plan: "lifetime", email: " A@B.co ", success_url: "https://evil.example" }, "https://pay.bridgistic.app");
+    expect(ok.body.email).toBe("a@b.co");
+    expect(ok.body.success_url).toBe("https://pay.bridgistic.app/?thanks=1&provider=stripe");
+  });
+});

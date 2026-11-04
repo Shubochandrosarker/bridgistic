@@ -36,6 +36,7 @@ export function Stat({ label, value, hint, delay = 0 }: { label: string; value: 
 const tones: Record<string, string> = {
   ok: "bg-teal-soft text-teal", approved: "bg-teal-soft text-teal", active: "bg-teal-soft text-teal", publish: "bg-teal-soft text-teal", completed: "bg-teal-soft text-teal",
   pending: "bg-gold/15 text-[#7a5f2b]", pending_approval: "bg-gold/15 text-[#7a5f2b]", draft: "bg-gold/15 text-[#7a5f2b]", processing: "bg-gold/15 text-[#7a5f2b]", grace_period: "bg-gold/15 text-[#7a5f2b]",
+  lifetime: "bg-teal-soft text-teal", paid: "bg-teal-soft text-teal", past_due: "bg-gold/15 text-[#7a5f2b]", cancelled: "bg-navy/5 text-navy/70", refunded: "bg-red-50 text-red-800",
   denied: "bg-red-50 text-red-800", error: "bg-red-50 text-red-800", expired: "bg-red-50 text-red-800", revoked: "bg-red-50 text-red-800",
 };
 export function Badge({ children, tone }: { children: ReactNode; tone?: string }) {

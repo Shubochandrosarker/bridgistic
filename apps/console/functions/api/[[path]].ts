@@ -32,6 +32,7 @@ import {
   type User,
 } from "../lib/auth.ts";
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
+import { billingSummary, safeReturnUrl, stripePortal } from "../lib/billing.ts";
 import { claimLicense, listMySites, proxyActivate, proxyDeactivate, proxyValidate, resolveOwnedSite, sha256Hex } from "../lib/sites.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
@@ -97,6 +98,8 @@ interface Env {
   WPISTIC_LICENSE_API?: string;
   WPISTIC_SERVICE_API?: string;
   LICENSE_SERVICE_TOKEN?: string;
+  WPISTIC_BILLING_API?: string;
+  PADDLE_CUSTOMER_PORTAL_URL?: string;
   OPENROUTER_KEY?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -366,6 +369,20 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     await audit(db, user.email, "license.claim", claimed.key_mask, claimed.source);
     const result = await listMySites(env, user);
     return Response.json({ ok: true, claimed: { key_mask: claimed.key_mask, plan: claimed.plan }, ...result });
+  }
+
+  // ── Billing (Paddle or Stripe, one shape) ──────────────────────────────────
+  if (path === "/api/me/billing" && method === "GET") {
+    const result = await billingSummary(env, user);
+    return Response.json(result, { headers: { "Cache-Control": "no-store" } });
+  }
+  if (path === "/api/me/billing/portal" && method === "POST") {
+    const body = await request.json<{ return_url?: string }>().catch(() => ({} as { return_url?: string }));
+    const returnUrl = safeReturnUrl(String(body.return_url ?? ""));
+    const result = await stripePortal(env, user, returnUrl);
+    if (!result.ok) return Response.json({ error: result.error, message: result.message }, { status: result.status });
+    await audit(db, user.email, "billing.portal", "stripe");
+    return Response.json({ url: result.url });
   }
 
   // Back-compat for dashboards built before Phase 1: same list, no secrets.
@@ -729,7 +746,7 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
     if (method === "GET" && !id) {
       const { results } = await db
         .prepare(
-          `SELECT u.id, u.email, u.name, u.role, u.status, u.created_at,
+          `SELECT u.id, u.email, u.name, u.role, u.status, u.created_at, u.billing_provider, u.billing_synced_at,
              (SELECT COUNT(*) FROM orgs o WHERE o.owner_user_id = u.id) AS org_count
            FROM users u ORDER BY u.created_at DESC`
         )
