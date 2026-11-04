@@ -77,6 +77,22 @@ Sections:
 - FAQ
 - Publisher
 
+## Support
+URL: https://bridgistic.app/support
+Updated: 2026-11-04
+Bridgistic support for WordPress setup, MCP connections, license activation, billing, security reports and troubleshooting.
+
+Get your WordPress bridge working.
+
+Sections:
+- What support covers
+- Send a useful support request
+- Before you email
+- Billing and refunds
+- Security reports
+- Common questions
+- Publisher
+
 ## Terms of Service
 URL: https://bridgistic.app/terms
 Updated: 2026-11-04

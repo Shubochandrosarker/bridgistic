@@ -46,7 +46,7 @@ fi
 
 printf 'bridgistic.app\n' > "$OUT/CNAME"
 cp assets/* "$OUT/assets/"
-cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html "$OUT/"
+cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html support.html "$OUT/"
 
 # Regenerate sitemap.xml, robots.txt, llms.txt and llms-full.txt from the pages.
 node build-seo.mjs --source . --out "$OUT"
