@@ -90,11 +90,11 @@ export function AgencyBulk() {
 export function AgencyDeals() {
   return (
     <>
-      <PageHead title="LTD desk" sub="The Lifetime Deal: $49.99 one time, 1 site, all future updates, no deadline." />
+      <PageHead title="LTD desk" sub="The Lifetime Deal: $69 one time, 1 site, all future updates, limited time offer." />
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5">
           <Badge tone="gold">Lifetime</Badge>
-          <div className="mt-2 text-2xl font-bold text-navy">$49.99</div>
+          <div className="mt-2 text-2xl font-bold text-navy">$69</div>
           <p className="text-sm text-navy/60">one payment · 1 website · the three shipped license gates</p>
           <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" className="mt-3">Buy the LTD</Btn></a>
         </Card>

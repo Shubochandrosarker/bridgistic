@@ -20,6 +20,7 @@ REPO="Wordpressistic/bridgistic"
 COMMIT="${SITE_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
 PADDLE_CLIENT_TOKEN="${PADDLE_CLIENT_TOKEN:-}"
 PADDLE_ENV="${PADDLE_ENV:-production}"
+PADDLE_PRICE_LIFETIME="${PADDLE_PRICE_LIFETIME:-}"
 OFFER_STATUS_URL="${OFFER_STATUS_URL:-/api/offer-status}"
 
 echo "Building site with Bridgistic $TAG"
@@ -34,6 +35,7 @@ sed -e "s#__BRIDGISTIC_RELEASE_VERSION__#$VERSION#g" \
     -e "s#__BRIDGISTIC_SITE_COMMIT__#$COMMIT#g" \
     -e "s#__BRIDGISTIC_PADDLE_CLIENT_TOKEN__#$PADDLE_CLIENT_TOKEN#g" \
     -e "s#__BRIDGISTIC_PADDLE_ENV__#$PADDLE_ENV#g" \
+    -e "s#__BRIDGISTIC_PADDLE_PRICE_LIFETIME__#$PADDLE_PRICE_LIFETIME#g" \
     -e "s#__BRIDGISTIC_OFFER_STATUS_URL__#$OFFER_STATUS_URL#g" \
     index.html > "$OUT/index.html"
 

@@ -362,7 +362,7 @@ export function AdminLicenses() {
           <div className="space-y-3">
             <Field label="Plan">
               <select className={inputClass} value={plan} onChange={(e) => { setPlan(e.target.value); setSiteLimit(e.target.value === "lifetime" ? "1" : "5"); }}>
-                <option value="lifetime">lifetime ($49.99 LTD)</option>
+                <option value="lifetime">lifetime ($69 LTD)</option>
                 <option value="monthly">monthly ($12)</option>
                 <option value="yearly">yearly ($99)</option>
               </select>
@@ -421,7 +421,7 @@ export function AdminReports() {
     <>
       <PageHead title="Reports" sub="Commercial snapshot from the ledger." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Lifetime value sold" value={`$${(((Number(stats.licenses_active) || 0) * 49.99)).toFixed(2)}`} sub="at LTD price" />
+        <Stat label="Lifetime value sold" value={`$${(((Number(stats.licenses_active) || 0) * 69)).toFixed(2)}`} sub="at LTD price" />
         <Stat label="Active licenses" value={String(stats.licenses_active)} />
         <Stat label="Marketplace installs" value={String(stats.installs)} />
         <Stat label="Skills" value={String(stats.skills)} />
