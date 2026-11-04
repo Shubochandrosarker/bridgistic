@@ -4,6 +4,7 @@ import { usePairedSitesSync } from "./lib/sites-sync.ts";
 import { useStore } from "./lib/store.tsx";
 import { Approvals } from "./pages/Approvals.tsx";
 import { Audit } from "./pages/Audit.tsx";
+import { Billing } from "./pages/Billing.tsx";
 import { Database, Files, Media, Memory, Options, Playbooks, Plugins, Posts, Schedules, UsersPage, WooCommerce } from "./pages/Features.tsx";
 import { Keys } from "./pages/Keys.tsx";
 import { License } from "./pages/License.tsx";
@@ -46,6 +47,7 @@ export function App() {
         <Route path="memory" element={<Memory />} />
         <Route path="woocommerce" element={<WooCommerce />} />
         <Route path="license" element={<License />} />
+        <Route path="billing" element={<Billing />} />
         <Route path="coming-soon" element={<ComingSoon />} />
         <Route path="roadmap" element={<Roadmap />} />
         <Route path="*" element={<div className="py-20 text-center"><p className="text-lg font-medium">Page not found</p></div>} />

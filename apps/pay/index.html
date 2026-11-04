@@ -50,6 +50,20 @@
         <label for="buyer-email" class="block text-xs font-semibold uppercase tracking-[0.14em] text-navy/60">Email for your license key</label>
         <input id="buyer-email" type="email" autocomplete="email" placeholder="you@example.com" class="mt-2 w-full rounded-xl border border-navy/20 bg-ivory px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gold" />
         <p id="email-note" class="mt-1 text-xs text-navy/55">Your WPistic license is issued to this email after payment.</p>
+        <fieldset id="provider-choice" hidden class="mt-4">
+          <legend class="block text-xs font-semibold uppercase tracking-[0.14em] text-navy/60">Pay with</legend>
+          <div class="mt-2 grid grid-cols-2 gap-2" role="radiogroup">
+            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-navy/20 bg-ivory px-4 py-3 text-sm has-[:checked]:border-gold has-[:checked]:ring-2 has-[:checked]:ring-gold">
+              <input type="radio" name="provider" value="paddle" checked class="accent-navy" />
+              <span><span class="font-semibold">Paddle</span><span class="block text-xs text-navy/55">Card, PayPal and more</span></span>
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-navy/20 bg-ivory px-4 py-3 text-sm has-[:checked]:border-gold has-[:checked]:ring-2 has-[:checked]:ring-gold">
+              <input type="radio" name="provider" value="stripe" class="accent-navy" />
+              <span><span class="font-semibold">Stripe</span><span class="block text-xs text-navy/55">Card, Apple Pay, Google Pay</span></span>
+            </label>
+          </div>
+          <p class="mt-1 text-xs text-navy/55">Same plans and prices either way. Tax is calculated at checkout.</p>
+        </fieldset>
 
         <div data-when="open" class="mt-8">
           <div class="flex items-baseline gap-3">
@@ -90,7 +104,7 @@
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Advanced snapshots <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Audit log export <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Skills marketplace <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
-                <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Billing managed in the Paddle customer portal</li>
+                <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Manage billing from the Bridgistic dashboard</li>
               </ul>
               <button data-plan="monthly" type="button" class="mt-4 w-full rounded-xl bg-navy px-4 py-3 text-sm font-semibold text-ivory disabled:opacity-50">Choose monthly</button>
             </div>
@@ -107,13 +121,13 @@
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Advanced snapshots <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Audit log export <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
                 <li class="flex gap-3 text-navy/55"><span class="mt-1 h-2 w-2 shrink-0 rounded-full ring-1 ring-navy/40"></span><span>Skills marketplace <span class="ml-1 whitespace-nowrap rounded-full border border-navy/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span></span></li>
-                <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Billing managed in the Paddle customer portal</li>
+                <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal"></span>Manage billing from the Bridgistic dashboard</li>
               </ul>
               <button data-plan="yearly" type="button" class="mt-4 w-full rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-navy disabled:opacity-50">Choose yearly</button>
             </div>
           </div>
         </div>
-        <p id="buy-note" class="mt-4 text-center text-xs text-navy/55" aria-live="polite">Payment is processed by Paddle, our reseller and Merchant of Record. Taxes are calculated at checkout.</p>
+        <p id="buy-note" class="mt-4 text-center text-xs text-navy/55" aria-live="polite" data-paddle-note="Payment is processed by Paddle, our reseller and Merchant of Record. Taxes are calculated at checkout." data-stripe-note="Payment is processed securely by Stripe for WordPressistic LLC. Taxes are calculated at checkout.">Payment is processed by Paddle, our reseller and Merchant of Record. Taxes are calculated at checkout.</p>
       </div>
       <aside class="reveal reveal-2 rounded-3xl bg-white p-8 ring-1 ring-navy/10 lg:col-span-2">
         <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-navy/55">What Bridgistic does today</h2>
@@ -138,9 +152,9 @@
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Are future updates included?</summary><p class="mt-2 text-sm text-navy/70">Yes. Every future update to Bridgistic is included in the Lifetime Deal.</p></details>
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">How do I activate my license?</summary><p class="mt-2 text-sm text-navy/70">After purchase you receive a license key by email. Paste it on the License screen in the Bridgistic dashboard or plugin. The license is verified by the WPistic license server.</p></details>
         <details class="group p-5"><summary class="cursor-pointer list-none font-medium">How many sites can I use it on?</summary><p class="mt-2 text-sm text-navy/70">Lifetime Deal: 1 license · 1 site. Monthly and Yearly: 1 license · 3 sites. A site is one production site with the license activated; local and staging copies do not count.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Who processes the payment?</summary><p class="mt-2 text-sm text-navy/70">Paddle.com is our online reseller and Merchant of Record. Paddle handles payment, tax and your receipt. WordPressistic LLC operates Bridgistic.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Can I get a refund?</summary><p class="mt-2 text-sm text-navy/70">Yes. Every purchase has a 7-day refund guarantee, with no questions asked. Email <a class="text-teal underline" href="mailto:support@wpistic.com">support@wpistic.com</a>, and Paddle processes the refund as merchant of record. A refund ends the license. Details are in the Refund Policy linked below.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Already bought? Manage your purchase</summary><p class="mt-2 text-sm text-navy/70">Receipts and payment details are in the <a class="text-teal underline" href="https://customer-portal.paddle.com/cpl_01m1ycy6ry01sg09dgnyt31pd1">Paddle customer portal</a>. Licenses are in your <a class="text-teal underline" href="https://app.wpistic.com/licenses">WPistic account</a>.</p></details>
+        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Who processes the payment?</summary><p class="mt-2 text-sm text-navy/70">You can pay through Paddle or Stripe at the same price. Paddle.com is our online reseller and Merchant of Record for Paddle purchases and handles payment, tax and your receipt. Stripe purchases are sold by WordPressistic LLC, which operates Bridgistic, with tax calculated by Stripe.</p></details>
+        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Can I get a refund?</summary><p class="mt-2 text-sm text-navy/70">Yes. Every purchase has a 7-day refund guarantee, with no questions asked. Email <a class="text-teal underline" href="mailto:support@wpistic.com">support@wpistic.com</a>, and we refund through the provider you paid with. A refund ends the license. Details are in the Refund Policy linked below.</p></details>
+        <details class="group p-5"><summary class="cursor-pointer list-none font-medium">Already bought? Manage your purchase</summary><p class="mt-2 text-sm text-navy/70">Plan, renewal and invoices are on the <a class="text-teal underline" href="https://dashboard.bridgistic.app/billing">Billing page of your dashboard</a>. Paddle receipts are also in the <a class="text-teal underline" href="https://customer-portal.paddle.com/cpl_01m1ycy6ry01sg09dgnyt31pd1">Paddle customer portal</a>. Licenses are in your <a class="text-teal underline" href="https://app.wpistic.com/licenses">WPistic account</a>.</p></details>
       </div>
     </section>
   </main>
