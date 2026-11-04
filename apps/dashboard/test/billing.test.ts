@@ -13,7 +13,7 @@ describe("billing page helpers", () => {
   });
   it("formats prices", () => {
     expect(fmtMoney(1200, "USD")).toBe("$12.00");
-    expect(fmtMoney(4999, "USD")).toBe("$49.99");
+    expect(fmtMoney(6900, "USD")).toBe("$69.00");
     expect(cadence("year")).toBe("/ year");
     expect(cadence("lifetime")).toBe("one-time");
   });

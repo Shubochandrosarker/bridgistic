@@ -50,7 +50,7 @@ const plans = [
   ["free", "Free", 0, 0, 0, 1, 1, "active"],
   ["monthly", "Monthly", 12, 0, 0, 5, 3, "active"],
   ["yearly", "Yearly", 0, 99, 0, 5, 3, "active"],
-  ["lifetime", "Lifetime", 0, 0, 49.99, 1, 1, "active"],
+  ["lifetime", "Lifetime", 0, 0, 69, 1, 1, "active"],
 ];
 const planSql = plans
   .map(

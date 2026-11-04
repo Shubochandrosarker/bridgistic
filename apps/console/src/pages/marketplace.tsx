@@ -123,14 +123,14 @@ function Gate({ kind }: { kind: "signin" | "license" }) {
       <p className="mt-1.5 text-xs leading-relaxed text-white/55">
         {kind === "signin"
           ? "A free account unlocks all 100 free skills. Pro members get the battle-tested Pro collection."
-          : "30 battle-tested production skills, exclusive to license holders. The Lifetime Deal is $49.99 one time."}
+          : "30 battle-tested production skills, exclusive to license holders. The Lifetime Deal is $69 one time."}
       </p>
       <div className="mt-4 flex justify-center gap-2">
         {kind === "signin" ? (
           <a href="https://dashboard.bridgistic.app/sign-in"><Btn variant="gold" small>Sign in</Btn></a>
         ) : (
           <>
-            <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $49.99</Btn></a>
+            <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $69</Btn></a>
             <a href="/license"><Btn variant="ghost" small className="!bg-transparent !text-white">I have a key</Btn></a>
           </>
         )}

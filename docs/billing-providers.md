@@ -6,7 +6,7 @@ Bridgistic sells the same three plans through two gateways, at the same prices:
 |---|---|---|
 | Pro monthly | $12 | 3 |
 | Pro yearly | $99 | 3 |
-| Lifetime Deal | $49.99 one-time | 1 |
+| Lifetime Deal | $69 one-time | 1 |
 
 api.wpistic.com remains the only license issuer for both gateways. The full design
 is in wpistic's `wpistic-platform/docs/billing-providers.md`. It reuses the names

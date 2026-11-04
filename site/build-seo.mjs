@@ -202,7 +202,7 @@ const llms = `# Bridgistic
 
 > Bridgistic is a WordPress plugin and local MCP bridge from WordPressistic LLC. It lets Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients act on WordPress through signed, scoped requests, with approvals, snapshots and an audit log. The administrator password is not the credential.
 
-Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Paid plans are sold by Paddle as merchant of record. This file is rebuilt from the live pages whenever the site is built. Content date: ${updated}.
+Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Paddle is the merchant of record for Paddle purchases; Stripe purchases are sold by WordPressistic LLC with tax calculated by Stripe Tax. This file is rebuilt from the live pages whenever the site is built. Content date: ${updated}.
 
 ## Pages
 ${pages.map((p) => `- [${p.title}](${p.loc}): ${p.description}`).join("\n")}
@@ -213,10 +213,10 @@ ${SECTIONS.map(([id, label]) => `- [${label}](${ORIGIN}/#${id})`).join("\n")}
 
 ## Pricing (as published)
 - Free: $0. Local MCP bridge, GPL-2.0-or-later.
-- Pro Lifetime Deal: $49.99 once for 1 license · 1 site, a single payment that includes all future updates. No deadline.
+- Pro Lifetime Deal: $69 once for 1 license · 1 site, a single payment that includes all future updates. Limited Time Offer.
 - Pro Monthly: $12 USD per month, 1 license · 3 sites.
 - Pro Yearly: $99 USD per year, 1 license · 3 sites.
-- Every purchase has a 7-day refund guarantee. Taxes are calculated by Paddle at checkout.
+- Every purchase has a 7-day refund guarantee. Paddle calculates tax for Paddle purchases; Stripe Tax calculates tax for Stripe purchases.
 
 ## Optional
 - [Full context](${ORIGIN}/llms-full.txt): Page summaries, headings and the FAQ, rebuilt with the site.
@@ -241,7 +241,7 @@ ${home.h1} ${home.description}
 Bridgistic connects MCP clients to WordPress without handing over a WordPress administrator password. A site owner mints a scoped key. Requests are HMAC-signed. Writes can require human approval. Destructive operations can be snapshotted and restored. The local connection is the recommended default. Bridgistic Cloud is a public beta and has not completed an independent third-party security review.
 
 ## Pricing
-Free is $0. The Lifetime Deal is $49.99 once for 1 license · 1 site, a single payment that includes all future updates. No deadline. Pro Monthly is $12 USD per month for 1 license · 3 sites. Pro Yearly is $99 USD per year for 1 license · 3 sites. Paddle is the merchant of record. Every purchase has a 7-day refund guarantee.
+Free is $0. The Lifetime Deal is $69 once for 1 license · 1 site, a single payment that includes all future updates. It is a Limited Time Offer. Pro Monthly is $12 USD per month for 1 license · 3 sites. Pro Yearly is $99 USD per year for 1 license · 3 sites. Paddle is the merchant of record for Paddle purchases; Stripe purchases are sold by WordPressistic LLC with tax calculated by Stripe Tax. Every purchase has a 7-day refund guarantee.
 
 ${pages.map((p) => `## ${p.title}
 URL: ${p.loc}

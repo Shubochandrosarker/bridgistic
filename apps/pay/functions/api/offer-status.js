@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: GET /api/offer-status
 //
-// Reports whether the $49.99 Lifetime Deal is open.
+// Reports whether the $69 Lifetime Deal is open.
 // Terms (set by Shuvo, 2026-10-28): active now, no end date, no license cap;
 // OFFER_FORCE_CLOSED=1 remains the kill switch. The sold count is read server-side from
 // Paddle with a READ-ONLY API key (permission: transaction.read only). The key
@@ -13,13 +13,13 @@
 //   PADDLE_ENV       optional          "sandbox" for sandbox-api.paddle.com
 //   OFFER_ENDS_AT    optional          RFC 3339, default 2026-12-31T23:59:59+06:00
 //   OFFER_CAP        optional          default 100
-//   LTD_PRICE_ID     optional          default pri_01m58k6epsqzbr3qbab84t6p90
+//   LTD_PRICE_ID     optional          default pri_01m6jjwzmy59ck0t0fgs87g37f
 //   OFFER_FORCE_CLOSED optional        "1" closes the offer immediately
 
 const DEFAULTS = {
   endsAt: "9999-12-31T23:59:59Z", // no deadline (Shuvo, 2026-10-28)
   cap: Number.MAX_SAFE_INTEGER, // no license cap
-  priceId: "pri_01m58k6epsqzbr3qbab84t6p90",
+  priceId: "pri_01m6jjwzmy59ck0t0fgs87g37f",
 };
 const ALLOWED_ORIGINS = new Set([
   "https://bridgistic.app",

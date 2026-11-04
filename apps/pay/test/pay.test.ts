@@ -10,11 +10,11 @@ describe("pay.bridgistic.app", () => {
   it("checkout stays disabled until a real token and price are configured", () => {
     expect(checkoutReady(readConfig({}))).toBe(false);
     expect(checkoutReady(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "not-a-token" }))).toBe(false);
-    expect(checkoutReady(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123" }))).toBe(true);
+    expect(checkoutReady(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123", VITE_PADDLE_PRICE_LIFETIME: "pri_01m6jjwzmy59ck0t0fgs87g37f" }))).toBe(true);
   });
   it("defaults to the real Paddle prices; LTD is the checkout price", () => {
     const c = readConfig({ VITE_PADDLE_PRICE_LIFETIME: "pri_" });
-    expect(c.priceId).toBe("pri_01m58k6epsqzbr3qbab84t6p90");
+    expect(c.priceId).toBe(PADDLE_PRICES.lifetime);
     expect(c.prices).toEqual(PADDLE_PRICES);
     expect(PADDLE_PRICES.monthly).toBe("pri_01m1ykar8aq033865h68a4b9hh");
     expect(PADDLE_PRICES.yearly).toBe("pri_01m1ykaqyaaeewsbah07akmpka");
@@ -37,13 +37,13 @@ describe("pay.bridgistic.app", () => {
     expect(o.customer).toEqual({ email: "a@b.co" });
   });
   it("tags the checkout so the WPistic webhook can attribute it", () => {
-    const o = checkoutOptions(readConfig({}));
-    expect(o.items).toEqual([{ priceId: "pri_01m58k6epsqzbr3qbab84t6p90", quantity: 1 }]);
+    const o = checkoutOptions(readConfig({ VITE_PADDLE_PRICE_LIFETIME: "pri_01m6jjwzmy59ck0t0fgs87g37f" }));
+    expect(o.items).toEqual([{ priceId: "pri_01m6jjwzmy59ck0t0fgs87g37f", quantity: 1 }]);
     expect(o.customData).toMatchObject({ source: "pay.bridgistic.app", product: "bridgistic", offer: "welcome-lifetime" });
   });
   it("shows only the real Paddle amounts and the offer terms", () => {
-    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$49.99", "$12", "$99"].includes(p))).toBe(true);
-    for (const t of ["Active now, no deadline", "All future updates included"]) expect(text).toContain(t);
+    expect(text.match(/\$\d+(\.\d\d)?/g)?.every((p) => ["$69", "$12", "$99"].includes(p))).toBe(true);
+    for (const t of ["Active now", "All future updates included", "1 license for 1 site", "Limited Time Offer"]) expect(text).toContain(t);
     for (const t of ["31 December 2026", "100 licenses", "has ended"]) expect(text).not.toContain(t);
     expect(text).toContain("All future paid features");
   });
@@ -83,10 +83,10 @@ describe("Stripe as a second gateway", async () => {
   const { availableProviders, stripeSessionRequest } = await import("../src/config.ts");
   // @ts-expect-error plain JS Pages Function
   const { sessionBody } = await import("../functions/api/stripe-checkout.js");
-  const paddleCfg = readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123" });
+  const paddleCfg = readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123", VITE_PADDLE_PRICE_LIFETIME: "pri_01m6jjwzmy59ck0t0fgs87g37f" });
   it("Paddle stays the default; Stripe appears only when enabled", () => {
     expect(availableProviders(paddleCfg)).toEqual(["paddle"]);
-    expect(availableProviders(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123", VITE_STRIPE_CHECKOUT: "1" }))).toEqual(["paddle", "stripe"]);
+    expect(availableProviders(readConfig({ VITE_PADDLE_CLIENT_TOKEN: "live_abc123", VITE_PADDLE_PRICE_LIFETIME: "pri_01m6jjwzmy59ck0t0fgs87g37f", VITE_STRIPE_CHECKOUT: "1" }))).toEqual(["paddle", "stripe"]);
     expect(availableProviders(readConfig({ VITE_STRIPE_CHECKOUT: "1" }))).toEqual(["stripe"]);
     expect(availableProviders(readConfig({}))).toEqual([]);
   });

@@ -90,8 +90,8 @@
 <table>
 <thead><tr><th>Part</th><th>Role</th></tr></thead>
 <tbody>
-<tr><td>bridgistic.app, pay.bridgistic.app</td><td>Show the plans and open Paddle checkout with the email you enter</td></tr>
-<tr><td>Paddle</td><td>Merchant of record. Takes payment, issues the receipt and sends a signed notification to WPistic</td></tr>
+<tr><td>bridgistic.app, pay.bridgistic.app</td><td>Show the plans and open Paddle or Stripe checkout with the email you enter</td></tr>
+<tr><td>Paddle or Stripe</td><td>Take payment and send a signed notification to WPistic. Paddle is merchant of record for Paddle purchases; Stripe purchases are sold by WordPressistic LLC.</td></tr>
 <tr><td>api.wpistic.com</td><td>The WPistic license server. Issues and verifies Bridgistic licenses</td></tr>
 <tr><td>Bridgistic plugin</td><td>Runs on your WordPress site. Holds your keys, approvals, snapshots and audit log, and activates your license</td></tr>
 <tr><td>dashboard.bridgistic.app</td><td>A browser dashboard that talks directly to your site with signed requests</td></tr>
@@ -101,13 +101,13 @@
 <section><h2>From checkout to license</h2>
 <ol class="steps">
 <li><strong>Choose a plan.</strong> On bridgistic.app or pay.bridgistic.app, pick the Lifetime Deal, monthly or yearly. Enter the email that should receive your license.</li>
-<li><strong>Pay with Paddle.</strong> Paddle checkout opens on the page. Your payment details go to Paddle, which is the merchant of record for the sale.</li>
-<li><strong>Paddle notifies WPistic.</strong> Paddle sends a signed <code>transaction.completed</code> notification to api.wpistic.com. The license server rejects any notification whose signature does not verify.</li>
-<li><strong>The license is issued by price.</strong> The license server looks up the Paddle price in its catalog. The Lifetime Deal price <code>pri_01m58k6epsqzbr3qbab84t6p90</code> issues a license with no expiry. Lifetime Deal: 1 license · 1 site. Monthly <code>pri_01m1ykar8aq033865h68a4b9hh</code> and yearly <code>pri_01m1ykaqyaaeewsbah07akmpka</code> issue a Bridgistic Pro license. Monthly and Yearly: 1 license · 3 sites. The same price issues the same license whether you bought on bridgistic.app, pay.bridgistic.app or app.wpistic.com.</li>
+<li><strong>Pay with Paddle or Stripe.</strong> Paddle checkout remains available, and Stripe opens a hosted Checkout page. Paddle is the merchant of record for Paddle purchases. Stripe purchases are sold by WordPressistic LLC and use Stripe Tax.</li>
+<li><strong>The provider notifies WPistic.</strong> Paddle sends a signed <code>transaction.completed</code> notification and Stripe sends signed Checkout and billing events to api.wpistic.com. The license server rejects any notification whose signature does not verify.</li>
+<li><strong>The license is issued by price.</strong> The license server maps the provider price to the reviewed plan and site limit. The Lifetime Deal issues a license with no expiry: 1 license · 1 site. Monthly and Yearly issue a Bridgistic Pro license: 1 license · 3 sites. The same plan issues the same license whether you bought on bridgistic.app, pay.bridgistic.app or app.wpistic.com.</li>
 <li><strong>You receive the key by email.</strong> The license server keeps only a hash of the key, and sends the key to you once.</li>
 <li><strong>Activate it on your site.</strong> In dashboard.bridgistic.app, connect your site and open <em>License</em>. Paste the key and the dashboard asks the plugin on your site to activate it. The plugin sends the key with your site's domain and installation ID to api.wpistic.com, checks the signature on the reply, and stores the activation. The same key and the same license are then shown in the plugin and in the dashboard.</li>
 <li><strong>Re-checks.</strong> <em>Check now</em> in the dashboard re-validates the license with the license server. Deactivating frees the site's activation slot.</li>
-<li><strong>Refunds and support.</strong> Every purchase has a 7-day refund guarantee. Write to <a href="mailto:support@wpistic.com">support@wpistic.com</a>, and Paddle processes the refund as merchant of record. A refund ends the license, which may be done by hand rather than instantly. See the <a href="/refund-policy">Refund Policy</a>.</li>
+<li><strong>Refunds and support.</strong> Every purchase has a 7-day refund guarantee. Write to <a href="mailto:support@wpistic.com">support@wpistic.com</a>, and the original provider processes the refund. A full refund ends the license, which may be done by hand rather than instantly. See the <a href="/refund-policy">Refund Policy</a>.</li>
 </ol></section>
 
 <section><h2>Using AI clients</h2>
