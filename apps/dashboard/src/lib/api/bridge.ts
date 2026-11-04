@@ -108,6 +108,10 @@ export class BridgeClient implements BridgisticClient {
   }
   async playbooks() { return firstArray(await this.call("GET", "playbooks")) as unknown as Playbook[]; }
   async schedules() { return firstArray(await this.call("GET", "schedules")) as unknown as Schedule[]; }
+  createSchedule(input: { playbook: string; recurrence: string }) { return this.call<Row>("POST", "schedules", { playbook: input.playbook, recurrence: input.recurrence, dry_run: false, force: false }); }
+  memoryScan() { return this.call<Row>("POST", "memory/scan", {}); }
+  memoryImportUrl(url: string, key?: string) { return this.call<Row>("POST", "memory/import-url", { url, key: key ?? "" }); }
+  memoryWrite(category: string, key: string, value: unknown) { return this.call<Row>("POST", "memory", { category, key, value }); }
   toggleSchedule(id: string, enabled: boolean) { return this.call<Row>("POST", "schedules/toggle", { schedule_id: id, enabled }); }
   runScheduleNow(id: string) { return this.call<Row>("POST", "schedules/run-now", { schedule_id: id }); }
   togglePlugin(file: string, active: boolean) { return this.call<Row>("POST", "plugins/toggle", { plugin: file, state: active ? "activate" : "deactivate" }); }
