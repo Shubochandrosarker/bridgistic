@@ -53,7 +53,7 @@ const issued = await send({
     status: "completed",
     customer_id: "ctm_01m5test",
     custom_data: { source: "pay.bridgistic.app", product: "bridgistic", offer: "welcome-lifetime", customer_email: buyer },
-    items: [{ price: { id: "pri_01m58k6epsqzbr3qbab84t6p90" }, quantity: 1 }],
+    items: [{ price: { id: "pri_01m6jjwzmy59ck0t0fgs87g37f" }, quantity: 1 }],
   },
 });
 check("transaction.completed issues a license", issued.status === 200 && issued.json?.ok === true && typeof issued.json?.license === "string", JSON.stringify(issued.json));
@@ -67,7 +67,7 @@ const replay = await send({
     status: "completed",
     customer_id: "ctm_01m5test",
     custom_data: { customer_email: buyer },
-    items: [{ price: { id: "pri_01m58k6epsqzbr3qbab84t6p90" }, quantity: 1 }],
+    items: [{ price: { id: "pri_01m6jjwzmy59ck0t0fgs87g37f" }, quantity: 1 }],
   },
 });
 check("redelivery does not double-issue", replay.json?.duplicate === true, JSON.stringify(replay.json));

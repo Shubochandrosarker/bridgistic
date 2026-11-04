@@ -10,7 +10,9 @@
     "seed:registry": "node scripts/seed-registry.mjs",
     "seed:db": "node scripts/seed-db.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bridgistic-console",
-    "deploy:functions": "wrangler pages deploy dist --project-name bridgistic-console"
+    "deploy:functions": "wrangler pages deploy dist --project-name bridgistic-console",
+    "test": "vitest run",
+    "typecheck:functions": "tsc -p tsconfig.functions.json"
   },
   "dependencies": {
     "fflate": "^0.8.2",
@@ -26,9 +28,11 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
+    "sql.js": "^1.15.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
+    "vitest": "^3.2.7",
     "wrangler": "^4.107.1"
   }
 }

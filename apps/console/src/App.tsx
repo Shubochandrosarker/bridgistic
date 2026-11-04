@@ -8,6 +8,7 @@ import { Posts, Media, SiteUsers, Plugins, Options, FilesScreen, DatabaseScreen 
 import { Playbooks, Schedules, Memory, WooCommerce } from "./pages/automation";
 import { AgentHub, AgentPage } from "./pages/agents";
 import { MarketDirectory, ProHub, SkillDetail } from "./pages/marketplace";
+import { InstallGuide } from "./pages/install-guide";
 import { Installed } from "./pages/installed";
 import { Connectors, Social, Bridge } from "./pages/connectors";
 import { AgencyTeam, AgencyBulk, AgencyDeals, Roadmap } from "./pages/agency";
@@ -66,6 +67,8 @@ export default function App() {
         {/* Public marketplace — anonymous visitors browse; gated actions ask for an account. */}
         <Route path="/marketplace" element={<MarketDirectory />} />
         <Route path="/pro" element={<ProHub />} />
+        <Route path="/install-guide" element={<InstallGuide />} />
+        <Route path="/docs/install" element={<InstallGuide />} />
         <Route path="/marketplace/:handle/:slug" element={<SkillDetail />} />
         <Route path="/marketplace/:slug" element={<SkillDetail />} />
         <Route path="/" element={<RootRoute />} />

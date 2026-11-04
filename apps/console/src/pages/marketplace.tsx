@@ -65,7 +65,7 @@ function MarketHeader({ signedIn }: { signedIn: boolean }) {
           {signedIn ? (
             <a href="/installed" className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white hover:bg-white/15">My account</a>
           ) : (
-            <a href="/signin" className="rounded-full bg-[#C9A227] px-3.5 py-1.5 font-semibold text-[#05070D] hover:brightness-110">Sign in</a>
+            <a href="https://dashboard.bridgistic.app/sign-in" className="rounded-full bg-[#C9A227] px-3.5 py-1.5 font-semibold text-[#05070D] hover:brightness-110">Sign in</a>
           )}
         </nav>
       </div>
@@ -127,7 +127,7 @@ function Gate({ kind }: { kind: "signin" | "license" }) {
       </p>
       <div className="mt-4 flex justify-center gap-2">
         {kind === "signin" ? (
-          <a href="/signin"><Btn variant="gold" small>Sign in</Btn></a>
+          <a href="https://dashboard.bridgistic.app/sign-in"><Btn variant="gold" small>Sign in</Btn></a>
         ) : (
           <>
             <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold" small>Get Pro · $69</Btn></a>
@@ -193,7 +193,7 @@ function DirectoryBody({ tier, title, sub }: { tier: "free" | "pro"; title: stri
         )}
       </section>
       <footer className="border-t border-white/5 py-8 text-center text-[11px] text-white/35">
-        Bridgistic — signed, scoped, approved, reversible AI access for WordPress · <a className="underline hover:text-white/60" href="https://bridgistic.app/">bridgistic.app</a>
+        Bridgistic — signed, scoped, approved, reversible AI access for WordPress · <a className="underline hover:text-white/60" href="https://bridgistic.app/">bridgistic.app</a> · <Link className="underline hover:text-white/60" to="/install-guide">How to install skills</Link>
       </footer>
     </>
   );
@@ -354,7 +354,12 @@ export function SkillDetail() {
               </div>
               {!locked ? (
                 tab === "cli" ? (
-                  <CopyBlock value={cliCommand} />
+                  <div>
+                    <CopyBlock value={cliCommand} />
+                    <p className="mt-2 text-[11px] text-white/45">
+                      The <span className="font-mono">bridgistic</span> CLI is not published yet. Use <button className="underline" onClick={() => setTab("npx")}>npx skills</button>, Download zip, or the <Link className="underline" to="/install-guide">install guide</Link>.
+                    </p>
+                  </div>
                 ) : tab === "npx" ? (
                   <CopyBlock value={npxCommand} />
                 ) : (
@@ -456,6 +461,9 @@ export function SkillDetail() {
           </aside>
         </div>
       </div>
+      <footer className="border-t border-white/5 py-8 text-center text-[11px] text-white/35">
+        <Link className="underline hover:text-white/60" to="/install-guide">How to install skills</Link>
+      </footer>
       <Toast message={toast} />
     </div>
   );
