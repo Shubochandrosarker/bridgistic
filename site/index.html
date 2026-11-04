@@ -346,21 +346,21 @@
     }
     .nav-links a:hover { color:var(--text); background:var(--panel); }
     .nav-menu { position:relative; }
-    .nav-menu summary {
-      list-style:none; cursor:pointer; padding:9px 11px; border-radius:9px;
-      color:var(--muted); font-size:14px; font-weight:650;
+    .nav-menu-trigger {
+      list-style:none; cursor:pointer; padding:9px 11px; border:0; border-radius:9px;
+      color:var(--muted); background:transparent; font:inherit; font-size:14px; font-weight:650;
       transition:color .18s ease, background .18s ease;
     }
-    .nav-menu summary::-webkit-details-marker { display:none; }
-    .nav-menu summary::after { content:'⌄'; display:inline-block; margin-left:6px; font-size:12px; transition:transform .18s ease; }
-    .nav-menu[open] summary, .nav-menu summary:hover { color:var(--text); background:var(--panel); }
-    .nav-menu[open] summary::after { transform:rotate(180deg); }
+    .nav-menu-trigger::after { content:'⌄'; display:inline-block; margin-left:6px; font-size:12px; transition:transform .18s ease; }
+    .nav-menu.open .nav-menu-trigger, .nav-menu-trigger:hover, .nav-menu-trigger:focus-visible { color:var(--text); background:var(--panel); }
+    .nav-menu.open .nav-menu-trigger::after { transform:rotate(180deg); }
     .nav-menu-panel {
       position:absolute; top:calc(100% + 8px); left:0; z-index:20; min-width:180px;
       display:grid; gap:3px; padding:7px; border:1px solid var(--line); border-radius:14px;
       background:var(--panel); box-shadow:var(--shadow);
     }
     .nav-menu-panel a { display:block; white-space:nowrap; }
+    .nav-menu-panel[hidden] { display:none; }
     .nav-actions { display:flex; align-items:center; gap:9px; }
     .icon-btn {
       width:40px;
@@ -1023,7 +1023,7 @@
     @media (max-width:860px) {
       .nav-links { display:none; position:absolute; top:calc(var(--header) - 1px); left:20px; right:20px; padding:10px; border:1px solid var(--line); border-radius:16px; background:var(--panel); box-shadow:var(--shadow); }
       .nav-links.open { display:grid; }
-      .nav-links a, .nav-menu summary { padding:12px 13px; }
+      .nav-links a, .nav-menu-trigger { padding:12px 13px; }
       .nav-menu-panel { position:static; min-width:0; margin:3px 0 5px; padding:3px 0 3px 9px; border:0; box-shadow:none; background:transparent; }
       .nav-actions .btn { display:none; }
       .menu-btn { display:grid; }
@@ -1111,9 +1111,9 @@
       </a>
 
       <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
-        <details class="nav-menu">
-          <summary>Product</summary>
-          <div class="nav-menu-panel">
+        <div class="nav-menu">
+          <button class="nav-menu-trigger" type="button" aria-expanded="false" aria-controls="productMenu" aria-haspopup="true">Product</button>
+          <div class="nav-menu-panel" id="productMenu" hidden>
             <a href="/features">Feature guide</a>
             <a href="#how">How it works</a>
             <a href="#connect">Connect</a>
@@ -1121,16 +1121,16 @@
             <a href="#clients">AI clients</a>
             <a href="#pricing">Pricing</a>
           </div>
-        </details>
-        <details class="nav-menu">
-          <summary>Resources</summary>
-          <div class="nav-menu-panel">
+        </div>
+        <div class="nav-menu">
+          <button class="nav-menu-trigger" type="button" aria-expanded="false" aria-controls="resourcesMenu" aria-haspopup="true">Resources</button>
+          <div class="nav-menu-panel" id="resourcesMenu" hidden>
             <a href="/docs">Setup docs</a>
             <a href="https://marketplace.bridgistic.app/">Skills marketplace</a>
             <a href="https://dashboard.bridgistic.app/">Customer dashboard</a>
             <a href="https://github.com/Wordpressistic/bridgistic/releases" target="_blank" rel="noopener">Release notes</a>
           </div>
-        </details>
+        </div>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
         <a href="https://dashboard.bridgistic.app/">Dashboard</a>
@@ -1856,20 +1856,46 @@ Bridgistic Cloud is currently a public beta.</pre>
         menuBtn.setAttribute('aria-expanded', String(open));
       });
 
-      navLinks.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-          navLinks.classList.remove('open');
-          menuBtn.setAttribute('aria-expanded', 'false');
-        });
+      const navMenus = [...navLinks.querySelectorAll('.nav-menu')];
+      const closeNavMenu = menu => {
+        const trigger = menu.querySelector('.nav-menu-trigger');
+        const panel = menu.querySelector('.nav-menu-panel');
+        if (!trigger || !panel) return;
+        trigger.setAttribute('aria-expanded', 'false');
+        panel.hidden = true;
+        menu.classList.remove('open');
+      };
+      const toggleNavMenu = menu => {
+        const trigger = menu.querySelector('.nav-menu-trigger');
+        const panel = menu.querySelector('.nav-menu-panel');
+        if (!trigger || !panel) return;
+        const willOpen = trigger.getAttribute('aria-expanded') !== 'true';
+        navMenus.forEach(other => { if (other !== menu) closeNavMenu(other); });
+        if (willOpen) {
+          trigger.setAttribute('aria-expanded', 'true');
+          panel.hidden = false;
+          menu.classList.add('open');
+        } else {
+          closeNavMenu(menu);
+        }
+      };
+      navMenus.forEach(menu => {
+        const trigger = menu.querySelector('.nav-menu-trigger');
+        trigger?.addEventListener('click', () => toggleNavMenu(menu));
       });
-
-      // Keep only one product/resources menu open and make the disclosure
-      // controls behave consistently on touch and keyboard navigation.
-      navLinks.querySelectorAll('.nav-menu').forEach(menu => {
-        menu.addEventListener('toggle', () => {
-          if (!menu.open) return;
-          navLinks.querySelectorAll('.nav-menu').forEach(other => { if (other !== menu) other.open = false; });
-        });
+      navLinks.addEventListener('click', event => {
+        const link = event.target.closest('a');
+        if (!link || !navLinks.contains(link)) return;
+        navMenus.forEach(closeNavMenu);
+        navLinks.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+      });
+      document.addEventListener('click', event => {
+        if (event.target.closest('.nav-menu')) return;
+        navMenus.forEach(closeNavMenu);
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') navMenus.forEach(closeNavMenu);
       });
 
       document.querySelectorAll('.tab-btn').forEach(button => {
