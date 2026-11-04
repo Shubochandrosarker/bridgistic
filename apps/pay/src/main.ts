@@ -1,5 +1,5 @@
 import "./style.css";
-import { availableProviders, checkoutOptions, checkoutReady, offerOpen, quantityReset, readConfig, remainingLabel, stripeSessionRequest, validEmail, type Plan, type Provider } from "./config.ts";
+import { checkoutOptions, checkoutReady, quantityReset, readConfig, stripeSessionRequest, validEmail, type Plan } from "./config.ts";
 
 declare global { interface Window { Paddle?: { Environment: { set(e: string): void }; Initialize(o: { token: string; eventCallback?: (ev: any) => void }): void; Checkout: { open(o: unknown): void; updateItems(i: unknown): void } } } }
 
@@ -7,43 +7,33 @@ const cfg = readConfig(import.meta.env as Record<string, string>);
 const note = document.getElementById("buy-note")!;
 const emailEl = document.getElementById("buyer-email") as HTMLInputElement;
 const emailNote = document.getElementById("email-note")!;
-const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-plan]"));
-let lastStatus: { open?: unknown; source?: unknown; remaining?: unknown } | null = null;
+const buy = document.getElementById("buy") as HTMLButtonElement;
+const planChoices = Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-plan-choice]"));
+const paddleLifetime = document.querySelector<HTMLButtonElement>("button[data-paddle-lifetime]");
+let selectedPlan: Plan = "monthly";
+let openPriceId: string | null = null;
+let paddleReady = false;
 
-function render() {
-  const open = offerOpen(Date.now(), lastStatus);
-  for (const el of document.querySelectorAll<HTMLElement>("[data-when]")) el.hidden = el.dataset.when !== (open ? "open" : "closed");
-  const rem = document.getElementById("remaining");
-  const label = open ? remainingLabel(lastStatus) : null;
-  if (rem) { rem.hidden = !label; rem.textContent = label ?? ""; }
-}
-
-async function refreshStatus(): Promise<void> {
-  if (!/^(\/|https:\/\/)/.test(cfg.statusUrl)) return;
-  try {
-    const r = await fetch(cfg.statusUrl, { cache: "no-store" });
-    const j = r.ok ? await r.json() : null;
-    if (j && typeof j.open === "boolean") lastStatus = j;
-  } catch { /* keep the date-only decision */ }
-  render();
-}
-
-if (new URLSearchParams(location.search).get("thanks") === "1") document.getElementById("thanks")?.removeAttribute("hidden");
-render();
-void refreshStatus();
-
-const providers = availableProviders(cfg);
-const choice = document.getElementById("provider-choice") as HTMLFieldSetElement | null;
-const selectedProvider = (): Provider => {
-  const picked = document.querySelector<HTMLInputElement>('input[name="provider"]:checked')?.value as Provider | undefined;
-  return picked && providers.includes(picked) ? picked : providers[0] ?? "paddle";
+const planCopy: Record<Plan, { price: string; interval: string; description: string; button: string }> = {
+  monthly: { price: "$12", interval: "USD per month", description: "A recurring plan for one license across 3 sites, with customer billing management.", button: "Choose monthly" },
+  yearly: { price: "$99", interval: "USD per year", description: "Annual billing for one license across 3 sites, with customer billing management.", button: "Choose yearly · $99" },
+  lifetime: { price: "$69", interval: "USD, one time", description: "One payment for one license on one site, with all future Bridgistic updates included.", button: "Choose Lifetime · $69" },
 };
-const syncNote = () => { const n = note.dataset[`${selectedProvider()}Note`]; if (n) note.textContent = n; };
-if (choice && providers.length > 1) {
-  choice.hidden = false;
-  for (const r of choice.querySelectorAll<HTMLInputElement>('input[name="provider"]')) r.addEventListener("change", syncNote);
-} else if (providers[0] === "stripe") {
-  document.querySelector<HTMLInputElement>('input[name="provider"][value="stripe"]')?.click();
+
+function setPlan(plan: Plan): void {
+  selectedPlan = plan;
+  const copy = planCopy[plan];
+  document.getElementById("pro-price")!.textContent = copy.price;
+  document.getElementById("pro-interval")!.textContent = copy.interval;
+  document.getElementById("pro-description")!.textContent = copy.description;
+  buy.textContent = copy.button;
+  buy.dataset.plan = plan;
+  for (const button of planChoices) {
+    const active = button.dataset.planChoice === plan;
+    button.classList.toggle("bg-navy", active);
+    button.classList.toggle("text-ivory", active);
+    button.setAttribute("aria-selected", String(active));
+  }
 }
 
 async function openStripe(email: string, plan: Plan): Promise<void> {
@@ -59,50 +49,45 @@ async function openStripe(email: string, plan: Plan): Promise<void> {
   }
 }
 
-if (providers.length === 0) {
-  for (const b of buttons) b.disabled = true;
-  note.textContent = "Checkout is not open yet. It opens once the Paddle client token is configured.";
-} else {
-  let openPriceId: string | null = null;
-  if (providers.includes("paddle")) {
-    // Buttons wait for Paddle.js only while Paddle is the selected provider.
-    let paddleReady = false;
-    const gate = () => { for (const b of buttons) b.disabled = selectedProvider() === "paddle" && !paddleReady; };
-    gate();
-    for (const r of document.querySelectorAll<HTMLInputElement>('input[name="provider"]')) r.addEventListener("change", gate);
-    const s = document.createElement("script");
-    s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-    s.onload = () => {
-      if (!window.Paddle) return;
-      if (cfg.env === "sandbox") window.Paddle.Environment.set("sandbox");
-      window.Paddle.Initialize({
-        token: cfg.token,
-        eventCallback: (ev) => { const fix = quantityReset(ev, openPriceId); if (fix) window.Paddle?.Checkout.updateItems(fix); },
-      });
-      paddleReady = true;
-      gate();
-    };
-    s.onerror = () => { note.textContent = providers.includes("stripe") ? "Paddle could not be loaded. You can pay with Stripe instead." : "The payment provider could not be loaded. Check your connection or try again later."; };
-    document.head.appendChild(s);
+function emailOrFocus(): string | null {
+  const email = emailEl.value.trim().toLowerCase();
+  if (validEmail(email)) return email;
+  emailNote.textContent = "Enter the email for your license key, then continue.";
+  emailEl.focus();
+  return null;
+}
+
+function openPaddle(email: string, plan: Plan): void {
+  if (!paddleReady || !window.Paddle || !checkoutReady(cfg, plan)) {
+    note.textContent = "Paddle is still loading. You can continue with Stripe, the default checkout.";
+    return;
   }
-  for (const b of buttons) {
-    b.addEventListener("click", async () => {
-      const plan = (b.dataset.plan ?? "lifetime") as Plan;
-      const email = emailEl.value.trim().toLowerCase();
-      if (!validEmail(email)) {
-        emailNote.textContent = "Enter the email for your license key, then continue.";
-        emailEl.focus();
-        return;
-      }
-      if (plan === "lifetime") {
-        await refreshStatus();
-        if (!offerOpen(Date.now(), lastStatus)) return; // closed meanwhile: the regular plans are now shown
-      }
-      if (selectedProvider() === "stripe") return void openStripe(email, plan);
-      if (!checkoutReady(cfg, plan)) return;
-      openPriceId = cfg.prices[plan];
-      window.Paddle?.Checkout.open(checkoutOptions(cfg, email, plan));
-    });
-  }
+  openPriceId = cfg.prices[plan];
+  window.Paddle.Checkout.open(checkoutOptions(cfg, email, plan));
+}
+
+setPlan("monthly");
+for (const button of planChoices) button.addEventListener("click", () => setPlan((button.dataset.planChoice ?? "monthly") as Plan));
+buy.addEventListener("click", async () => {
+  const email = emailOrFocus();
+  if (!email) return;
+  await openStripe(email, selectedPlan);
+});
+paddleLifetime?.addEventListener("click", () => {
+  const email = emailOrFocus();
+  if (email) openPaddle(email, "lifetime");
+});
+
+if (cfg.token && checkoutReady(cfg, "lifetime")) {
+  const s = document.createElement("script");
+  s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+  s.onload = () => {
+    if (!window.Paddle) return;
+    if (cfg.env === "sandbox") window.Paddle.Environment.set("sandbox");
+    window.Paddle.Initialize({ token: cfg.token, eventCallback: (ev) => { const fix = quantityReset(ev, openPriceId); if (fix) window.Paddle?.Checkout.updateItems(fix); } });
+    paddleReady = true;
+  };
+  s.onerror = () => { if (paddleLifetime) paddleLifetime.disabled = true; };
+  document.head.appendChild(s);
 }
 for (const d of document.querySelectorAll("details")) d.addEventListener("toggle", () => d.classList.toggle("open", d.open));
