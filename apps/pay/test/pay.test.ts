@@ -65,6 +65,11 @@ describe("pay.bridgistic.app", () => {
     expect(JSON.stringify(body)).not.toMatch(/price_|pri_/);
   });
 
+  it("uses the same-origin Stripe proxy by default", () => {
+    expect(readConfig({ VITE_STRIPE_CHECKOUT: "1" }).stripeSessionUrl).toBe("/api/stripe-checkout");
+    expect(main).toContain('fetch(cfg.stripeSessionUrl || "/api/stripe-checkout"');
+  });
+
   it("resets any Paddle quantity change back to one", () => {
     const ev = (q: number, extra = false) => ({ name: "checkout.items.updated", data: { items: [{ price_id: "pri_x", quantity: q }, ...(extra ? [{ price_id: "pri_y", quantity: 1 }] : [])] } });
     expect(quantityReset(ev(3), "pri_x")).toEqual([{ priceId: "pri_x", quantity: 1 }]);

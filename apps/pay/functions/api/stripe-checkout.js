@@ -50,3 +50,7 @@ export async function onRequestPost({ request, env }) {
   }
   return json({ url: data.url });
 }
+
+export function onRequestOptions() {
+  return new Response(null, { status: 204, headers: { "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" } });
+}

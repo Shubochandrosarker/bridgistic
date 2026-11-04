@@ -7,7 +7,7 @@ export interface PayConfig {
   /** Subscription plans offered alongside the Lifetime Deal. */
   prices: Record<Plan, string>;
   statusUrl: string;
-  /** Stripe as a second gateway: on when VITE_STRIPE_CHECKOUT=1. Same plans, same prices. */
+  /** Stripe as the default gateway: on when VITE_STRIPE_CHECKOUT=1. */
   stripe: boolean;
   /** Server endpoint that creates a Stripe Checkout session without exposing a secret. */
   stripeSessionUrl: string;
@@ -41,7 +41,9 @@ export function readConfig(env: Record<string, string | undefined>): PayConfig {
     prices,
     statusUrl: (env.VITE_OFFER_STATUS_URL ?? "/api/offer-status").trim(),
     stripe: env.VITE_STRIPE_CHECKOUT === "1",
-    stripeSessionUrl: (env.VITE_STRIPE_SESSION_URL ?? "https://api.wpistic.com/api/v1/checkout/stripe/session").trim(),
+    // Keep checkout same-origin. The Pages Function validates the request and
+    // proxies it server-side, so the browser never depends on API CORS policy.
+    stripeSessionUrl: (env.VITE_STRIPE_SESSION_URL ?? "/api/stripe-checkout").trim(),
   };
 }
 

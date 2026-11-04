@@ -39,7 +39,7 @@ function setPlan(plan: Plan): void {
 async function openStripe(email: string, plan: Plan): Promise<void> {
   note.textContent = "Opening secure Stripe checkout…";
   try {
-    const r = await fetch(cfg.stripeSessionUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(stripeSessionRequest(email, plan, location.origin)) });
+    const r = await fetch(cfg.stripeSessionUrl || "/api/stripe-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(stripeSessionRequest(email, plan, location.origin)) });
     const j = (await r.json().catch(() => null)) as { checkout_url?: string; url?: string; message?: string } | null;
     const checkoutUrl = j?.checkout_url ?? j?.url;
     if (!r.ok || !checkoutUrl) throw new Error(j?.message ?? "Stripe checkout is not available right now.");
