@@ -1,6 +1,6 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Resource } from "../components/Resource.tsx";
-import { Card, ComingSoonPanel, PageHeader, Stat } from "../components/ui.tsx";
+import { Card, PageHeader, Stat } from "../components/ui.tsx";
 import { fmtNum } from "../lib/format.ts";
 
 export function Usage() {
@@ -21,7 +21,6 @@ export function Usage() {
             </BarChart></ResponsiveContainer></div></Card>
         </>)}
       </Resource>
-      <ComingSoonPanel title="Usage across all sites and team members" body="Aggregated metering, alerts at 80% of quota, and invoices." />
     </div>
   );
 }

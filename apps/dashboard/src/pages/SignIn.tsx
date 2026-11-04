@@ -41,7 +41,7 @@ function OAuthButtons() {
 }
 
 export function SignIn() {
-  const { startDemo } = useStore();
+  const { startDemo, setAccount, account, authLoading } = useStore();
   const nav = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -55,12 +55,20 @@ export function SignIn() {
 
   const done = () => nav(sessionStorage.getItem("bridgistic.returnTo") ?? "/", { replace: true });
 
+  useEffect(() => {
+    if (!authLoading && account) done();
+  }, [account, authLoading]);
+
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      if (mode === "signin") await signIn(email.trim(), password);
-      else await signUp(email.trim(), password, name.trim());
+      const account = mode === "signin"
+        ? await signIn(email.trim(), password)
+        : await signUp(email.trim(), password, name.trim());
+      // Update the shared store immediately. Waiting for a hard refresh to
+      // hydrate localStorage made a successful login look like a failure.
+      setAccount(account);
       done();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");

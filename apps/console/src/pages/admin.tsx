@@ -50,7 +50,7 @@ export function AdminOverview() {
         <Stat label="Plans" value={byPlan.map((p) => `${p.plan}:${p.n}`).join(" ") || "—"} sub="active by plan" />
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <QuickCard title="Sell" body="Issue a license manually after a Paddle sale, or wire the webhook for automatic issuance." to="/admin/licenses" link="Licenses" />
+        <QuickCard title="Sell" body="Stripe is the default checkout. Paddle remains optional. Issue or review licenses here." to="/admin/licenses" link="Licenses" />
         <QuickCard title="AI routing" body="Set the OpenAI-compatible endpoint, model and OpenRouter key the website agents use." to="/admin/ai" link="AI configuration" />
       </div>
     </>
@@ -427,7 +427,7 @@ export function AdminReports() {
         <Stat label="Skills" value={String(stats.skills)} />
       </div>
       <Card className="mt-4 p-4 text-sm text-navy/60">
-        Subscription MRR joins once Paddle webhooks stream in; the ledger records manual and webhook issuance identically.
+        Stripe is the default gateway for new checkout flows. Paddle remains available for customers who choose it; both providers feed the same license ledger.
       </Card>
     </>
   );

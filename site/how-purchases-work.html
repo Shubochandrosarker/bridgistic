@@ -8,63 +8,6 @@
   <title>How purchases work · Bridgistic</title>
   <meta name="description" content="How a Bridgistic purchase is processed: Paddle, the WPistic license server, the plugin, the dashboard and the relay." />
   <link rel="canonical" href="https://bridgistic.app/how-purchases-work" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Bridgistic" />
-  <meta property="og:title" content="How purchases work · Bridgistic" />
-  <meta property="og:description" content="How a Bridgistic purchase is processed: Paddle, the WPistic license server, the plugin, the dashboard and the relay." />
-  <meta property="og:url" content="https://bridgistic.app/how-purchases-work" />
-  <meta property="og:image" content="https://bridgistic.app/assets/bridgistic-logo.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="How purchases work · Bridgistic" />
-  <meta name="twitter:description" content="How a Bridgistic purchase is processed: Paddle, the WPistic license server, the plugin, the dashboard and the relay." />
-  <meta name="twitter:image" content="https://bridgistic.app/assets/bridgistic-logo.png" />
-  <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebPage",
-      "@id": "https://bridgistic.app/how-purchases-work#webpage",
-      "url": "https://bridgistic.app/how-purchases-work",
-      "name": "How purchases work · Bridgistic",
-      "description": "How a Bridgistic purchase is processed: Paddle, the WPistic license server, the plugin, the dashboard and the relay.",
-      "isPartOf": {
-        "@type": "WebSite",
-        "@id": "https://bridgistic.app/#website",
-        "url": "https://bridgistic.app/",
-        "name": "Bridgistic"
-      },
-      "publisher": {
-        "@id": "https://bridgistic.app/#organization"
-      }
-    },
-    {
-      "@type": "Organization",
-      "@id": "https://bridgistic.app/#organization",
-      "name": "WordPressistic LLC",
-      "url": "https://bridgistic.app/"
-    },
-    {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Bridgistic",
-          "item": "https://bridgistic.app/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "How purchases work",
-          "item": "https://bridgistic.app/how-purchases-work"
-        }
-      ]
-    }
-  ]
-}
-  </script>
   <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
   <link rel="stylesheet" href="/assets/legal.css" />
   <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
@@ -90,8 +33,9 @@
 <table>
 <thead><tr><th>Part</th><th>Role</th></tr></thead>
 <tbody>
-<tr><td>bridgistic.app, pay.bridgistic.app</td><td>Show the plans and open Paddle or Stripe checkout with the email you enter</td></tr>
-<tr><td>Paddle or Stripe</td><td>Take payment and send a signed notification to WPistic. Paddle is merchant of record for Paddle purchases; Stripe purchases are sold by WordPressistic LLC.</td></tr>
+<tr><td>bridgistic.app, pay.bridgistic.app</td><td>Show the plans and open Stripe checkout by default, with Paddle available as an optional provider</td></tr>
+<tr><td>Stripe</td><td>Default payment processor. WordPressistic LLC is the seller for Stripe transactions and Stripe Tax may calculate applicable tax</td></tr>
+<tr><td>Paddle</td><td>Optional merchant of record. Takes payment, issues the receipt and sends a signed notification to WPistic</td></tr>
 <tr><td>api.wpistic.com</td><td>The WPistic license server. Issues and verifies Bridgistic licenses</td></tr>
 <tr><td>Bridgistic plugin</td><td>Runs on your WordPress site. Holds your keys, approvals, snapshots and audit log, and activates your license</td></tr>
 <tr><td>dashboard.bridgistic.app</td><td>A browser dashboard that talks directly to your site with signed requests</td></tr>
@@ -100,14 +44,14 @@
 
 <section><h2>From checkout to license</h2>
 <ol class="steps">
-<li><strong>Choose a plan.</strong> On bridgistic.app or pay.bridgistic.app, pick the Lifetime Deal, monthly or yearly. Enter the email that should receive your license.</li>
-<li><strong>Pay with Paddle or Stripe.</strong> Paddle checkout remains available, and Stripe opens a hosted Checkout page. Paddle is the merchant of record for Paddle purchases. Stripe purchases are sold by WordPressistic LLC and use Stripe Tax.</li>
-<li><strong>The provider notifies WPistic.</strong> Paddle sends a signed <code>transaction.completed</code> notification and Stripe sends signed Checkout and billing events to api.wpistic.com. The license server rejects any notification whose signature does not verify.</li>
-<li><strong>The license is issued by price.</strong> The license server maps the provider price to the reviewed plan and site limit. The Lifetime Deal issues a license with no expiry: 1 license · 1 site. Monthly and Yearly issue a Bridgistic Pro license: 1 license · 3 sites. The same plan issues the same license whether you bought on bridgistic.app, pay.bridgistic.app or app.wpistic.com.</li>
+<li><strong>Choose a plan.</strong> On bridgistic.app or pay.bridgistic.app, pick the Lifetime Deal, monthly or yearly plan. Enter the email that should receive your license.</li>
+<li><strong>Pay with Stripe by default.</strong> Stripe Checkout opens on the payment page. WordPressistic LLC is the seller for Stripe transactions, and applicable tax is shown before payment. Paddle remains available if you explicitly select it.</li>
+<li><strong>The provider notifies WPistic.</strong> Stripe or Paddle sends a signed completion notification to api.wpistic.com. The license server rejects any notification whose signature does not verify.</li>
+<li><strong>The license is issued by the provider catalog.</strong> Stripe and Paddle prices are mapped to the same Bridgistic plans. The existing Paddle Lifetime Deal price <code>pri_01m58k6epsqzbr3qbab84t6p90</code> issues a license with no expiry. Lifetime Deal: 1 license · 1 site. Monthly and yearly plans issue a Bridgistic Pro license for 3 sites. The same plan issues the same license whether you bought on bridgistic.app or pay.bridgistic.app.</li>
 <li><strong>You receive the key by email.</strong> The license server keeps only a hash of the key, and sends the key to you once.</li>
 <li><strong>Activate it on your site.</strong> In dashboard.bridgistic.app, connect your site and open <em>License</em>. Paste the key and the dashboard asks the plugin on your site to activate it. The plugin sends the key with your site's domain and installation ID to api.wpistic.com, checks the signature on the reply, and stores the activation. The same key and the same license are then shown in the plugin and in the dashboard.</li>
 <li><strong>Re-checks.</strong> <em>Check now</em> in the dashboard re-validates the license with the license server. Deactivating frees the site's activation slot.</li>
-<li><strong>Refunds and support.</strong> Every purchase has a 7-day refund guarantee. Write to <a href="mailto:support@wpistic.com">support@wpistic.com</a>, and the original provider processes the refund. A full refund ends the license, which may be done by hand rather than instantly. See the <a href="/refund-policy">Refund Policy</a>.</li>
+<li><strong>Refunds and support.</strong> Every purchase has a 7-day refund guarantee. Write to <a href="mailto:support@wpistic.com">support@wpistic.com</a>. The selected provider processes the refund, and a full refund ends the license. See the <a href="/refund-policy">Refund Policy</a>.</li>
 </ol></section>
 
 <section><h2>Using AI clients</h2>
@@ -122,8 +66,8 @@
 <table>
 <thead><tr><th>Part</th><th>Stores</th><th>Sends</th></tr></thead>
 <tbody>
-<tr><td>bridgistic.app</td><td>Your colour theme, in your browser</td><td>Your email and chosen price to Paddle when you start checkout</td></tr>
-<tr><td>Paddle</td><td>Payment details and checkout information, under Paddle's terms</td><td>A signed notification, including your email, to api.wpistic.com</td></tr>
+<tr><td>bridgistic.app</td><td>Your colour theme, in your browser</td><td>Your email and chosen price to the selected payment provider when you start checkout</td></tr>
+<tr><td>Stripe or Paddle</td><td>Payment details and checkout information, under the selected provider's terms</td><td>A signed notification, including your email, to api.wpistic.com</td></tr>
 <tr><td>api.wpistic.com</td><td>The notification, your organization and billing email, order, subscription or lifetime record, the license (key stored hashed), site activations (domain, URLs, installation ID, environment, versions) and license events (IP address, user agent)</td><td>Your license key by email; signed responses to the plugin</td></tr>
 <tr><td>Plugin</td><td>Keys (secret encrypted), an audit log pruned after 90 days (including IP addresses), approvals, snapshots (only on your site), usage, memory, playbooks, schedules, and the license activation</td><td>Only to api.wpistic.com, for license activation, re-checks and deactivation</td></tr>
 <tr><td>Dashboard</td><td>Site connections in your browser's session storage</td><td>Signed requests directly to your site</td></tr>

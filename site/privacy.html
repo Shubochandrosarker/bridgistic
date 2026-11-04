@@ -8,63 +8,6 @@
   <title>Privacy Policy · Bridgistic</title>
   <meta name="description" content="What Bridgistic, its dashboard, relay and the WPistic license server store and send." />
   <link rel="canonical" href="https://bridgistic.app/privacy" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Bridgistic" />
-  <meta property="og:title" content="Privacy Policy · Bridgistic" />
-  <meta property="og:description" content="What Bridgistic, its dashboard, relay and the WPistic license server store and send." />
-  <meta property="og:url" content="https://bridgistic.app/privacy" />
-  <meta property="og:image" content="https://bridgistic.app/assets/bridgistic-logo.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Privacy Policy · Bridgistic" />
-  <meta name="twitter:description" content="What Bridgistic, its dashboard, relay and the WPistic license server store and send." />
-  <meta name="twitter:image" content="https://bridgistic.app/assets/bridgistic-logo.png" />
-  <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebPage",
-      "@id": "https://bridgistic.app/privacy#webpage",
-      "url": "https://bridgistic.app/privacy",
-      "name": "Privacy Policy · Bridgistic",
-      "description": "What Bridgistic, its dashboard, relay and the WPistic license server store and send.",
-      "isPartOf": {
-        "@type": "WebSite",
-        "@id": "https://bridgistic.app/#website",
-        "url": "https://bridgistic.app/",
-        "name": "Bridgistic"
-      },
-      "publisher": {
-        "@id": "https://bridgistic.app/#organization"
-      }
-    },
-    {
-      "@type": "Organization",
-      "@id": "https://bridgistic.app/#organization",
-      "name": "WordPressistic LLC",
-      "url": "https://bridgistic.app/"
-    },
-    {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Bridgistic",
-          "item": "https://bridgistic.app/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Privacy Policy",
-          "item": "https://bridgistic.app/privacy"
-        }
-      ]
-    }
-  ]
-}
-  </script>
   <link rel="icon" type="image/png" href="/assets/bridgistic-icon.png" />
   <link rel="stylesheet" href="/assets/legal.css" />
   <script>(function(){try{var t=localStorage.getItem('bridgistic-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
@@ -89,18 +32,18 @@
 <section><h2>1. bridgistic.app</h2>
 <ul>
 <li>The site runs no analytics or advertising scripts. It stores one value in your browser, the colour theme you choose (<code>bridgistic-theme</code> in local storage).</li>
-<li>The offer status check (<code>/api/offer-status</code>) returns only whether the Lifetime Deal is open. It receives no personal data from you.</li>
-<li>When you start checkout, the page loads Paddle.js from cdn.paddle.com and passes the email you entered to Paddle, so that your license can be issued to it. Paddle.js is not loaded before you start checkout.</li>
+<li>The offer status check, where enabled, returns only whether the Lifetime Deal is active. It receives no personal data from you and does not display a license count.</li>
+<li>When you start checkout, the payment page sends the email and selected plan to the provider you choose. Stripe is the default provider; Paddle remains optional.</li>
 <li>The site and the offer status check are hosted on Cloudflare.</li>
 </ul></section>
 
-<section><h2>2. Payment (Paddle)</h2>
-<p>Paddle collects your payment details and the information its checkout asks for. According to the WPistic Privacy Policy, WPistic does not store full card numbers. It keeps only the billing metadata needed to reconcile payments, such as plan, amount and status.</p></section>
+<section><h2>2. Payment providers</h2>
+<p>Stripe collects payment details and the information its checkout asks for when Stripe is selected. WordPressistic LLC receives the billing metadata needed to reconcile payments, such as plan, amount, tax and status, but does not store full card numbers. Paddle handles the equivalent checkout and merchant-of-record processing when you explicitly choose Paddle.</p></section>
 
 <section><h2>3. WPistic license server (api.wpistic.com)</h2>
-<p>When Paddle reports a completed payment, the license server stores:</p>
+<p>When the selected provider reports a completed payment, the license server stores:</p>
 <ul>
-<li>the Paddle notification itself, which includes your email and transaction details;</li>
+<li>the signed provider notification, which includes your email and transaction details;</li>
 <li>a WPistic organization with your email as the billing email;</li>
 <li>the order, the subscription or lifetime record, and your license.</li>
 </ul>
@@ -141,7 +84,8 @@
 <table>
 <thead><tr><th>Provider</th><th>What it does</th><th>Status</th></tr></thead>
 <tbody>
-<tr><td>Paddle</td><td>Merchant of record: checkout, payment, tax and receipts. Sends signed purchase notifications to the license server</td><td><span class="verified">Verified</span></td></tr>
+<tr><td>Stripe</td><td>Default checkout and payment processing. Stripe Tax can calculate applicable tax; sends signed purchase notifications to the license server when enabled</td><td><span class="verified">Configured</span></td></tr>
+<tr><td>Paddle</td><td>Optional checkout and merchant-of-record processing, including payment, tax and receipts when selected</td><td><span class="verified">Configured</span></td></tr>
 <tr><td>Cloudflare</td><td>Hosts bridgistic.app, pay.bridgistic.app, the dashboard and the relay, including the relay's encrypted connection store. Runs DNS for bridgistic.app and the network tunnel to the license server</td><td><span class="verified">Verified</span></td></tr>
 <tr><td>Hostinger</td><td>Hosts the server that runs the WPistic license server and its database, and delivers license emails through its mail service</td><td><span class="verified">Verified</span></td></tr>
 <tr><td>GitHub</td><td>Hosts the free plugin's source code and release downloads</td><td><span class="verified">Verified</span></td></tr>

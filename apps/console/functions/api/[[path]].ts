@@ -23,7 +23,7 @@ import {
   getSetting,
   putSetting,
   requireOrgMember,
-  requireStaff,
+  requireOwner,
   requireUser,
   sessionCookies,
   sharedCookieDomain,
@@ -32,8 +32,6 @@ import {
   type User,
 } from "../lib/auth.ts";
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
-import { billingSummary, safeReturnUrl, stripePortal } from "../lib/billing.ts";
-import { claimLicense, listMySites, proxyActivate, proxyDeactivate, proxyValidate, resolveOwnedSite, sha256Hex } from "../lib/sites.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
 import { oauthCallback, oauthProviders, oauthStart, type OAuthEnv } from "../lib/oauth.ts";
@@ -92,19 +90,15 @@ interface Env {
   DB: D1Database;
   ADMIN_SETUP_TOKEN?: string;
   SECRET_ENCRYPTION_KEY?: string;
+  LICENSE_SERVICE_TOKEN?: string;
   PADDLE_WEBHOOK_SECRET?: string;
   PADDLE_API_KEY?: string;
-  /** Phase 1: api.wpistic.com is the single license issuer. */
-  WPISTIC_LICENSE_API?: string;
-  WPISTIC_SERVICE_API?: string;
-  LICENSE_SERVICE_TOKEN?: string;
-  WPISTIC_BILLING_API?: string;
-  PADDLE_CUSTOMER_PORTAL_URL?: string;
   OPENROUTER_KEY?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  PLATFORM_OWNER_EMAIL?: string;
 }
 
 async function route(request: Request, env: Env, path: string, url: URL): Promise<Response> {
@@ -183,36 +177,12 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   }
 
   // ── WPistic license contract (plugin-facing) ──────────────────────────────
-  // Phase 1: api.wpistic.com is the single issuer. Shipped plugins still call
-  // this URL, so the console proxies (signature-preserving) and keeps one
-  // pairing row per activation. Keys the retired console issuer minted (still
-  // in D1) and activation tokens it handed out stay on the local engine.
-  if (path === "/api/v1/licenses/activate" && method === "POST") {
-    const body = await request.json<Record<string, unknown>>();
-    const local = await db.prepare("SELECT id FROM licenses WHERE key = ?").bind(String(body.key ?? "").trim()).first();
-    if (local) return activateLicense(env, body as never);
-    return proxyActivate(env, body, request.headers.get("X-Idempotency-Key"));
-  }
-  if (path === "/api/v1/licenses/validate" && method === "POST") {
-    const body = await request.json<Record<string, unknown>>();
-    const local = await db.prepare("SELECT id FROM activations WHERE activation_token = ?").bind(String(body.activation_token ?? "")).first();
-    if (local) return validateLicense(env, body as never);
-    return proxyValidate(env, body);
-  }
-  if (path === "/api/v1/licenses/deactivate" && method === "POST") {
-    const body = await request.json<Record<string, unknown>>();
-    const local = await db.prepare("SELECT id FROM activations WHERE activation_token = ?").bind(String(body.activation_token ?? "")).first();
-    if (local) return deactivateLicense(db, body as never);
-    return proxyDeactivate(env, body);
-  }
+  if (path === "/api/v1/licenses/activate" && method === "POST") return activateLicense(env, await request.json());
+  if (path === "/api/v1/licenses/validate" && method === "POST") return validateLicense(env, await request.json());
+  if (path === "/api/v1/licenses/deactivate" && method === "POST") return deactivateLicense(db, await request.json());
 
   // ── Paddle webhook ─────────────────────────────────────────────────────────
-  // Retired (Phase 1): api.wpistic.com receives Paddle and issues every key.
-  // Answer 200 so a still-configured notification destination stops retrying.
-  if (path === "/api/webhooks/paddle" && method === "POST") {
-    await audit(db, "paddle", "webhook.retired", "", "delivery ignored; api.wpistic.com is the issuer");
-    return Response.json({ ok: true, retired: true, issuer: "api.wpistic.com" });
-  }
+  if (path === "/api/webhooks/paddle" && method === "POST") return paddleWebhook(request, env);
 
   // ── Marketplace (public reads) ─────────────────────────────────────────────
   if (seg[1] === "market") return marketRoutes(request, env, seg, method, url);
@@ -228,29 +198,39 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   // sign-in, and the site's HMAC check — not a dashboard session — authenticates
   // the call. Sitting above requireUser keeps the signed-out "connect a site"
   // flow working; the relay stores nothing and applies the same SSRF guards.
-  //
-  // Phase 1: paired sites are called by site_id. That mode needs a session and
-  // ownership; the stored secret is decrypted here and never reaches a browser.
-  // Manual mode (key_id + secret the user typed) stays public as before.
   if (path === "/api/relay" && method === "POST") {
     const body = await request.json<{ site_id?: string; site_url?: string; key_id?: string; secret?: string; method?: string; path?: string; body?: Record<string, unknown> }>();
-    let siteUrl: string;
-    let keyId: string;
-    let secret: string;
-    if (body.site_id) {
-      const owner = await requireUser(db, request);
-      const resolved = await resolveOwnedSite(env, owner, String(body.site_id));
-      if (!resolved) return Response.json({ error: "site_not_available", message: "This site is not connected to your account, or its license is not active." }, { status: 404 });
-      ({ siteUrl, keyId, secret } = resolved);
-      siteUrl = normalizeSiteUrl(siteUrl);
-    } else {
-      siteUrl = normalizeSiteUrl(String(body.site_url ?? ""));
-      keyId = String(body.key_id ?? "").trim();
-      secret = String(body.secret ?? "").trim();
+    let siteUrl = String(body.site_url ?? "");
+    let keyId = String(body.key_id ?? "").trim();
+    let secret = String(body.secret ?? "").trim();
+    const pairedSiteId = String(body.site_id ?? "").trim();
+    if (pairedSiteId) {
+      const user = await requireUser(db, request);
+      const license = await db.prepare("SELECT id, owner_email, status, expires_at, site_connection FROM licenses WHERE id = ?").bind(pairedSiteId).first<{ id: string; owner_email: string; status: string; expires_at: string | null; site_connection: string }>();
+      const ownerAccess = user.role === "owner" || user.role === "admin";
+      if (!license || (license.owner_email.toLowerCase() !== user.email.toLowerCase() && !ownerAccess)) {
+        return Response.json({ error: "site_not_found", message: "That connected site is not available to this account." }, { status: 404 });
+      }
+      if (license.status !== "active" || (license.expires_at && license.expires_at <= new Date().toISOString())) {
+        return Response.json({ error: "license_inactive", message: "This site license is not active." }, { status: 403 });
+      }
+      if (!license.site_connection || !env.SECRET_ENCRYPTION_KEY) {
+        return Response.json({ error: "no_pairing", message: "This site has not published a dashboard pairing yet." }, { status: 404 });
+      }
+      try {
+        const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+        if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete pairing");
+        siteUrl = parsed.site_url;
+        keyId = parsed.key_id;
+        secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+      } catch {
+        return Response.json({ error: "no_pairing", message: "The stored site pairing is incomplete. Reconnect the site from WordPress." }, { status: 404 });
+      }
     }
+    siteUrl = normalizeSiteUrl(siteUrl);
     let routePath = String(body.path ?? "site-info").replace(/[^a-z0-9_\-/.?=&]/gi, "");
     const httpMethod = ["GET", "POST", "PUT", "DELETE"].includes(String(body.method ?? "").toUpperCase()) ? (String(body.method).toUpperCase() as "GET" | "POST" | "PUT" | "DELETE") : "GET";
-    if (!keyId || !secret) return Response.json({ error: "missing_key", message: "The relay needs the site URL, key ID and secret." }, { status: 400 });
+    if (!keyId || !secret) return Response.json({ error: "missing_key", message: "The relay needs a connected site key." }, { status: 400 });
     if (routePath.length > 200) return Response.json({ error: "bad_path", message: "The bridge path is too long." }, { status: 400 });
     // Some host edges cache bridge GETs by URL alone until the plugin marks
     // the namespace no-store (1.5.6). The per-request buster keeps live data
@@ -270,9 +250,51 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 
   if (path === "/api/me" && method === "GET") {
     const orgs = await userOrgs(db, user.id);
-    const unlock = await paidUnlock(env, user);
-    return Response.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role }, orgs, paid_unlock: unlock });
+    const unlock = await paidUnlock(db, user);
+    return Response.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role }, orgs, paid_unlock: unlock }, { headers: { "Cache-Control": "no-store" } });
   }
+
+  // Account-owned license activations are the source of truth for the
+  // dashboard site picker. This endpoint deliberately returns metadata only;
+  // relay calls resolve the encrypted key server-side by license id.
+  if (path === "/api/me/sites" && method === "GET") {
+    const { results } = await db.prepare(
+      `SELECT l.id, l.key, l.plan, l.status, l.expires_at, l.site_connection,
+              a.domain, a.site_url, a.last_validated_at
+       FROM licenses l
+       LEFT JOIN activations a ON a.license_id = l.id AND a.status = 'active'
+       WHERE lower(l.owner_email) = lower(?) AND l.status = 'active'
+         AND (l.expires_at IS NULL OR l.expires_at > ?)
+       ORDER BY a.last_validated_at DESC, l.issued_at DESC`
+    ).bind(user.email, new Date().toISOString()).all<{ id: string; key: string; plan: string; status: string; expires_at: string | null; site_connection: string; domain: string | null; site_url: string | null; last_validated_at: string | null }>();
+    const seen = new Set<string>();
+    const sites = (results ?? []).flatMap((row) => {
+      if (!row.site_connection || seen.has(row.id)) return [];
+      try {
+        const paired = JSON.parse(row.site_connection) as { site_url?: string; key_id?: string };
+        const siteUrl = paired.site_url || row.site_url || (row.domain ? `https://${row.domain}` : "");
+        if (!siteUrl) return [];
+        seen.add(row.id);
+        return [{
+          id: row.id,
+          site_url: siteUrl,
+          domain: row.domain || new URL(siteUrl).hostname,
+          status: "activated",
+          plan: row.plan,
+          license_mask: maskKey(row.key),
+          paired: true,
+          key_id: paired.key_id || null,
+          last_validated_at: row.last_validated_at,
+        }];
+      } catch {
+        return [];
+      }
+    });
+    return Response.json({ sites }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (path === "/api/me/billing" && method === "GET") return billingSummary(db, env, user);
+  if (path === "/api/me/billing/portal" && method === "POST") return billingPortal(request, env, user);
 
   if (path === "/api/orgs" && method === "POST") {
     const body = await request.json<{ name?: string }>();
@@ -352,48 +374,65 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     return Response.json({ installs: results ?? [] });
   }
 
-  // ── Sites from license activations (Phase 1) ─────────────────────────────
-  // One entry per activation of every license this account owns: bought with
-  // this email, or claimed by key. Never carries a secret.
-  if (path === "/api/me/sites" && method === "GET") {
-    const result = await listMySites(env, user);
-    return Response.json(result, { headers: { "Cache-Control": "no-store" } });
-  }
-
-  // Claim a license bought under a different email (holding the key is the proof).
-  // resolve-license is the old name the dashboard's connect form used.
-  if ((path === "/api/me/claim-license" || path === "/api/me/resolve-license") && method === "POST") {
+  // ── Connect with the license key ───────────────────────────────────────────
+  // Customers naturally paste their BRG- license key into the connect form.
+  // When the licensed site has pushed its auto-paired dashboard key, resolve
+  // the license to that connection — the site connects with zero further
+  // steps. Only the license owner (or platform staff) may resolve it.
+  if (path === "/api/me/resolve-license" && method === "POST") {
     const body = await request.json<{ key?: string }>();
-    const claimed = await claimLicense(env, user, String(body.key ?? ""));
-    if (!claimed.ok) return Response.json({ error: claimed.error, message: claimed.message }, { status: claimed.status });
-    await audit(db, user.email, "license.claim", claimed.key_mask, claimed.source);
-    const result = await listMySites(env, user);
-    return Response.json({ ok: true, claimed: { key_mask: claimed.key_mask, plan: claimed.plan }, ...result });
+    const key = String(body.key ?? "").trim();
+    if (!key.startsWith("BRG-")) return Response.json({ error: "not_a_license", message: "That is not a license key (BRG-…)." }, { status: 400 });
+    const license = await db
+      .prepare("SELECT id, owner_email, status, site_connection FROM licenses WHERE key = ?")
+      .bind(key)
+      .first<{ id: string; owner_email: string; status: string; site_connection: string }>();
+    if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
+    const staff = user.role === "owner" || user.role === "admin";
+    if (license.owner_email !== user.email && !staff) {
+      return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
+    }
+    if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
+    if (!license.site_connection || !env.SECRET_ENCRYPTION_KEY) {
+      return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
+    }
+    try {
+      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
+      return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY) });
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
+    }
   }
 
-  // ── Billing (Paddle or Stripe, one shape) ──────────────────────────────────
-  if (path === "/api/me/billing" && method === "GET") {
-    const result = await billingSummary(env, user);
-    return Response.json(result, { headers: { "Cache-Control": "no-store" } });
-  }
-  if (path === "/api/me/billing/portal" && method === "POST") {
-    const body = await request.json<{ return_url?: string }>().catch(() => ({} as { return_url?: string }));
-    const returnUrl = safeReturnUrl(String(body.return_url ?? ""));
-    const result = await stripePortal(env, user, returnUrl);
-    if (!result.ok) return Response.json({ error: result.error, message: result.message }, { status: result.status });
-    await audit(db, user.email, "billing.portal", "stripe");
-    return Response.json({ url: result.url });
-  }
-
-  // Back-compat for dashboards built before Phase 1: same list, no secrets.
+  // ── Auto-paired sites from license activations ─────────────────────────────
+  // The plugin pushes its dashboard key at activation/validate; the license
+  // owner's dashboard picks the connection up here with zero manual steps.
   if (path === "/api/me/site-connections" && method === "GET") {
-    const { sites } = await listMySites(env, user);
-    return Response.json({ connections: sites.filter((x) => x.paired && x.status === "activated").map((x) => ({ site_id: x.id, site_url: x.site_url, key_id: x.key_id, plan: x.plan })) });
+    const unlock = await paidUnlock(db, user);
+    if (!unlock.unlocked) return Response.json({ connections: [] });
+    if (!env.SECRET_ENCRYPTION_KEY) return Response.json({ connections: [] });
+    const { results } = await db
+      .prepare("SELECT id, site_connection FROM licenses WHERE owner_email = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)")
+      .bind(user.email, new Date().toISOString())
+      .all<{ id: string; site_connection: string }>();
+    const connections: { site_url: string; key_id: string; secret: string; plan: string }[] = [];
+    for (const row of results ?? []) {
+      if (!row.site_connection) continue;
+      try {
+        const parsed = JSON.parse(row.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+        if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) continue;
+        connections.push({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY), plan: unlock.plan ?? "" });
+      } catch {
+        // corrupt row — skip rather than fail the whole list
+      }
+    }
+    return Response.json({ connections });
   }
 
   // ── Platform admin ─────────────────────────────────────────────────────────
   if (seg[1] === "admin") {
-    await requireStaff(db, request);
+    await requireOwner(db, request, env.PLATFORM_OWNER_EMAIL);
     return adminRoutes(request, env, seg, method, url, user);
   }
 
@@ -401,15 +440,97 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 }
 
 function jsonWithCookie(body: unknown, cookies: string[]): Response {
-  const headers = new Headers({ "Content-Type": "application/json" });
+  const headers = new Headers({ "Content-Type": "application/json", "Cache-Control": "no-store" });
   for (const cookie of cookies) headers.append("Set-Cookie", cookie);
   return new Response(JSON.stringify(body), { status: 200, headers });
 }
 
-/** Paid marketplace unlock: an active Bridgistic license owned (by email or claim) by this account. */
-async function paidUnlock(env: Env, user: User): Promise<{ unlocked: boolean; plan: string | null }> {
-  const { unlocked, plan } = await listMySites(env, user);
-  return { unlocked, plan };
+const WPISTIC_API_URL = "https://api.wpistic.com";
+const BILLING_RETURN_HOSTS = new Set(["bridgistic.app", "www.bridgistic.app", "dashboard.bridgistic.app", "app.bridgistic.app"]);
+
+function billingReturnUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && BILLING_RETURN_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function serviceBilling(env: Env, path: string, body: unknown): Promise<Response> {
+  if (!env.LICENSE_SERVICE_TOKEN) return Response.json({ error: "billing_not_configured", message: "Billing service is not configured." }, { status: 503 });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    return await fetch(`${WPISTIC_API_URL}/api/v1/service/billing${path}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.LICENSE_SERVICE_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function billingSummary(db: D1Database, env: Env, user: User): Promise<Response> {
+  try {
+    const upstream = await serviceBilling(env, "/summary", { product: "bridgistic", emails: [user.email] });
+    if (upstream.ok) {
+      const json = await upstream.json() as { accounts?: Array<Record<string, unknown>> };
+      const subscriptions = json.accounts ?? [];
+      return Response.json({ billing_provider: subscriptions[0]?.billing_provider ?? null, subscriptions, upstream_error: false }, { headers: { "Cache-Control": "no-store" } });
+    }
+  } catch {
+    // Use the local license record below when the billing service is briefly
+    // unavailable; customers should still see the entitlement they own.
+  }
+
+  const { results } = await db.prepare(
+    `SELECT id, plan, status, notes, issued_at, expires_at
+     FROM licenses WHERE lower(owner_email) = lower(?) AND status = 'active'
+     ORDER BY issued_at DESC`
+  ).bind(user.email).all<{ id: string; plan: string; status: string; notes: string; issued_at: string; expires_at: string | null }>();
+  const subscriptions = (results ?? []).map((row) => {
+    const provider = /stripe/i.test(row.notes) ? "stripe" : "paddle";
+    const plan = row.plan === "monthly" ? { interval: "month", amount: 1200 } : row.plan === "yearly" ? { interval: "year", amount: 9900 } : { interval: "lifetime", amount: 6900 };
+    return {
+      billing_provider: provider,
+      subscription_id: row.id,
+      plan: row.plan,
+      plan_name: row.plan === "lifetime" ? "Lifetime" : "Pro",
+      interval: plan.interval,
+      amount: plan.amount,
+      currency: "USD",
+      status: row.plan === "lifetime" ? "lifetime" : row.status,
+      renews_at: row.plan === "lifetime" ? null : row.expires_at,
+      ends_at: null,
+      cancel_at_period_end: false,
+      invoices: [],
+      manage: provider === "stripe" ? { type: "stripe_portal" } : { type: "paddle_portal", url: null },
+    };
+  });
+  return Response.json({ billing_provider: subscriptions[0]?.billing_provider ?? null, subscriptions, upstream_error: subscriptions.length === 0 }, { headers: { "Cache-Control": "no-store" } });
+}
+
+async function billingPortal(request: Request, env: Env, user: User): Promise<Response> {
+  const body = await request.json<{ return_url?: string }>();
+  const returnUrl = String(body.return_url ?? "");
+  if (!billingReturnUrl(returnUrl)) return Response.json({ error: "invalid_return_url", message: "The billing return URL is not allowed." }, { status: 400 });
+  const upstream = await serviceBilling(env, "/portal", { email: user.email, return_url: returnUrl });
+  const json = await upstream.json().catch(() => ({})) as { portal_url?: string; error?: { message?: string }; message?: string };
+  if (!upstream.ok || !json.portal_url) return Response.json({ error: "billing_portal_unavailable", message: json.error?.message ?? json.message ?? "Could not open the billing portal." }, { status: upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502 });
+  return Response.json({ url: json.portal_url }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/** Paid marketplace unlock: an active Bridgistic license assigned to this email. */
+async function paidUnlock(db: D1Database, user: User): Promise<{ unlocked: boolean; plan: string | null }> {
+  const row = await db
+    .prepare("SELECT plan FROM licenses WHERE owner_email = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?) LIMIT 1")
+    .bind(user.email, new Date().toISOString())
+    .first<{ plan: string }>();
+  return { unlocked: Boolean(row), plan: row?.plan ?? null };
 }
 
 // ── Site connect + proxied calls ─────────────────────────────────────────────
@@ -425,20 +546,25 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
   // A BRG- license key resolves to the licensed site's auto-paired key —
   // customers paste the one code they have.
   if (keyId.startsWith("BRG-")) {
-    const license = await env.DB.prepare("SELECT id, owner_email, status FROM licenses WHERE key = ?").bind(keyId).first<{ id: string; owner_email: string; status: string }>();
+    const license = await env.DB.prepare("SELECT owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ owner_email: string; status: string; site_connection: string }>();
     const staff = user.role === "owner" || user.role === "admin";
     if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
     if (license.owner_email !== user.email && !staff) {
       return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
     }
     if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
-    const pairing = await env.DB.prepare("SELECT site_url, key_id, secret_enc FROM site_connections WHERE license_ref = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1").bind(license.id).first<{ site_url: string; key_id: string; secret_enc: string }>();
-    if (!pairing) {
+    if (!license.site_connection) {
       return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
     }
-    url = pairing.site_url;
-    keyId = pairing.key_id;
-    secret = await decryptSecret(pairing.secret_enc, env.SECRET_ENCRYPTION_KEY);
+    try {
+      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
+      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
+      url = parsed.site_url;
+      keyId = parsed.key_id;
+      secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
+    }
   }
 
   const normalized = normalizeSiteUrl(url);
@@ -513,7 +639,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
       const user = await currentUser(db, request);
       if (!user) return Response.json({ error: "signin_required", message: "Sign in to see the Pro collection." }, { status: 401 });
       const staff = user.role === "owner" || user.role === "admin";
-      if (!staff && !(await paidUnlock(env, user)).unlocked) {
+      if (!staff && !(await paidUnlock(db, user)).unlocked) {
         return Response.json({ error: "license_required", message: "The Pro collection needs an active Bridgistic license." }, { status: 403 });
       }
       tier = "pro";
@@ -551,7 +677,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     let authorized = item.tier === "free";
     if (!authorized) {
       const user = await currentUser(db, request);
-      if (user) authorized = (await paidUnlock(env, user)).unlocked || user.role === "owner" || user.role === "admin";
+      if (user) authorized = (await paidUnlock(db, user)).unlocked || user.role === "owner" || user.role === "admin";
     } else {
       const user = await currentUser(db, request);
       authorized = Boolean(user);
@@ -568,7 +694,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     const item = await db.prepare("SELECT slug, tier, installs, files, name, version, author FROM skills WHERE slug = ?").bind(seg[3]).first<{ slug: string; tier: string; installs: number; files: string; name: string; version: string; author: string }>();
     if (!item) return Response.json({ error: "not_found", message: "Skill not found." }, { status: 404 });
     const user = await requireUser(db, request);
-    if (item.tier !== "free" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
+    if (item.tier === "paid" && !(await paidUnlock(db, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
       return Response.json({ error: "license_required", message: "This skill is part of Bridgistic Pro. Activate a license to install it." }, { status: 403 });
     }
     await db.prepare("UPDATE skills SET installs = installs + 1 WHERE slug = ?").bind(item.slug).run();
@@ -581,7 +707,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     if (!item) return Response.json({ error: "not_found", message: "Skill not found." }, { status: 404 });
     const user = await currentUser(db, request);
     if (!user) return Response.json({ error: "signin_required", message: "Create a free account to download." }, { status: 401 });
-    if (item.tier !== "free" && !(await paidUnlock(env, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
+    if (item.tier === "paid" && !(await paidUnlock(db, user)).unlocked && user.role !== "owner" && user.role !== "admin") {
       return Response.json({ error: "license_required", message: "This pack is part of Bridgistic Pro." }, { status: 403 });
     }
     const files = parseFiles(item.files) as { path: string; text: string }[];
@@ -652,6 +778,58 @@ async function aiGenerate(request: Request, env: Env, user: User): Promise<Respo
 
 // ── Paddle webhook ───────────────────────────────────────────────────────────
 
+async function paddleWebhook(request: Request, env: Env): Promise<Response> {
+  const raw = await request.text();
+  if (env.PADDLE_WEBHOOK_SECRET) {
+    const sigHeader = request.headers.get("Paddle-Signature") ?? "";
+    const parts = Object.fromEntries(sigHeader.split(";").map((p) => p.split("=") as [string, string]));
+    const ts = parts.ts ?? "";
+    // Reject stale deliveries (replay protection) while tolerating Paddle retries.
+    if (!/^\d+$/.test(ts) || Math.abs(Date.now() / 1000 - Number(ts)) > 86_400) {
+      return Response.json({ error: "stale_timestamp", message: "The webhook timestamp is missing or too old." }, { status: 403 });
+    }
+    const expected = await hmacSha256Hex(env.PADDLE_WEBHOOK_SECRET, `${ts}:${raw}`);
+    if (!parts.h1 || parts.h1 !== expected) {
+      return Response.json({ error: "bad_signature", message: "The webhook signature did not verify." }, { status: 403 });
+    }
+  }
+  let event: { event_type?: string; occurred_at?: string; data?: Record<string, unknown> };
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return Response.json({ error: "bad_json", message: "The webhook body was not JSON." }, { status: 400 });
+  }
+  const type = String(event.event_type ?? "");
+  const data = event.data ?? {};
+
+  if (type === "subscription.canceled") {
+    const email = await paddleCustomerEmail(env, data);
+    if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
+    const licenses = await env.DB.prepare("SELECT id, key FROM licenses WHERE owner_email = ? AND status = 'active'").bind(email).all<{ id: string; key: string }>();
+    for (const license of licenses.results ?? []) {
+      await env.DB.prepare("UPDATE licenses SET status = 'suspended' WHERE id = ?").bind(license.id).run();
+      await env.DB.prepare("UPDATE activations SET status = 'inactive' WHERE license_id = ?").bind(license.id).run();
+      await syncLog(env.DB, "suspend", maskKey(license.key), "", "Paddle subscription canceled");
+    }
+    await audit(env.DB, "paddle-webhook", "license.suspend", email, `${licenses.results?.length ?? 0} license(s)`);
+    return Response.json({ ok: true, suspended: licenses.results?.length ?? 0 });
+  }
+
+  if (type !== "transaction.completed") return Response.json({ ok: true, ignored: type });
+
+  const email = await paddleCustomerEmail(env, data);
+  if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
+  const transactionId = String(data.id ?? "");
+  const seen = transactionId ? await env.DB.prepare("SELECT id FROM licenses WHERE notes LIKE ?").bind(`%${transactionId}%`).first() : null;
+  if (seen) return Response.json({ ok: true, duplicate: true });
+  const priceId = String((data.items as { price?: { id?: string } }[] | undefined)?.[0]?.price?.id ?? "");
+  const plan = priceId.includes("01m1ykar8aq033865h68a4b9hh") ? "monthly" : priceId.includes("01m1ykaqyaaeewsbah07akmpka") ? "yearly" : "lifetime";
+  const siteLimit = plan === "lifetime" ? 1 : 5;
+  const expires = plan === "monthly" ? new Date(Date.now() + 31 * 86_400_000).toISOString() : plan === "yearly" ? new Date(Date.now() + 366 * 86_400_000).toISOString() : null;
+  const license = await issueLicense(env.DB, { plan, ownerEmail: email, siteLimit, orgId: null, notes: `Paddle ${type} ${transactionId} ${priceId}`.trim(), expiresAt: expires });
+  await audit(env.DB, "paddle-webhook", "license.issue", email, plan);
+  return Response.json({ ok: true, license: maskKey(license.key) });
+}
 
 /** Buyer email from checkout custom_data, the receipt, or a customer lookup via the API key. */
 async function paddleCustomerEmail(env: Env, data: Record<string, unknown>): Promise<string | null> {
@@ -746,7 +924,7 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
     if (method === "GET" && !id) {
       const { results } = await db
         .prepare(
-          `SELECT u.id, u.email, u.name, u.role, u.status, u.created_at, u.billing_provider, u.billing_synced_at,
+          `SELECT u.id, u.email, u.name, u.role, u.status, u.created_at,
              (SELECT COUNT(*) FROM orgs o WHERE o.owner_user_id = u.id) AS org_count
            FROM users u ORDER BY u.created_at DESC`
         )
@@ -786,7 +964,24 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
          FROM sites s JOIN orgs o ON o.id = s.org_id ORDER BY s.created_at DESC`
       )
       .all();
-    return Response.json({ sites: results ?? [] });
+    // License activation is the source of truth for sites activated directly
+    // from WP Admin. Older deployments did not create a workspace `sites`
+    // row, which made the owner console report zero sites while activations
+    // were healthy. Include those rows without exposing dashboard secrets.
+    const activations = await db
+      .prepare(
+        `SELECT a.id, a.site_url AS url, a.domain AS name, a.wp_version, a.php_version,
+                a.status, a.last_validated_at AS last_seen, l.plan, l.owner_email,
+                l.site_limit, l.key AS license_key
+         FROM activations a JOIN licenses l ON l.id = a.license_id
+         WHERE a.status = 'active' ORDER BY a.created_at DESC`
+      )
+      .all();
+    const existing = new Set((results ?? []).map((row) => String((row as { url?: string }).url ?? "")));
+    const activationRows = (activations.results ?? [])
+      .filter((row) => !existing.has(String((row as { url?: string }).url ?? "")))
+      .map((row) => ({ ...(row as Record<string, unknown>), key_mask: maskKey(String((row as { license_key?: string }).license_key ?? "")), org_name: String((row as { owner_email?: string }).owner_email ?? "") }));
+    return Response.json({ sites: [...(results ?? []), ...activationRows] });
   }
 
   if (seg[2] === "plans") {
@@ -832,8 +1027,19 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
       return Response.json({ licenses: (results ?? []).map((row) => ({ ...(row as Record<string, unknown>), key_mask: maskKey(String((row as { key: string }).key)) })) });
     }
     if (method === "POST" && !id) {
-      // Retired (Phase 1): issue keys on api.wpistic.com (one issuer for WPistic and Bridgistic).
-      return Response.json({ error: "issuer_retired", message: "Licenses are issued by api.wpistic.com. Issue or comp keys in the WPistic admin." }, { status: 410 });
+      const body = await request.json<{ plan?: string; owner_email?: string; site_limit?: number; org_id?: string | null; notes?: string; expires_at?: string | null }>();
+      const plan = ["lifetime", "monthly", "yearly"].includes(String(body.plan)) ? String(body.plan) : "lifetime";
+      const siteLimit = Number(body.site_limit ?? (plan === "lifetime" ? 1 : 5));
+      const license = await issueLicense(db, {
+        plan,
+        ownerEmail: String(body.owner_email ?? "").trim().toLowerCase(),
+        siteLimit,
+        orgId: body.org_id ?? null,
+        notes: String(body.notes ?? ""),
+        expiresAt: body.expires_at ?? null,
+      });
+      await audit(db, user.email, "admin.license.issue", maskKey(license.key), plan);
+      return Response.json({ ok: true, license: { ...license, key_mask: maskKey(license.key) }, key: license.key });
     }
     if (id && method === "PATCH") {
       const body = await request.json<{ status?: string; site_limit?: number; owner_email?: string; notes?: string }>();

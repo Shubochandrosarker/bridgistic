@@ -35,181 +35,119 @@
   <meta name="twitter:image:alt" content="Bridgistic — AI Control for WordPress" />
 
   <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "SoftwareApplication",
-      "@id": "https://bridgistic.app/#software",
-      "name": "Bridgistic",
-      "url": "https://bridgistic.app/",
-      "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "WordPress 6.4+, PHP 8.0+",
-      "softwareVersion": "__BRIDGISTIC_RELEASE_VERSION__",
-      "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
-      "description": "A secure MCP bridge that connects AI clients to WordPress using HMAC-signed requests, scoped keys, approvals, snapshots and audit logs.",
-      "offers": [
-        {
-          "@type": "Offer",
-          "name": "Bridgistic Free",
-          "price": "0",
-          "priceCurrency": "USD",
-          "availability": "https://schema.org/InStock"
-        },
-        {
-          "@type": "Offer",
-          "name": "Bridgistic Lifetime Deal",
-          "price": "69.00",
-          "priceCurrency": "USD",
-          "url": "https://pay.bridgistic.app/",
-          "availability": "https://schema.org/InStock",
-          "description": "One payment of $69. 1 license, 1 site. All future updates included."
-        },
-        {
-          "@type": "Offer",
-          "name": "Bridgistic Pro Monthly",
-          "price": "12.00",
-          "priceCurrency": "USD",
-          "url": "https://bridgistic.app/#pricing",
-          "availability": "https://schema.org/InStock"
-        },
-        {
-          "@type": "Offer",
-          "name": "Bridgistic Pro Yearly",
-          "price": "99.00",
-          "priceCurrency": "USD",
-          "url": "https://bridgistic.app/#pricing",
-          "availability": "https://schema.org/InStock"
-        }
-      ],
-      "publisher": {
-        "@id": "https://bridgistic.app/#organization"
-      }
-    },
-    {
-      "@type": "Organization",
-      "@id": "https://bridgistic.app/#organization",
-      "name": "WordPressistic LLC",
-      "legalName": "WordPressistic LLC",
-      "alternateName": [
-        "WPistic",
-        "WordPressistic",
-        "Bridgistic"
-      ],
-      "url": "https://wpistic.com/",
-      "logo": "https://bridgistic.app/assets/bridgistic-logo.png",
-      "email": "support@wpistic.com",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "1209 Mountain Road PL NE, STE N",
-        "addressLocality": "Albuquerque",
-        "addressRegion": "NM",
-        "postalCode": "87110",
-        "addressCountry": "US"
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://bridgistic.app/#software",
+        "name": "Bridgistic",
+        "url": "https://bridgistic.app/",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "WordPress 6.4+, PHP 8.0+",
+        "softwareVersion": "__BRIDGISTIC_RELEASE_VERSION__",
+        "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+        "description": "A secure MCP bridge that connects AI clients to WordPress using HMAC-signed requests, scoped keys, approvals, snapshots and audit logs.",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Bridgistic Free",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          {
+            "@type": "Offer",
+            "name": "Bridgistic Lifetime Deal",
+            "price": "69",
+            "priceCurrency": "USD",
+            "url": "https://pay.bridgistic.app/"
+          },
+          {
+            "@type": "Offer",
+            "name": "Bridgistic Pro Monthly",
+            "price": "12.00",
+            "priceCurrency": "USD",
+            "url": "https://bridgistic.app/#pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "Bridgistic Pro Yearly",
+            "price": "99.00",
+            "priceCurrency": "USD",
+            "url": "https://bridgistic.app/#pricing"
+          }
+        ],
+        "publisher": { "@id": "https://bridgistic.app/#organization" }
       },
-      "sameAs": [
-        "https://github.com/Wordpressistic/bridgistic",
-        "https://wpistic.com/",
-        "https://wordpressistic.com/"
-      ]
-    },
-    {
-      "@type": "WebSite",
-      "@id": "https://bridgistic.app/#website",
-      "url": "https://bridgistic.app/",
-      "name": "Bridgistic",
-      "inLanguage": "en",
-      "publisher": {
-        "@id": "https://bridgistic.app/#organization"
-      }
-    },
-    {
-      "@type": "FAQPage",
-      "@id": "https://bridgistic.app/#faq",
-      "speakable": {
-        "@type": "SpeakableSpecification",
-        "cssSelector": [
-          ".faq",
-          "#publisher"
+      {
+        "@type": "Organization",
+        "@id": "https://bridgistic.app/#organization",
+        "name": "WordPressistic LLC",
+        "legalName": "WordPressistic LLC",
+        "alternateName": ["WPistic", "WordPressistic", "Bridgistic"],
+        "url": "https://wpistic.com/",
+        "logo": "https://bridgistic.app/assets/bridgistic-logo.png",
+        "email": "support@wpistic.com",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "1209 Mountain Road PL NE, STE N",
+          "addressLocality": "Albuquerque",
+          "addressRegion": "NM",
+          "postalCode": "87110",
+          "addressCountry": "US"
+        },
+        "sameAs": [
+          "https://github.com/Wordpressistic/bridgistic",
+          "https://wpistic.com/",
+          "https://wordpressistic.com/"
         ]
       },
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What exactly does Bridgistic do?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Bridgistic adds a policy-controlled MCP bridge to WordPress. Compatible AI clients call structured tools through a dedicated connection key; the WordPress plugin verifies authentication, scopes and safety rules before an operation runs."
-          }
+      {
+        "@type": "WebSite",
+        "@id": "https://bridgistic.app/#website",
+        "url": "https://bridgistic.app/",
+        "name": "Bridgistic",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://bridgistic.app/#organization" }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://bridgistic.app/#faq",
+        "speakable": {
+          "@type": "SpeakableSpecification",
+          "cssSelector": [".faq", "#publisher"]
         },
-        {
-          "@type": "Question",
-          "name": "Are unlimited schedules, advanced snapshots and audit export included today?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Without a license, no. The free plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, those three open on that site. The skills marketplace is live at marketplace.bridgistic.app/marketplace. The agency dashboard, team permissions and white-label stay marked coming soon. Cloud Agent credits are not part of the license. The feature guide and the setup docs describe the current behavior."
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is Bridgistic?",
+            "acceptedAnswer": {"@type":"Answer","text":"Bridgistic is a WordPress plugin and MCP bridge that gives compatible AI clients controlled access to WordPress through signed, scoped and auditable requests."}
+          },
+          {
+            "@type": "Question",
+            "name": "Are unlimited schedules, advanced snapshots and audit export included today?",
+            "acceptedAnswer": {"@type":"Answer","text":"Without a license, the plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. A live license from the WPistic license server opens unlimited schedules, snapshot history past 50, and audit log export. The skills marketplace is live at https://marketplace.bridgistic.app/. The agency dashboard, team permissions and white-label are not in this release. Cloud Agent credits are a separate product."}
+          },
+          {
+            "@type": "Question",
+            "name": "Does Bridgistic require a WordPress administrator password?",
+            "acceptedAnswer": {"@type":"Answer","text":"No. Bridgistic uses its own scoped connection keys and HMAC-signed requests instead of sharing a WordPress administrator password with the AI client."}
+          },
+          {
+            "@type": "Question",
+            "name": "Can Bridgistic undo AI changes?",
+            "acceptedAnswer": {"@type":"Answer","text":"Risky writes can be previewed, held for human approval, snapshotted before execution and restored from snapshots when needed."}
+          },
+          {
+            "@type": "Question",
+            "name": "Is Bridgistic Cloud production ready?",
+            "acceptedAnswer": {"@type":"Answer","text":"Bridgistic Cloud is currently a public beta and has not yet completed an independent third-party security review. The local connection is the recommended default for supported local MCP clients."}
           }
-        },
-        {
-          "@type": "Question",
-          "name": "Do I give Claude, ChatGPT or Codex my WordPress admin password?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. Bridgistic creates its own scoped key ID and secret for the connection. Local requests are HMAC-signed, and the WordPress administrator password is not the integration credential."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Which permission preset should I use first?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Start with Read-only. Move to Content Manager or Safe Admin only when the workflow requires writes. Developer Mode exposes the highest-risk tools and should be reserved for sites you fully control."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can I require approval before the AI changes my site?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. Keys can require approval for writes or destructive operations. Pending actions appear in Bridgistic → Approvals so a human can allow or deny them."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can Bridgistic roll back a bad change?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Bridgistic can create snapshots before destructive writes, and snapshots can be restored from WordPress or via the relevant MCP operation. The exact coverage depends on the type of operation."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Bridgistic Cloud the same security model as local mode?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The WordPress-side scopes, approvals and safety controls still apply, but the network path is different: the hosted relay participates in the connection. Bridgistic Cloud is currently a public beta without an independent security review, so local mode is the recommended default where available."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can I manage several WordPress sites from one AI client?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes for local clients. Bridgistic supports a multi-site connections.json registry and site aliases. The WordPress Multi-Site screen helps build the file. The hosted cloud connector uses a separate connector entry per site."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Does Bridgistic work with WooCommerce?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. The MCP surface includes structured WooCommerce tools behind the same authentication and guard model. The project’s testing documentation also explicitly notes that live WooCommerce behavior remains a larger integration surface to validate in real environments."
-          }
-        }
-      ]
-    }
-  ]
-}
+        ]
+      }
+    ]
+  }
   </script>
 
   <style>
@@ -407,6 +345,22 @@
       transition:color .18s ease, background .18s ease;
     }
     .nav-links a:hover { color:var(--text); background:var(--panel); }
+    .nav-menu { position:relative; }
+    .nav-menu summary {
+      list-style:none; cursor:pointer; padding:9px 11px; border-radius:9px;
+      color:var(--muted); font-size:14px; font-weight:650;
+      transition:color .18s ease, background .18s ease;
+    }
+    .nav-menu summary::-webkit-details-marker { display:none; }
+    .nav-menu summary::after { content:'⌄'; display:inline-block; margin-left:6px; font-size:12px; transition:transform .18s ease; }
+    .nav-menu[open] summary, .nav-menu summary:hover { color:var(--text); background:var(--panel); }
+    .nav-menu[open] summary::after { transform:rotate(180deg); }
+    .nav-menu-panel {
+      position:absolute; top:calc(100% + 8px); left:0; z-index:20; min-width:180px;
+      display:grid; gap:3px; padding:7px; border:1px solid var(--line); border-radius:14px;
+      background:var(--panel); box-shadow:var(--shadow);
+    }
+    .nav-menu-panel a { display:block; white-space:nowrap; }
     .nav-actions { display:flex; align-items:center; gap:9px; }
     .icon-btn {
       width:40px;
@@ -942,7 +896,7 @@
     .pricing-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:980px; margin:0 auto; }
 
     .billing-toggle {
-      display:inline-flex; align-items:center; gap:4px; margin:28px auto 8px;
+      display:flex; width:max-content; align-items:center; gap:4px; margin:28px auto 8px;
       padding:5px; border-radius:999px; border:1px solid var(--line);
       background:color-mix(in srgb, var(--panel) 88%, transparent);
     }
@@ -975,7 +929,6 @@
     .plan-chooser { max-width:1120px; margin:0 auto 10px; display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:12px; }
     .plan-chooser .btn { min-height:52px; width:100%; }
     .plan-chooser-note { max-width:760px; margin:0 auto 22px; text-align:center; color:var(--muted); font-size:13px; }
-    .pricing-grid.three { grid-template-columns:repeat(3,1fr); max-width:1120px; }
     .plans-label { max-width:1120px; margin:34px auto 14px; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; text-align:center; }
     .offer-card { display:grid; grid-template-columns:1.35fr 1fr; gap:34px; max-width:1120px; margin:0 auto; padding:38px; border:1px solid color-mix(in srgb,#C6A15B 55%,transparent); border-radius:28px; background:linear-gradient(135deg, rgba(198,161,91,.14), transparent 55%), var(--panel); box-shadow:var(--shadow-soft); }
     .offer-card h3 { margin:16px 0 10px; font-size:30px; line-height:1.12; letter-spacing:-.035em; }
@@ -1070,10 +1023,11 @@
     @media (max-width:860px) {
       .nav-links { display:none; position:absolute; top:calc(var(--header) - 1px); left:20px; right:20px; padding:10px; border:1px solid var(--line); border-radius:16px; background:var(--panel); box-shadow:var(--shadow); }
       .nav-links.open { display:grid; }
-      .nav-links a { padding:12px 13px; }
+      .nav-links a, .nav-menu summary { padding:12px 13px; }
+      .nav-menu-panel { position:static; min-width:0; margin:3px 0 5px; padding:3px 0 3px 9px; border:0; box-shadow:none; background:transparent; }
       .nav-actions .btn { display:none; }
       .menu-btn { display:grid; }
-      .problem-grid, .mode-grid, .pricing-grid, .pricing-grid.three, .plan-strip, .offer-card, .plan-chooser { grid-template-columns:1fr; }
+      .problem-grid, .mode-grid, .pricing-grid, .plan-strip, .offer-card, .plan-chooser { grid-template-columns:1fr; }
       .steps { grid-template-columns:1fr; }
       .step { min-height:auto; }
       .footer-main { grid-template-columns:1fr 1fr; }
@@ -1157,13 +1111,26 @@
       </a>
 
       <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
-        <a href="#how">How it works</a>
-        <a href="#connect">Connect</a>
-        <a href="#security">Security</a>
-        <a href="#clients">AI clients</a>
-        <a href="#features">Features</a>
-        <a href="/features">Guide</a>
-        <a href="/docs">Docs</a>
+        <details class="nav-menu">
+          <summary>Product</summary>
+          <div class="nav-menu-panel">
+            <a href="/features">Feature guide</a>
+            <a href="#how">How it works</a>
+            <a href="#connect">Connect</a>
+            <a href="#security">Security</a>
+            <a href="#clients">AI clients</a>
+            <a href="#pricing">Pricing</a>
+          </div>
+        </details>
+        <details class="nav-menu">
+          <summary>Resources</summary>
+          <div class="nav-menu-panel">
+            <a href="/docs">Setup docs</a>
+            <a href="https://marketplace.bridgistic.app/">Skills marketplace</a>
+            <a href="https://dashboard.bridgistic.app/">Customer dashboard</a>
+            <a href="https://github.com/Wordpressistic/bridgistic/releases" target="_blank" rel="noopener">Release notes</a>
+          </div>
+        </details>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
         <a href="https://dashboard.bridgistic.app/">Dashboard</a>
@@ -1324,13 +1291,13 @@
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
           <div class="plan-chip offer-only">
-            <strong>Lifetime Deal, $69 one time</strong>
-            <span>Active now · all future updates included · 1 license for 1 site · limited time offer</span>
+            <strong>Welcome offer: Lifetime Deal, $69 one time</strong>
+            <span>Active now · all future updates included · 1 license for 1 site · Limited Time Offer</span>
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
           <div class="plan-chip closed-only">
             <strong>Bridgistic Pro: $12 per month or $99 per year</strong>
-            <span>Pro license · updates while your plan is active · choose Paddle or Stripe at checkout</span>
+            <span>Pro license · updates while your plan is active · Stripe default, Paddle optional</span>
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
         </div>
@@ -1678,30 +1645,24 @@ Bridgistic Cloud is currently a public beta.</pre>
     <section class="section" id="pricing">
       <div class="wrap">
         <div class="section-head reveal">
-          <span class="eyebrow"><span class="dot"></span> <span class="offer-only">Lifetime Deal</span><span class="closed-only">Pricing</span></span>
+          <span class="eyebrow"><span class="dot"></span> <span class="offer-only">Welcome offer</span><span class="closed-only">Pricing</span></span>
           <h2 class="offer-only">Pay once for Bridgistic Pro, and never pay again.</h2>
           <h2 class="closed-only">Start free. Upgrade to Pro when you need it.</h2>
-          <p>The plugin download is free and open source: the full local bridge. Bridgistic Pro checkout supports Paddle and Stripe.</p>
+          <p>The plugin download is free and open source: the full local bridge. Stripe is the default checkout for Bridgistic, with Paddle available as an optional payment provider.</p>
         </div>
-
-        <div class="plan-chooser reveal" role="group" aria-label="Choose a plan">
-          <a class="btn btn-primary" data-checkout="lifetime" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose Lifetime · $69</a>
-          <a class="btn btn-secondary" data-checkout="monthly" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose monthly · $12</a>
-          <a class="btn btn-secondary" data-checkout="yearly" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose yearly · $99</a>
-        </div>
-        <p class="plan-chooser-note reveal">Checkout asks for the email. The license key is sent to that inbox. Paste it on the License screen. The plugin and the dashboard both check that same key with the WPistic license server.</p>
 
         <article class="offer-card offer-only reveal" id="welcome-offer" aria-labelledby="offer-title">
           <div class="offer-main">
-            <span class="badge offer">Lifetime Deal · active now</span>
+            <span class="badge offer">Welcome offer: Lifetime Deal</span>
             <h3 id="offer-title">Bridgistic Pro for life, for one payment of $69</h3>
-            <p class="offer-hook">One payment of $69 gives you Bridgistic Pro for life with every future update. No subscription and no renewal.</p>
+            <p class="offer-hook">One payment of $69 gives you Bridgistic Pro for one site with all future updates included. No subscription and no renewal.</p>
             <ul class="offer-terms" aria-label="Offer terms">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Active now</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>Active now</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7z"/></svg>All future updates included</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>1 license for 1 site</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Limited Time Offer</li>
-                          </ul>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>1 license for 1 site</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Limited Time Offer</li>
+              <li id="offer-remaining" hidden></li>
+            </ul>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 1 site</strong></li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
@@ -1711,25 +1672,27 @@ Bridgistic Cloud is currently a public beta.</pre>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Unlimited scheduled playbooks, once a live license is on the site</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Advanced snapshots past the free cap of 50</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Audit log export from the dashboard license link</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/marketplace">marketplace.bridgistic.app</a></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Agency dashboard and team permissions <span class="soon">Coming soon</span></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>White-label <span class="soon">Coming soon</span></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a></li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>All future paid features</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>No subscription and no renewal</li>
             </ul>
           </div>
           <div class="offer-side">
-            <div class="offer-was">Prefer a subscription? $12 per month or $99 per year</div>
+            <div class="offer-was">After the offer: $12 per month or $99 per year</div>
             <div class="price">$69 <small>USD, one time</small></div>
             <a class="btn btn-primary" data-checkout="lifetime" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose Lifetime · $69</a>
             <div class="price-fine">One payment. The key arrives by email after checkout. Activate it on the License screen. 7-day refund.</div>
           </div>
         </article>
 
-        <div class="offer-ended closed-only" role="status">Bridgistic Pro is available monthly or yearly.</div>
+        <div class="offer-ended closed-only" role="status">The Lifetime Deal is currently unavailable. Bridgistic Pro remains available monthly or yearly.</div>
 
-        <p class="plans-label reveal">Same Pro features. Pick the term.</p>
-        <div class="pricing-grid three" id="pricing-cards">
+        <p class="plans-label reveal">Same Pro features. Choose your billing term.</p>
+        <div class="billing-toggle reveal" role="tablist" aria-label="Choose Pro billing term">
+          <button type="button" data-billing="monthly" aria-pressed="true">Monthly · $12</button>
+          <button type="button" data-billing="yearly" aria-pressed="false">Yearly · $99</button>
+        </div>
+        <div class="pricing-grid" id="pricing-cards">
           <article class="price-card reveal">
             <span class="badge free">Open source</span>
             <h3>Bridgistic Free</h3>
@@ -1745,11 +1708,11 @@ Bridgistic Cloud is currently a public beta.</pre>
             <a class="btn btn-secondary" href="__BRIDGISTIC_RELEASE_DOWNLOAD__/bridgistic-wordpress-plugin.zip">Download free (latest release)</a>
           </article>
 
-          <article class="price-card plan reveal">
+          <article class="price-card plan reveal" data-billing-card="monthly">
             <span class="badge">Pro Monthly</span>
             <h3>Bridgistic Pro</h3>
             <div class="price">$12 <small>USD per month</small></div>
-            <p>Billed every month by Paddle.</p>
+            <p>Billed every month through your chosen provider. Stripe is the default; Paddle remains optional.</p>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 3 sites</strong></li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
@@ -1759,19 +1722,17 @@ Bridgistic Cloud is currently a public beta.</pre>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Unlimited scheduled playbooks, once a live license is on the site</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Advanced snapshots past the free cap of 50</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Audit log export from the dashboard license link</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/marketplace">marketplace.bridgistic.app</a></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Agency dashboard and team permissions <span class="soon">Coming soon</span></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>White-label <span class="soon">Coming soon</span></li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Billing managed by the provider you choose</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Billing managed from the customer portal</li>
             </ul>
             <a class="btn btn-secondary" data-checkout="monthly" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose monthly · $12</a>
           </article>
 
-          <article class="price-card plan pro reveal">
+          <article class="price-card plan pro reveal" data-billing-card="yearly" hidden>
             <span class="badge">Pro Yearly</span>
             <h3>Bridgistic Pro</h3>
             <div class="price">$99 <small>USD per year</small></div>
-            <p>Billed once a year by Paddle: $45 less than 12 months on the monthly plan.</p>
+            <p>Billed once a year through your chosen provider: $45 less than 12 months on the monthly plan.</p>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 3 sites</strong></li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
@@ -1781,15 +1742,13 @@ Bridgistic Cloud is currently a public beta.</pre>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Unlimited scheduled playbooks, once a live license is on the site</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Advanced snapshots past the free cap of 50</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Audit log export from the dashboard license link</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/marketplace">marketplace.bridgistic.app</a></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Agency dashboard and team permissions <span class="soon">Coming soon</span></li>
-              <li class="is-soon"><svg class="soon-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>White-label <span class="soon">Coming soon</span></li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Billing managed by the provider you choose</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Skills marketplace, live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Billing managed from the customer portal</li>
             </ul>
             <a class="btn btn-secondary" data-checkout="yearly" href="https://pay.bridgistic.app/" target="_blank" rel="noopener">Choose yearly · $99</a>
           </article>
         </div>
-        <div class="price-fine center">Prices in USD. Paddle is the merchant of record for Paddle purchases. Stripe purchases are sold by WordPressistic LLC, with tax calculated by Stripe Tax at checkout. Every purchase has a 7-day refund guarantee. A live license opens unlimited schedules, snapshots past 50, and audit export. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/marketplace">marketplace.bridgistic.app/marketplace</a>. Agency seats, team permissions, white-label and AI Agent credits are not in this release. <a href="/features">The feature guide</a> says what ships today.</div>
+        <div class="price-fine center">Prices in USD. Stripe is the default checkout for Bridgistic and Paddle remains optional. WordPressistic LLC is the seller for Stripe transactions; taxes are shown at checkout. Every purchase has a 7-day refund guarantee. A live license opens unlimited schedules, snapshots past 50, and audit export. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Agency seats, team permissions, white-label and Cloud Agent credits are not in this release. <a href="/features">The feature guide</a> says what ships today.</div>
       </div>
     </section>
 
@@ -1802,7 +1761,7 @@ Bridgistic Cloud is currently a public beta.</pre>
 
         <div class="faq">
           <details class="reveal"><summary>What exactly does Bridgistic do?</summary><div class="faq-body">Bridgistic adds a policy-controlled MCP bridge to WordPress. Compatible AI clients call structured tools through a dedicated connection key; the WordPress plugin verifies authentication, scopes and safety rules before an operation runs.</div></details>
-          <details class="reveal"><summary>Are unlimited schedules, advanced snapshots and audit export included today?</summary><div class="faq-body">Without a license, no. The free plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, those three open on that site. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/marketplace">marketplace.bridgistic.app/marketplace</a>. The agency dashboard, team permissions and white-label stay marked coming soon. Cloud Agent credits are not part of the license. The <a href="/features">feature guide</a> and the <a href="/docs">setup docs</a> describe the current behavior.</div></details>
+          <details class="reveal"><summary>Are unlimited schedules, advanced snapshots and audit export included today?</summary><div class="faq-body">Without a license, no. The free plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, those three open on that site. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Cloud Agent credits are not part of the license. The <a href="/features">feature guide</a> and the <a href="/docs">setup docs</a> describe the current behavior.</div></details>
           <details class="reveal"><summary>Do I give Claude, ChatGPT or Codex my WordPress admin password?</summary><div class="faq-body">No. Bridgistic creates its own scoped key ID and secret for the connection. Local requests are HMAC-signed, and the WordPress administrator password is not the integration credential.</div></details>
           <details class="reveal"><summary>Which permission preset should I use first?</summary><div class="faq-body">Start with <strong>Read-only</strong>. Move to Content Manager or Safe Admin only when the workflow requires writes. Developer Mode exposes the highest-risk tools and should be reserved for sites you fully control.</div></details>
           <details class="reveal"><summary>Can I require approval before the AI changes my site?</summary><div class="faq-body">Yes. Keys can require approval for writes or destructive operations. Pending actions appear in <strong>Bridgistic → Approvals</strong> so a human can allow or deny them.</div></details>
@@ -1823,7 +1782,7 @@ Bridgistic Cloud is currently a public beta.</pre>
           <h2>Who publishes Bridgistic.</h2>
         </div>
         <p>Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, United States. The free WordPress plugin is licensed GPL-2.0-or-later and the source is public on GitHub. Support and refunds go to support@wpistic.com.</p>
-        <p>Paddle is the merchant of record for Paddle purchases. Stripe purchases are sold by WordPressistic LLC, with Stripe Tax calculating tax at checkout. The security model on this site describes the controls in the current release: signed requests, scoped keys, approvals, snapshots and an audit log. It is not a claim that an independent third-party audit is complete. Bridgistic Cloud is a public beta. Local mode is the recommended default where the client supports it.</p>
+        <p>Stripe is the default checkout for Bridgistic and Paddle remains optional. WordPressistic LLC is the seller for Stripe transactions, and taxes are shown at checkout. The security model on this site describes the controls in the current release: signed requests, scoped keys, approvals, snapshots and an audit log. It is not a claim that an independent third-party audit is complete. Bridgistic Cloud is a public beta. Local mode is the recommended default where the client supports it.</p>
       </div>
     </section>
 
@@ -1904,6 +1863,15 @@ Bridgistic Cloud is currently a public beta.</pre>
         });
       });
 
+      // Keep only one product/resources menu open and make the disclosure
+      // controls behave consistently on touch and keyboard navigation.
+      navLinks.querySelectorAll('.nav-menu').forEach(menu => {
+        menu.addEventListener('toggle', () => {
+          if (!menu.open) return;
+          navLinks.querySelectorAll('.nav-menu').forEach(other => { if (other !== menu) other.open = false; });
+        });
+      });
+
       document.querySelectorAll('.tab-btn').forEach(button => {
         button.addEventListener('click', () => {
           const id = button.dataset.tab;
@@ -1932,6 +1900,20 @@ Bridgistic Cloud is currently a public beta.</pre>
         });
       });
 
+      const setBilling = (term) => {
+        document.querySelectorAll('[data-billing-card]').forEach(card => {
+          card.hidden = card.dataset.billingCard !== term;
+        });
+        document.querySelectorAll('[data-billing]').forEach(button => {
+          const active = button.dataset.billing === term;
+          button.setAttribute('aria-pressed', String(active));
+        });
+      };
+      document.querySelectorAll('[data-billing]').forEach(button => {
+        button.addEventListener('click', () => setBilling(button.dataset.billing || 'monthly'));
+      });
+      setBilling(new URLSearchParams(window.location.search).get('billing') === 'yearly' ? 'yearly' : 'monthly');
+
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const revealNodes = document.querySelectorAll('.reveal');
       if (reduced || !('IntersectionObserver' in window)) {
@@ -1952,22 +1934,25 @@ Bridgistic Cloud is currently a public beta.</pre>
 
 
   <script>
-  /* Lifetime Deal + Paddle fallback checkout. Stripe is offered on pay.bridgistic.app
-     alongside Paddle. The site never displays a sold-count or license-cap message. */
+  /* The payment page owns checkout selection. Stripe is the default provider;
+     Paddle remains available there as an explicit option. */
   (function () {
     var CFG = {
       token: "__BRIDGISTIC_PADDLE_CLIENT_TOKEN__",
       env: "__BRIDGISTIC_PADDLE_ENV__",
       statusUrl: "__BRIDGISTIC_OFFER_STATUS_URL__",
-      endsAt: Infinity,
-      cap: Infinity,
       successUrl: "https://bridgistic.app/?checkout=success",
-      prices: { lifetime: "__BRIDGISTIC_PADDLE_PRICE_LIFETIME__", monthly: "pri_01m1ykar8aq033865h68a4b9hh", yearly: "pri_01m1ykaqyaaeewsbah07akmpka" }
+      prices: { lifetime: "pri_01m58k6epsqzbr3qbab84t6p90", monthly: "pri_01m1ykar8aq033865h68a4b9hh", yearly: "pri_01m1ykaqyaaeewsbah07akmpka" }
     };
     var root = document.documentElement;
     var tokenOk = /^(live|test)_[A-Za-z0-9]+$/.test(CFG.token);
     function setOpen(open) { root.setAttribute("data-offer", open ? "open" : "closed"); }
-    setOpen(Date.now() < CFG.endsAt);
+    function showRemaining() {
+      var el = document.getElementById("offer-remaining");
+      if (!el) return;
+      el.hidden = true;
+    }
+    setOpen(true);
     var lastStatus = null;
     function fetchStatus() {
       if (!/^(\/|https:\/\/)/.test(CFG.statusUrl)) return Promise.resolve(null);
@@ -1980,7 +1965,8 @@ Bridgistic Cloud is currently a public beta.</pre>
           if (t) clearTimeout(t);
           if (!j || typeof j.open !== "boolean") return null;
           lastStatus = j;
-          setOpen(j.open && Date.now() < CFG.endsAt);
+          setOpen(j.open);
+          showRemaining();
           return j;
         });
     }
@@ -2015,7 +2001,7 @@ Bridgistic Cloud is currently a public beta.</pre>
       return paddleReady;
     }
     document.addEventListener("click", function (ev) {
-      var a = ev.target.closest && ev.target.closest("[data-checkout]");
+      var a = ev.target.closest && ev.target.closest("[data-paddle-checkout]");
       if (!a || !tokenOk) return; // no client token configured: fall back to the pay page link
       var plan = a.getAttribute("data-checkout");
       var priceId = CFG.prices[plan];
@@ -2023,7 +2009,7 @@ Bridgistic Cloud is currently a public beta.</pre>
       ev.preventDefault();
       var gate = plan === "lifetime" ? fetchStatus() : Promise.resolve(lastStatus);
       gate.then(function (st) {
-        if (plan === "lifetime" && (Date.now() >= CFG.endsAt || (st && st.open === false))) { setOpen(false); return; }
+        if (plan === "lifetime" && st && st.open === false) { setOpen(false); return; }
         return loadPaddle().then(function (P) {
           openPriceId = priceId;
           P.Checkout.open({

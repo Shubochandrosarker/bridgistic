@@ -1,7 +1,7 @@
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Area, AreaChart, CartesianGrid } from "recharts";
 import { Link } from "react-router-dom";
 import { Resource } from "../components/Resource.tsx";
-import { Badge, Card, ComingSoonPanel, ErrorState, PageHeader, Skeleton, Stat } from "../components/ui.tsx";
+import { Badge, Card, ErrorState, PageHeader, Skeleton, Stat } from "../components/ui.tsx";
 import { fmtNum } from "../lib/format.ts";
 import { useStore } from "../lib/store.tsx";
 import { useAsync } from "../lib/useAsync.ts";
@@ -92,10 +92,6 @@ export function Overview() {
                   </div>
                   <Link to="/keys" className="mt-4 inline-block text-sm text-teal underline-offset-2 hover:underline">{site.bridge.scopes.length} scopes on this key</Link>
                 </Card>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <ComingSoonPanel title="Multi-site fleet health" body="One row per connected site with uptime and last successful run, served by the hosted API." />
-                <ComingSoonPanel title="Run history export" body="Filterable per-step outcomes with CSV export, once the managed scheduler ships." />
               </div>
             </div>
           );

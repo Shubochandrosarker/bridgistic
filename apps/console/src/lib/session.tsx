@@ -58,9 +58,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [org]);
 
   const signOut = useCallback(async () => {
-    await api.post("/api/auth/signout");
-    setData(null);
-    setSites([]);
+    try {
+      await api.post("/api/auth/signout");
+    } finally {
+      // A failed logout request must not leave the authenticated shell or
+      // account-owned site list rendered in this tab.
+      setData(null);
+      setSites([]);
+    }
   }, []);
 
   const value: SessionCtx = {

@@ -2,28 +2,28 @@ export type Plan = "lifetime" | "monthly" | "yearly";
 export interface PayConfig {
   token: string;
   env: "production" | "sandbox";
-  /** Lifetime Deal ($69 one time, all future updates, one site). */
+  /** Lifetime Deal ($69 one time, all future updates, active now). */
   priceId: string;
   /** Subscription plans offered alongside the Lifetime Deal. */
   prices: Record<Plan, string>;
   statusUrl: string;
-  /** Stripe as a second gateway: on when VITE_STRIPE_CHECKOUT=1. Same plans, same prices. */
+  /** Stripe as the default gateway: on when VITE_STRIPE_CHECKOUT=1. */
   stripe: boolean;
-  /** Same-origin Pages Function that asks api.wpistic.com for a Stripe Checkout session. */
+  /** Server endpoint that creates a Stripe Checkout session without exposing a secret. */
   stripeSessionUrl: string;
 }
 
 export type Provider = "paddle" | "stripe";
 
-/** Paddle prices on product "Bridgistic Pro". */
+/** Real Paddle prices on product "Bridgistic Pro" (pro_01m1ykaqjsgcgt6xvwsy4jpn83). */
 export const PADDLE_PRICES: Record<Plan, string> = {
-  lifetime: "pri_01m6jjwzmy59ck0t0fgs87g37f", // $69.00 USD one-time
+  lifetime: "pri_01m58k6epsqzbr3qbab84t6p90", // $69 USD one time
   monthly: "pri_01m1ykar8aq033865h68a4b9hh", // $12.00 USD per month
   yearly: "pri_01m1ykaqyaaeewsbah07akmpka", // $99.00 USD per year
 };
 
-/** Offer terms set by Shuvo. End time assumes Asia/Dhaka (UTC+6). */
-export const OFFER = { endsAt: "9999-12-31T23:59:59Z", cap: Number.MAX_SAFE_INTEGER } as const; // no deadline, no cap (2026-10-28)
+/** The offer is active now; availability is controlled server-side if the offer is ever closed. */
+export const OFFER = { endsAt: "9999-12-31T23:59:59Z" } as const;
 
 const PRICE_RE = /^pri_[a-z0-9]{26}$/;
 const pick = (v: string | undefined, fallback: string) => (PRICE_RE.test((v ?? "").trim()) ? (v ?? "").trim() : fallback);
@@ -41,6 +41,8 @@ export function readConfig(env: Record<string, string | undefined>): PayConfig {
     prices,
     statusUrl: (env.VITE_OFFER_STATUS_URL ?? "/api/offer-status").trim(),
     stripe: env.VITE_STRIPE_CHECKOUT === "1",
+    // Keep checkout same-origin. The Pages Function validates the request and
+    // proxies it server-side, so the browser never depends on API CORS policy.
     stripeSessionUrl: (env.VITE_STRIPE_SESSION_URL ?? "/api/stripe-checkout").trim(),
   };
 }
@@ -92,11 +94,11 @@ export function quantityReset(ev: { name?: string; data?: { items?: PaddleItem[]
   return ok ? null : [{ priceId, quantity: 1 }];
 }
 
-/** Which gateways the page can offer right now. Paddle stays the default. */
+/** Which gateways the page can offer right now. Stripe is the default; Paddle remains optional. */
 export function availableProviders(c: PayConfig, plan: Plan = "lifetime"): Provider[] {
   const out: Provider[] = [];
-  if (checkoutReady(c, plan)) out.push("paddle");
   if (c.stripe) out.push("stripe");
+  if (checkoutReady(c, plan)) out.push("paddle");
   return out;
 }
 

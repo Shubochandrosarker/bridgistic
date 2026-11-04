@@ -70,7 +70,7 @@ export function Billing() {
   const { paidUnlock, org } = useSession();
   return (
     <>
-      <PageHead title="Billing" sub="Purchases run through Paddle as merchant of record." />
+      <PageHead title="Billing" sub="Stripe is the default checkout; Paddle remains optional." />
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>

@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BridgeClient } from "./api/bridge.ts";
 import type { BridgisticClient } from "./api/client.ts";
 import { DemoClient } from "./api/demo.ts";
-import { loadAccount, refreshAccount, signOutAccount, type Account } from "./account.ts";
+import { refreshAccount, signOutAccount, type Account } from "./account.ts";
 import type { SiteConnection } from "./api/types.ts";
 
 /**
@@ -25,6 +25,8 @@ interface Store {
   activeId: string | null;
   client: BridgisticClient | null;
   account: Account | null;
+  authLoading: boolean;
+  setAccount(account: Account | null): void;
   startDemo(): void;
   signOut(): Promise<void>;
   addSite(s: Omit<SiteConnection, "id">): SiteConnection;
@@ -40,15 +42,29 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
   const [mode, setMode] = useState<Mode>(initialMode ?? ((sessionStorage.getItem(MODE) as Mode) || null));
   const [sites, setSites] = useState<SiteConnection[]>(load);
   const [activeId, setActiveId] = useState<string | null>(() => load()[0]?.id ?? null);
-  const [account, setAccount] = useState<Account | null>(loadAccount);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [authLoading, setAuthLoading] = useState(initialMode !== "demo");
+  const authEpoch = useRef(0);
   const persist = (next: SiteConnection[]) => { setSites(next); sessionStorage.setItem(KEY, JSON.stringify(next)); };
 
   useEffect(() => {
     let live = true;
+    if (initialMode === "demo") return () => { live = false; };
+    const epoch = ++authEpoch.current;
     void refreshAccount().then((a) => {
-      if (live) setAccount(a);
+      if (live && epoch === authEpoch.current) setAccount(a);
+    }).finally(() => {
+      if (live && epoch === authEpoch.current) setAuthLoading(false);
     });
     return () => { live = false; };
+  }, []);
+
+  const updateAccount = useCallback((next: Account | null) => {
+    // A sign-in/sign-out action supersedes the initial session probe. This
+    // prevents a late 401 from that probe undoing a successful login.
+    authEpoch.current += 1;
+    setAccount(next);
+    setAuthLoading(false);
   }, []);
 
   const startDemo = useCallback(() => { setMode("demo"); sessionStorage.setItem(MODE, "demo"); }, []);
@@ -59,7 +75,7 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
       // Even when the network call fails or times out, the local session must
       // clear and the browser must leave the dashboard. This runs first in the
       // finally block so a thrown error can never strand the user here.
-      setAccount(null);
+      updateAccount(null);
       setMode(null);
       sessionStorage.clear();
       setSites([]);
@@ -67,7 +83,7 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
       // Hard navigation guarantees no stale route state keeps the shell alive.
       window.location.assign("/sign-in");
     }
-  }, []);
+  }, [updateAccount]);
   const addSite = useCallback((s: Omit<SiteConnection, "id">) => {
     const site = { ...s, id: crypto.randomUUID() };
     const next = [...load(), site];
@@ -90,7 +106,7 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
     return s ? new BridgeClient(s) : null;
   }, [mode, sites, activeId]);
 
-  return <Ctx.Provider value={{ mode, sites, activeId, client, account, startDemo, signOut, addSite, removeSite, syncPairedSites, setActive: setActiveId }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ mode, sites, activeId, client, account, authLoading, setAccount: updateAccount, startDemo, signOut, addSite, removeSite, syncPairedSites, setActive: setActiveId }}>{children}</Ctx.Provider>;
 }
 /** Paired sites keep a stable id (the activation id); manual sites are kept as they are. */
 export function mergePairedSites(current: SiteConnection[], paired: Omit<SiteConnection, "id">[]): SiteConnection[] {

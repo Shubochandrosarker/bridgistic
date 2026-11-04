@@ -21,6 +21,10 @@ export interface BridgisticClient {
   list(resource: ListResource, query?: Record<string, string>): Promise<Row[]>;
   playbooks(): Promise<Playbook[]>;
   schedules(): Promise<Schedule[]>;
+  createSchedule(input: { playbook: string; recurrence: string }): Promise<Row>;
+  memoryScan(): Promise<Row>;
+  memoryImportUrl(url: string, key?: string): Promise<Row>;
+  memoryWrite(category: string, key: string, value: unknown): Promise<Row>;
   toggleSchedule(id: string, enabled: boolean): Promise<Row>;
   runScheduleNow(id: string): Promise<Row>;
   togglePlugin(file: string, active: boolean): Promise<Row>;

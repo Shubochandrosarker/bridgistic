@@ -145,7 +145,7 @@ function MapIcon() {
   return <FileText size={15} />;
 }
 
-export function AdminNav({ staff }: { staff: boolean }) {
+export function AdminNav() {
   const groups: NavGroup[] = [
     {
       label: "Platform admin",
@@ -186,11 +186,6 @@ export function AdminNav({ staff }: { staff: boolean }) {
           ))}
         </div>
       ))}
-      {staff && (
-        <Link to="/" className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] text-white/70 hover:bg-white/5 hover:text-white">
-          <Home size={15} /> Open dashboard
-        </Link>
-      )}
     </div>
   );
 }
@@ -232,7 +227,7 @@ export function Shell({ children, admin = false }: { children: ReactNode; admin?
       )}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {admin ? (
-          <AdminNav staff={Boolean(user)} />
+          <AdminNav />
         ) : !user ? (
           <div>
             <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-white/35">Marketplace</div>
@@ -285,12 +280,12 @@ export function Shell({ children, admin = false }: { children: ReactNode; admin?
             </Link>
           </div>
         )}
-        {user && (user.role === "owner" || user.role === "admin") && (
+        {user && user.role === "owner" && (
           <Link
             to={admin ? "/" : "/admin"}
             className="mb-1 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-gold hover:bg-white/5"
           >
-            <Building2 size={15} /> {admin ? "Open dashboard" : "Platform admin"}
+            <Building2 size={15} /> {admin ? "Open customer dashboard" : "Owner console"}
           </Link>
         )}
         {user && (

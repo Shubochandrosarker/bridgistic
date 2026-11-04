@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { normalizeSiteUrl } from "@bridgistic/wp-client";
 import { BridgeClient } from "../lib/api/bridge.ts";
 import { ApiError } from "../lib/api/errors.ts";
-import { Badge, Card, ComingSoonPanel, EmptyState, ErrorState, PageHeader } from "../components/ui.tsx";
+import { Badge, Card, EmptyState, ErrorState, PageHeader } from "../components/ui.tsx";
 import { useStore } from "../lib/store.tsx";
 import { ACCOUNT_URL } from "../lib/config.ts";
 import { fetchPairedSites } from "../lib/sites-sync.ts";
@@ -118,7 +118,6 @@ export function Sites() {
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
         <Card><div className="p-4"><h3 className="text-sm font-semibold">Licensed sites connect themselves</h3><p className="mt-1 text-sm text-navy/65">Sites with an active license pair automatically: sign in on any device and they appear here — no keys to copy. Activate in WP Admin → Bridgistic → Premium Features.</p></div></Card>
-        <ComingSoonPanel title="Bulk onboarding" body="Connect many sites from one CSV with per-site scope presets." />
       </div>
     </div>
   );

@@ -79,6 +79,10 @@ export class DemoClient implements BridgisticClient {
   list(r: ListResource) { return wait(lists[r]); }
   playbooks() { return wait([{ slug: "weekly-seo-audit", name: "Weekly SEO audit", description: "Sample playbook", steps: [1, 2, 3] }, { slug: "daily-order-digest", name: "Daily order digest", description: "Sample playbook", steps: [1, 2] }]); }
   schedules() { return wait(schedules); }
+  createSchedule(input: { playbook: string; recurrence: string }) { return wait({ schedule_id: "sch_demo_new", playbook_slug: input.playbook, recurrence: input.recurrence, enabled: true }); }
+  memoryScan() { return wait({ category: "site_context", key: "context", saved: true }); }
+  memoryImportUrl(url: string, key?: string) { return wait({ category: "custom", key: key || url, saved: true }); }
+  memoryWrite(category: string, key: string) { return wait({ category, key, saved: true }); }
   toggleSchedule(id: string, enabled: boolean) { return wait({ schedule_id: id, enabled }); }
   runScheduleNow(id: string) { return wait({ schedule_id: id, queued: true }); }
   togglePlugin(file: string, active: boolean) { return wait({ plugin: file, approval_required: !active }); }

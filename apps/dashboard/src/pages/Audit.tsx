@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Resource } from "../components/Resource.tsx";
-import { Badge, Card, ComingSoonPanel, DataTable, PageHeader } from "../components/ui.tsx";
+import { Badge, Card, DataTable, PageHeader } from "../components/ui.tsx";
 import { fmtTime, shortHash } from "../lib/format.ts";
 import type { AuditEntry } from "../lib/api/types.ts";
 
@@ -33,7 +33,6 @@ export function Audit() {
     <div className="space-y-6">
       <PageHeader title="Audit log" description="Every bridge action with its key, outcome and a digest of its parameters. Arguments themselves are never stored, so they cannot be shown." />
       <Resource load={(c) => c.audit()} empty={{ title: "No audit entries yet" }}>{(rows) => <AuditTable rows={rows} />}</Resource>
-      <ComingSoonPanel title="Long-term retention and cross-site search" body="Audit history kept beyond the plugin's local retention window, searchable across every site." />
     </div>
   );
 }
