@@ -1,0 +1,18 @@
+{
+  "name": "@bridgistic/executor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@bridgistic/types": "*",
+    "@bridgistic/tools": "*",
+    "@bridgistic/contracts": "*",
+    "@bridgistic/identity": "*",
+    "@bridgistic/observability": "*"
+  }
+}

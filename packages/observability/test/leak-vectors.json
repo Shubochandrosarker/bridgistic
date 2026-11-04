@@ -1,0 +1,19 @@
+{
+  "$comment": "Synthetic credential-shaped strings used to prove packages/observability redacts them. Every value here is invented and has never authenticated anything. They live in their own file, rather than inline in the test, so that the test file itself stays under the secret scanner \u2014 a real credential appearing there must still fail CI. This file is allowlisted in .gitleaks.toml, and it is deliberately small enough that a real credential added to it would be obvious in review.",
+  "bridgisticKey": "brg_live_jt5y3xzn_hjqzy8fqwphgnhb9y2mb6vp4",
+  "wordpressKey": "wpk_live_abcdefghijklmnopqrstuvwxyz012345",
+  "envelopeStandardBase64": "v2.aes256gcm.b61tuKI+rtolEPgO.Nfb8Wzxt2CSbLxOrosO6P1A1FXCY8Zc",
+  "envelopeUrlSafeBase64": "v2.aes256gcm.b61tuKI-rtolEPgO.Nfb8Wzxt2CSbLxOrosO6P1A1FXCY8Zc",
+  "jwt": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N",
+  "bearerHeader": "Bearer abcdefghijklmnopqrstuvwxyz012345",
+  "basicHeader": "Basic YWRtaW46c3VwZXJzZWNyZXRwYXNzd29yZA==",
+  "urlWithCredentials": "https://admin:hunter2@example.com/wp-json",
+  "urlPassword": "hunter2",
+  "privateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
+  "stripeKeyParts": [
+    "sk",
+    "live",
+    "abcdefghijklmnopqrstuvwx"
+  ],
+  "$partsNote": "Vectors matching a real provider's key format are stored as parts and joined in the test. GitHub push protection scans for those formats and cannot tell an invented key from a live one \u2014 and clicking its bypass to ship a fake key is a habit worth not forming, because the next thing it blocks might be real. Joining at run time means the value under test is still exact."
+}
