@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Resource } from "../components/Resource.tsx";
-import { Badge, Card, ComingSoonPanel, PageHeader } from "../components/ui.tsx";
+import { Badge, Card, PageHeader } from "../components/ui.tsx";
 import { SCOPES } from "../lib/scopes.ts";
 import { useStore } from "../lib/store.tsx";
 
@@ -27,7 +27,6 @@ export function Keys() {
             </Card>);
         }}
       </Resource>
-      <ComingSoonPanel title="Per-scope last-used time and one-click revoke" body="Needs a key-management API that only a signed-in WordPress administrator can call. Planned with the hosted API." />
     </div>
   );
 }

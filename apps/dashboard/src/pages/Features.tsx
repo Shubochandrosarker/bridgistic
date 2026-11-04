@@ -2,26 +2,25 @@ import { Play, Power } from "lucide-react";
 import { useState } from "react";
 
 import { Resource } from "../components/Resource.tsx";
-import { Badge, Card, ComingSoonPanel, DataTable, ErrorState, PageHeader, Skeleton, Stat } from "../components/ui.tsx";
+import { Badge, Card, DataTable, ErrorState, PageHeader, Skeleton, Stat } from "../components/ui.tsx";
 import type { ListResource } from "../lib/api/client.ts";
 import { ApiError } from "../lib/api/errors.ts";
 import type { Row } from "../lib/api/types.ts";
 import { fmtTime } from "../lib/format.ts";
 import { useStore } from "../lib/store.tsx";
 
-function ListPage({ title, description, resource, scope, soon }: { title: string; description: string; resource: ListResource; scope: string; soon?: { title: string; body: string } }) {
+function ListPage({ title, description, resource, scope }: { title: string; description: string; resource: ListResource; scope: string }) {
   return (
     <div className="space-y-6">
       <PageHeader title={title} description={description} badge={<code className="rounded bg-white px-2 py-0.5 text-xs ring-1 ring-navy/10">{scope}</code>} />
       <Resource load={(c) => c.list(resource)} empty={{ title: `No ${title.toLowerCase()} found` }}>
         {(rows) => <Card><DataTable caption={title} rows={rows} /></Card>}
       </Resource>
-      {soon && <ComingSoonPanel {...soon} />}
     </div>
   );
 }
 
-export const Posts = () => <ListPage title="Posts & pages" resource="posts" scope="posts:read" description="Content on the connected site. Edits made by an agent are snapshotted first." soon={{ title: "Visual diff before publish", body: "Side-by-side preview of agent edits against the snapshot." }} />;
+export const Posts = () => <ListPage title="Posts & pages" resource="posts" scope="posts:read" description="Content on the connected site. Edits made by an agent are snapshotted first." />;
 export const Media = () => <ListPage title="Media" resource="media" scope="media:write" description="Media library items reachable through the bridge." />;
 export const UsersPage = () => <ListPage title="Users" resource="users" scope="users:read" description="WordPress users. Role and account changes are approval-gated." />;
 export const Options = () => <ListPage title="Options" resource="options" scope="options:read" description="Allow-listed site options. Updates take a snapshot first." />;
@@ -45,7 +44,6 @@ export function Plugins() {
               </li>))}
           </ul></Card>)}
       </Resource>
-      <ComingSoonPanel title="Plugin updates and vulnerability alerts" body="Update available, changelog and known-vulnerability flags per plugin." />
     </div>
   );
 }
@@ -81,7 +79,6 @@ export function Database() {
         <button className="btn-primary mt-3" onClick={async () => { if (!client) return; setErr(null); try { setRows(await client.dbQuery(sql)); } catch (e) { setErr(e as ApiError); } }}><Play className="h-4 w-4" aria-hidden />Run</button>
         <div className="mt-4">{err ? <ErrorState error={err} /> : rows && <DataTable caption="Result" rows={rows} />}</div>
       </Card>
-      <ComingSoonPanel title="Saved queries and schema browser" body="Named, shareable read-only queries with a table browser." />
     </div>
   );
 }
@@ -94,7 +91,6 @@ export function Playbooks() {
         {(rows) => <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map((p, i) => (
           <Card key={p.slug} delay={i * 0.04}><p className="font-medium">{p.name ?? p.slug}</p><code className="text-xs text-navy/50">{p.slug}</code><p className="mt-2 text-sm text-navy/65">{p.description}</p>{Array.isArray(p.steps) && <p className="mt-3 text-xs text-navy/55">{p.steps.length} steps</p>}</Card>))}</div>}
       </Resource>
-      <ComingSoonPanel title="Playbook library" body="Curated, versioned playbooks you can install with one click." />
     </div>
   );
 }
@@ -109,7 +105,6 @@ export function Schedules() {
           render={{ next_run: (v) => fmtTime(v as string), last_run: (v) => fmtTime(v as string), last_status: (v) => v ? <Badge>{String(v)}</Badge> : "—", enabled: (v) => <Badge tone={v ? "ok" : undefined}>{v ? "on" : "off"}</Badge>,
             schedule_id: (v, r) => <span className="flex gap-1"><button className="btn-ghost px-2 py-1 text-xs" onClick={async () => { await client?.toggleSchedule(String(v), !r.enabled); st.reload(); }}>{r.enabled ? "Pause" : "Resume"}</button><button className="btn-ghost px-2 py-1 text-xs" onClick={async () => { await client?.runScheduleNow(String(v)); st.reload(); }}>Run now</button></span> }} /></Card>}
       </Resource>
-      <ComingSoonPanel title="Managed cloud scheduler" body="Runs that do not depend on site traffic, with catch-up and overlap policy, from the hosted scheduler." />
     </div>
   );
 }
@@ -126,10 +121,6 @@ export function WooCommerce() {
         {(["woo/orders", "woo/products", "woo/customers", "woo/inventory"] as const).map((t) => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-lg px-3 py-1.5 text-sm capitalize ${tab === t ? "bg-navy text-ivory" : "text-navy/70"}`}>{t.slice(4)}</button>)}
       </div>
       <Resource load={(c) => c.list(tab)} deps={[tab]}>{(rows) => <Card><DataTable caption={tab} rows={rows} /></Card>}</Resource>
-      <ChartsSoon />
     </div>
   );
-}
-function ChartsSoon() {
-  return <ComingSoonPanel title="Revenue trends and cohort charts" body="Daily revenue, refunds and repeat-customer charts across stores." />;
 }
