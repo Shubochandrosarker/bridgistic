@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: GET /api/offer-status
 //
-// Reports whether the $49.99 Lifetime Deal is open.
+// Reports whether the $69 Lifetime Deal is open.
 // Terms (set by Shuvo, 2026-10-28): active now, no end date, no license cap;
 // OFFER_FORCE_CLOSED=1 remains the kill switch. The sold count is read server-side from
 // Paddle with a READ-ONLY API key (permission: transaction.read only). The key
