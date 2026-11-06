@@ -16,14 +16,32 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Bridgistic feature guide",
-    "url": "https://bridgistic.app/features",
-    "description": "What the free Bridgistic plugin ships, and which paid lines are still locked.",
-    "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
-    "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
-    "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" },
-    "about": { "@type": "SoftwareApplication", "name": "Bridgistic", "url": "https://bridgistic.app/" }
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "Bridgistic feature guide",
+        "url": "https://bridgistic.app/features",
+        "description": "What the free Bridgistic plugin ships, and which paid lines are still locked.",
+        "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
+        "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
+        "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" },
+        "about": { "@id": "https://bridgistic.app/#software" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://bridgistic.app/#software",
+        "name": "Bridgistic",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "WordPress",
+        "offers": [
+          { "@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free" },
+          { "@type": "Offer", "price": "69", "priceCurrency": "USD", "name": "Pro Lifetime Deal" },
+          { "@type": "Offer", "price": "12", "priceCurrency": "USD", "name": "Pro Monthly" },
+          { "@type": "Offer", "price": "99", "priceCurrency": "USD", "name": "Pro Yearly" }
+        ],
+        "publisher": { "@type": "Organization", "name": "WordPressistic LLC" }
+      }
+    ]
   }
   </script>
   <style>
@@ -70,6 +88,11 @@
       <h1>Every feature, as the code ships it</h1>
       <p class="meta">Published by <a href="https://wpistic.com/">WordPressistic LLC</a>. Source: <a href="https://github.com/Wordpressistic/bridgistic">GitHub</a>. Protocol: <a href="https://modelcontextprotocol.io/">Model Context Protocol</a>.</p>
       <div class="lead"><p>This page is the citation for the <a href="/#pricing">pricing section</a>. A green label is in the free plugin. A license label opens only after the WPistic license server marks the site active. A gold label is not in this release. Setup steps are in the <a href="/docs">docs</a>.</p></div>
+
+      <section id="answer-first">
+        <h2>What Bridgistic includes today</h2>
+        <p>Bridgistic is a free GPL WordPress plugin and local MCP server that lets Claude, ChatGPT, Codex, Gemini and other MCP clients act on a WordPress site through scoped, HMAC-signed keys. The administrator password is never the credential. Destructive writes can require human approval and can be snapshotted before they run. The free plugin includes the full local bridge, up to 3 enabled schedules, 50 snapshots and a 90-day audit log. Pro ($69 Lifetime for 1 site, or $12/mo / $99/yr for 3 sites) lifts the schedule and snapshot caps and opens audit export. Every purchase has a 7-day refund guarantee.</p>
+      </section>
 
       <section id="shipping"><h2>Shipping in the free plugin</h2>
         <div class="cards">
