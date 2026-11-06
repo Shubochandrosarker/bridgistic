@@ -16,13 +16,26 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Bridgistic setup",
-    "url": "https://bridgistic.app/docs",
-    "description": "Setup and configuration for the Bridgistic WordPress plugin and MCP bridge.",
-    "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
-    "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
-    "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" }
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "Bridgistic setup",
+        "url": "https://bridgistic.app/docs",
+        "description": "Setup and configuration for the Bridgistic WordPress plugin and MCP bridge.",
+        "author": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://wpistic.com/" },
+        "publisher": { "@type": "Organization", "name": "WordPressistic LLC", "url": "https://bridgistic.app/" },
+        "isPartOf": { "@type": "WebSite", "name": "Bridgistic", "url": "https://bridgistic.app/" }
+      },
+      {
+        "@type": "HowTo",
+        "name": "Connect Bridgistic to an AI client",
+        "step": [
+          { "@type": "HowToStep", "name": "Install plugin", "text": "Upload the plugin zip and activate it." },
+          { "@type": "HowToStep", "name": "Create key", "text": "Create a Read-only key in Bridgistic → AI / MCP Connections." },
+          { "@type": "HowToStep", "name": "Connect client", "text": "Point your MCP client at the site using the key id and secret." }
+        ]
+      }
+    ]
   }
   </script>
   <style>
@@ -62,6 +75,11 @@
       <h1>Setup and configuration</h1>
       <p class="meta">About 10 minutes for a Read-only local connection. Published by <a href="https://wpistic.com/">WordPressistic LLC</a>.</p>
       <div class="lead"><p>Bridgistic is a WordPress plugin and a local MCP server. The plugin checks a signed request before an AI client can touch the site. The longer source notes live in the <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/INSTALL.md">install guide on GitHub</a> and the <a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/WORDPRESS_SETUP.md">WordPress setup note</a>.</p></div>
+
+      <section id="answer-first">
+        <h2>Quick answer</h2>
+        <p>Install the free Bridgistic plugin (WordPress 6.4+, PHP 8.0+), create a Read-only key under Bridgistic → AI / MCP Connections, and point any MCP client (Claude Desktop, Claude Code, Codex CLI, Gemini CLI, ChatGPT) at your site. The WordPress admin password is never used. Writes require a wider key and can be held for human approval. Full details below.</p>
+      </section>
 
       <section id="overview"><h2>Overview</h2>
         <p>You install the plugin, create a key, and point a client that speaks the <a href="https://modelcontextprotocol.io/">Model Context Protocol</a> at your site. Claude Desktop, Claude Code, Codex CLI, Gemini CLI and ChatGPT can use that bridge. The policy stays in WordPress.</p>
