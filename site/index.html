@@ -1856,16 +1856,28 @@ Bridgistic Cloud is currently a public beta.</pre>
         menuBtn.setAttribute('aria-expanded', String(open));
       });
 
+      const navMenus = Array.from(navLinks.querySelectorAll('.nav-menu'));
+      const closeNavMenus = () => navMenus.forEach(menu => { menu.open = false; });
+
       navLinks.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
           navLinks.classList.remove('open');
           menuBtn.setAttribute('aria-expanded', 'false');
+          closeNavMenus();
         });
+      });
+
+      document.addEventListener('click', event => {
+        if (!navLinks.contains(event.target)) closeNavMenus();
+      });
+
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeNavMenus();
       });
 
       // Keep only one product/resources menu open and make the disclosure
       // controls behave consistently on touch and keyboard navigation.
-      navLinks.querySelectorAll('.nav-menu').forEach(menu => {
+      navMenus.forEach(menu => {
         menu.addEventListener('toggle', () => {
           if (!menu.open) return;
           navLinks.querySelectorAll('.nav-menu').forEach(other => { if (other !== menu) other.open = false; });
