@@ -1,5 +1,5 @@
 # Bridgistic — https://bridgistic.app
-# Regenerated from the public pages. Last content date: 2026-11-04
+# Regenerated from the public pages. Last content date: 2026-11-06
 # Human sitemap: https://bridgistic.app/sitemap.html
 # Machine sitemap: https://bridgistic.app/sitemap.xml
 # Answer-engine summary: https://bridgistic.app/llms.txt
