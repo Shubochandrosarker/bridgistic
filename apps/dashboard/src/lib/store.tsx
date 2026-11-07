@@ -57,6 +57,7 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
       if (live && epoch === authEpoch.current) setAuthLoading(false);
     });
     return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateAccount = useCallback((next: Account | null) => {

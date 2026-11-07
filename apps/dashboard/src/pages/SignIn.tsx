@@ -57,6 +57,7 @@ export function SignIn() {
 
   useEffect(() => {
     if (!authLoading && account) done();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, authLoading]);
 
   const submit = async () => {

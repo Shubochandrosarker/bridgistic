@@ -1,4 +1,4 @@
-import { Activity, Archive, BookOpen, Boxes, CalendarClock, CreditCard, Database, FileText, FolderTree, Gauge, Globe, Image, KeyRound, LayoutDashboard, ListChecks, Map, Puzzle, ScrollText, Settings2, ShieldCheck, ShoppingBag, Sparkles, Users, Brain, type LucideIcon } from "lucide-react";
+import { Activity, Archive, BookOpen, Boxes, CalendarClock, CreditCard, Database, FileText, FolderTree, Gauge, Globe, Image, KeyRound, LayoutDashboard, ListChecks, Map, Puzzle, ScrollText, Settings2, ShieldCheck, ShoppingBag, Users, Brain, type LucideIcon } from "lucide-react";
 
 export interface NavItem { to: string; label: string; icon: LucideIcon; soon?: boolean; href?: string }
 export const NAV: { group: string; items: NavItem[] }[] = [
