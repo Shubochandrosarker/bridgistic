@@ -1,29 +1,24 @@
 // Cloudflare Pages Function: POST /api/stripe-checkout
 //
-// Stripe as a second gateway next to Paddle. The page posts {plan, email, ...};
-// this function forwards to api.wpistic.com, which resolves the Stripe price from
-// its own plan table (same plans, same prices as Paddle), creates the Checkout
-// Session with Stripe Tax, and later issues the license from the webhook. No Stripe
-// key ever reaches pay.bridgistic.app.
+// Stripe is the only public checkout. The page posts {plan}; this function
+// forwards to api.wpistic.com, which creates the Checkout Session. Stripe
+// collects the customer's name and email. The webhook then creates the
+// Bridgistic account and sends setup instructions. No Stripe key ever
+// reaches pay.bridgistic.app.
 //
 // Env (Pages project settings):
 //   WPISTIC_API_URL   optional  default https://api.wpistic.com
 //   STRIPE_CHECKOUT   "1" turns this on (off by default)
 
-const PLANS = new Set(["monthly", "yearly", "lifetime"]);
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PLANS = new Set(["monthly", "yearly"]);
 
 export function sessionBody(input, origin) {
   const plan = String(input?.plan ?? "");
-  const email = String(input?.email ?? "").trim().toLowerCase();
-  if (!PLANS.has(plan)) return { error: "Choose monthly, yearly or the Lifetime Deal." };
-  if (!EMAIL.test(email) || email.length > 255) return { error: "Enter a valid email for your license key." };
-  // Return URLs are always this site, never taken from the client.
+  if (!PLANS.has(plan)) return { error: "Choose monthly or yearly." };
   return {
     body: {
       product: "bridgistic",
       plan,
-      email,
       success_url: `${origin}/?thanks=1&provider=stripe`,
       cancel_url: `${origin}/`,
       source: "pay.bridgistic.app",

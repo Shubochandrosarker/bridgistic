@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Layout } from "./components/Layout.tsx";
+import { Layout, Logo } from "./components/Layout.tsx";
 import { usePairedSitesSync } from "./lib/sites-sync.ts";
 import { useStore } from "./lib/store.tsx";
 import { Approvals } from "./pages/Approvals.tsx";
@@ -11,24 +11,36 @@ import { License } from "./pages/License.tsx";
 import { Overview } from "./pages/Overview.tsx";
 import { ComingSoon, Roadmap } from "./pages/Roadmap.tsx";
 import { SignIn } from "./pages/SignIn.tsx";
+import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AuthPages.tsx";
 import { Sites } from "./pages/Sites.tsx";
 import { Snapshots } from "./pages/Snapshots.tsx";
 import { Usage } from "./pages/Usage.tsx";
 
 export function App() {
-  const { mode, sites, account, syncPairedSites } = useStore();
+  const { mode, sites, account, authLoading, syncPairedSites } = useStore();
 
   // Auto-pairing: the plugin pushes its dashboard key to the license server at
   // activation, and licensed sites appear here with zero manual steps.
   usePairedSitesSync(account !== null && mode !== "demo", syncPairedSites);
 
   const signedIn = account !== null || mode === "demo" || sites.length > 0;
-  // Keep the router deterministic while the shared cookie is being checked.
-  // SignIn will forward an already-authenticated session once verification
-  // completes, while an unauthenticated visit immediately gets the form.
+  // Wait for the shared session cookie to be checked before sending anyone
+  // to /sign-in. Redirecting during that probe painted a blank ivory page
+  // after login until the customer refreshed.
+  if (authLoading && !signedIn) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-ivory px-6 text-navy">
+        <Logo />
+        <p className="mt-4 text-sm text-navy/60" role="status">Loading your dashboard…</p>
+      </div>
+    );
+  }
   return (
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {!signedIn && <Route path="/sites" element={<Layout />}><Route index element={<Sites />} /></Route>}
       <Route element={signedIn ? <Layout /> : <Navigate to="/sign-in" replace />}>
         <Route index element={<Overview />} />

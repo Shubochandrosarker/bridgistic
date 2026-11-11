@@ -57,7 +57,7 @@ export function StoreProvider({ children, initialMode }: { children: ReactNode; 
       if (live && epoch === authEpoch.current) setAuthLoading(false);
     });
     return () => { live = false; };
-  }, []);
+  }, [initialMode]);
 
   const updateAccount = useCallback((next: Account | null) => {
     // A sign-in/sign-out action supersedes the initial session probe. This

@@ -12,11 +12,19 @@
 set -euo pipefail
 
 OUT="${1:-dist}"
+REPO="Wordpressistic/bridgistic"
 TAG="${BRIDGISTIC_RELEASE_TAG:-$(gh api repos/Wordpressistic/bridgistic/releases/latest --jq .tag_name)}"
 VERSION="${TAG#v}"
 DOWNLOAD="https://github.com/Wordpressistic/bridgistic/releases/download/$TAG"
 PAGE="https://github.com/Wordpressistic/bridgistic/releases/tag/$TAG"
-REPO="Wordpressistic/bridgistic"
+# Asset names vary between releases (v1.5.10 ships a versioned zip and no .mcpb),
+# so resolve the real download URLs instead of assuming fixed file names.
+PLUGIN_ZIP_URL="${BRIDGISTIC_PLUGIN_ZIP_URL:-$(gh api "repos/$REPO/releases/tags/$TAG" --jq '[.assets[] | select(.name | test("^bridgistic-wordpress-plugin.*\\.zip$"))][0].browser_download_url')}"
+MCPB_URL="${BRIDGISTIC_MCPB_URL:-$(gh api "repos/$REPO/releases?per_page=30" --jq '[.[] | select(.draft | not) | .assets[] | select(.name == "bridgistic.mcpb")][0].browser_download_url')}"
+if [ -z "$PLUGIN_ZIP_URL" ] || [ "$PLUGIN_ZIP_URL" = "null" ] || [ -z "$MCPB_URL" ] || [ "$MCPB_URL" = "null" ]; then
+  echo "Could not resolve plugin zip or .mcpb download URL for $TAG" >&2
+  exit 1
+fi
 COMMIT="${SITE_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
 PADDLE_CLIENT_TOKEN="${PADDLE_CLIENT_TOKEN:-}"
 PADDLE_ENV="${PADDLE_ENV:-production}"
@@ -32,6 +40,8 @@ sed -e "s#__BRIDGISTIC_RELEASE_VERSION__#$VERSION#g" \
     -e "s#__BRIDGISTIC_RELEASE_DOWNLOAD__#$DOWNLOAD#g" \
     -e "s#__BRIDGISTIC_RELEASE_PAGE__#$PAGE#g" \
     -e "s#__BRIDGISTIC_RELEASE_REPO__#$REPO#g" \
+    -e "s#__BRIDGISTIC_PLUGIN_ZIP_URL__#$PLUGIN_ZIP_URL#g" \
+    -e "s#__BRIDGISTIC_MCPB_URL__#$MCPB_URL#g" \
     -e "s#__BRIDGISTIC_SITE_COMMIT__#$COMMIT#g" \
     -e "s#__BRIDGISTIC_PADDLE_CLIENT_TOKEN__#$PADDLE_CLIENT_TOKEN#g" \
     -e "s#__BRIDGISTIC_PADDLE_ENV__#$PADDLE_ENV#g" \
@@ -46,7 +56,9 @@ fi
 
 printf 'bridgistic.app\n' > "$OUT/CNAME"
 cp assets/* "$OUT/assets/"
-cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html "$OUT/"
+cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html 404.html "$OUT/"
+mkdir -p "$OUT/redeem"
+cp redeem/index.html "$OUT/redeem/index.html"
 
 # Regenerate sitemap.xml, robots.txt, llms.txt and llms-full.txt from the pages.
 node build-seo.mjs --source . --out "$OUT"
@@ -60,7 +72,9 @@ append_marketplace() {
 - [Bridgistic Skills](https://marketplace.bridgistic.app/): a public directory of 100 free instruction skills for AI agents under @wordpressistic. No account needed to browse; a free account unlocks downloads.
 - Install a skill: `bridgistic skills install @wordpressistic/{slug}` or `npx skills add https://marketplace.bridgistic.app/wordpressistic/{slug}`. Every skill page also offers a copy-as-prompt tab.
 - The Pro collection: 30 battle-tested production skills (agent operations, market intelligence, document pipelines, research automation) reserved for Bridgistic Pro license holders. Free skills are never paywalled; Pro skills are never listed publicly.
-- Console: https://admin.bridgistic.app/ — account dashboard and platform admin (sites, keys, approvals, licenses, AI routing).
+- Customer dashboard: https://dashboard.bridgistic.app/ — sites, licenses, billing, playbooks and account settings.
+- Skills marketplace: https://marketplace.bridgistic.app/ — public skill directory. Sign-in sends customers to the dashboard.
+- AppSumo redeem: https://bridgistic.app/redeem/
 EOF
   cat >> "$OUT/llms-full.txt" <<'EOF'
 
@@ -68,7 +82,8 @@ EOF
 - Public directory: https://marketplace.bridgistic.app/ — 100 free skills under @wordpressistic, browsable without an account.
 - Install: bridgistic skills install @wordpressistic/{slug} or npx skills add https://marketplace.bridgistic.app/wordpressistic/{slug}.
 - Pro collection: 30 production skills exclusive to Bridgistic Pro license holders (agent ops, market intelligence, documents, research automation).
-- Console: https://admin.bridgistic.app/ (account dashboard + platform admin). Sessions are shared across dashboard., admin. and marketplace. subdomains.
+- Customer dashboard: https://dashboard.bridgistic.app/. The owner console at admin.bridgistic.app is not a customer feature.
+- AppSumo redeem: https://bridgistic.app/redeem/.
 EOF
 }
 append_marketplace
