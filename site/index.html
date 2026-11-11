@@ -81,7 +81,7 @@
         "alternateName": ["WPistic", "WordPressistic", "Bridgistic"],
         "url": "https://wpistic.com/",
         "logo": "https://bridgistic.app/assets/bridgistic-logo.png",
-        "email": "support@wpistic.com",
+        "email": "support@bridgistic.app",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "1209 Mountain Road PL NE, STE N",
@@ -120,7 +120,7 @@
           {
             "@type": "Question",
             "name": "Are unlimited schedules, advanced snapshots and audit export included today?",
-            "acceptedAnswer": {"@type":"Answer","text":"Without a license, the plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. A live license from the WPistic license server opens unlimited schedules, snapshot history past 50, and audit log export. The skills marketplace is live at https://marketplace.bridgistic.app/. The agency dashboard, team permissions and white-label are not in this release. Cloud Agent credits are a separate product."}
+            "acceptedAnswer": {"@type":"Answer","text":"Without a license, the plugin includes 5,000 AI requests per month per site, up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. A live Bridgistic Pro license removes the monthly request cap and opens unlimited schedules, snapshot history past 50, and audit log export. The skills marketplace is live at https://marketplace.bridgistic.app/. The agency dashboard, team permissions and white-label are not in this release. Cloud Agent credits are a separate product."}
           },
           {
             "@type": "Question",
@@ -1091,7 +1091,15 @@
       *, *::before, *::after { animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
       .reveal { opacity:1; transform:none; }
     }
-  </style>
+    .plan-compare{max-width:980px;margin:28px auto 0;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:18px;padding:20px 22px;background:var(--panel,rgba(255,255,255,.03))}
+  .plan-compare h3{margin:0 0 10px;font-size:20px}
+  .plan-compare table{width:100%;border-collapse:collapse;font-size:14.5px}
+  .plan-compare th,.plan-compare td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line,rgba(255,255,255,.1));vertical-align:top}
+  .plan-compare thead th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+  .plan-compare tbody th{font-weight:600}
+  .plan-compare p{margin:12px 0 0;font-size:13.5px;opacity:.85}
+  @media (max-width:720px){.plan-compare{padding:14px}.plan-compare th,.plan-compare td{padding:8px 4px;font-size:13px}}
+</style>
 </head>
 <body>
   <header class="header" id="header">
@@ -1119,6 +1127,7 @@
           <summary>Resources</summary>
           <div class="nav-menu-panel">
             <a href="/docs">Setup docs</a>
+            <a href="/support">Support</a>
             <a href="https://marketplace.bridgistic.app/">Skills marketplace</a>
             <a href="https://dashboard.bridgistic.app/">Customer dashboard</a>
             <a href="https://github.com/Wordpressistic/bridgistic/releases" target="_blank" rel="noopener">Release notes</a>
@@ -1280,7 +1289,7 @@
         <div class="plan-strip reveal" aria-label="Plan summary">
           <div class="plan-chip">
             <strong>Bridgistic Free</strong>
-            <span>Full local bridge · HMAC keys, scopes, approvals, audit log, snapshots · up to 3 scheduled playbooks · community support</span>
+            <span>Full local bridge · 5,000 AI requests per month · HMAC keys, scopes, approvals, audit log, snapshots · up to 3 scheduled playbooks</span>
             <a class="plan-link" href="#pricing">Details ↓</a>
           </div>
           <div class="plan-chip closed-only">
@@ -1651,9 +1660,10 @@ Bridgistic Cloud is currently a public beta.</pre>
             <div class="price">$0 <small>forever</small></div>
             <p>Controlled AI access for your own WordPress sites. GPL-2.0-or-later.</p>
             <ul class="price-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>5,000 AI requests per month</strong> per site, reset on the 1st</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>Local MCP bridge</strong> for supported clients</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>HMAC-signed requests, scoped keys, approvals</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Audit logs and pre-destructive snapshots</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>90-day audit log, up to 50 manual snapshots</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Manual playbooks, plus up to 3 scheduled playbooks</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Latest GitHub release zip</li>
             </ul>
@@ -1667,6 +1677,7 @@ Bridgistic Cloud is currently a public beta.</pre>
             <p>Billed every month through Stripe.</p>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 3 sites</strong></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>No monthly AI-request cap</strong> (Free stops at 5,000)</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>54 MCP tools for posts, media, users, plugins, options, files, database and WooCommerce</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Playbooks and schedules</li>
@@ -1684,9 +1695,10 @@ Bridgistic Cloud is currently a public beta.</pre>
             <span class="badge">Pro Yearly</span>
             <h3>Bridgistic Pro</h3>
             <div class="price">$99 <small>USD per year</small></div>
-            <p>Billed once a year through your chosen provider: $45 less than 12 months on the monthly plan.</p>
+            <p>Billed once a year through Stripe: $45 less than 12 months on the monthly plan.</p>
             <ul class="price-list">
               <li class="license-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>1 license · 3 sites</strong></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><strong>No monthly AI-request cap</strong> (Free stops at 5,000)</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Everything in Free: scoped, signed keys, approvals, snapshots with restore and an audit log</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>54 MCP tools for posts, media, users, plugins, options, files, database and WooCommerce</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Playbooks and schedules</li>
@@ -1700,7 +1712,23 @@ Bridgistic Cloud is currently a public beta.</pre>
             <a class="btn btn-secondary" data-checkout="yearly" href="https://pay.bridgistic.app/?plan=yearly" target="_blank" rel="noopener">Choose yearly · $99</a>
           </article>
         </div>
-        <div class="price-fine center">Prices in USD. Checkout is handled securely by Stripe. WordPressistic LLC is the seller; taxes are shown at checkout. Every purchase has a 7-day refund guarantee. A live license opens unlimited schedules, snapshots past 50, and audit export. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Agency seats, team permissions, white-label and Cloud Agent credits are not in this release. <a href="/features">The feature guide</a> says what ships today.</div>
+        <div class="plan-compare reveal" aria-label="Free and Pro limits">
+          <h3>Free vs Pro, limit by limit</h3>
+          <table>
+            <thead><tr><th scope="col">Limit</th><th scope="col">Free</th><th scope="col">Pro · $12/month or $99/year</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">AI requests per month, per site</th><td>5,000 (resets on the 1st, UTC)</td><td>No monthly cap</td></tr>
+              <tr><th scope="row">Active scheduled playbooks</th><td>3</td><td>Unlimited</td></tr>
+              <tr><th scope="row">Manual snapshots kept</th><td>50</td><td>No cap</td></tr>
+              <tr><th scope="row">Audit log export</th><td>Not included</td><td>Included</td></tr>
+              <tr><th scope="row">On-screen audit log</th><td>90 days</td><td>90 days</td></tr>
+              <tr><th scope="row">Sites per license</th><td>Any site you run</td><td>3</td></tr>
+              <tr><th scope="row">Local bridge, 54 MCP tools, scoped keys, approvals, snapshots with restore</th><td>Included</td><td>Included</td></tr>
+            </tbody>
+          </table>
+          <p>Plugin 1.5.11 and later enforce these limits. Usage is shown under Bridgistic → Settings → Plan &amp; usage. When the free allowance runs out, AI clients receive a message with the reset date and the upgrade link.</p>
+        </div>
+        <div class="price-fine center">Prices in USD. Checkout is handled securely by Stripe. WordPressistic LLC is the seller; taxes are shown at checkout. Every purchase has a 7-day refund guarantee. A live license removes the 5,000 monthly AI-request cap and opens unlimited schedules, snapshots past 50, and audit export. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Agency seats, team permissions, white-label and Cloud Agent credits are not in this release. <a href="/features">The feature guide</a> says what ships today.</div>
       </div>
     </section>
 
@@ -1713,7 +1741,7 @@ Bridgistic Cloud is currently a public beta.</pre>
 
         <div class="faq">
           <details class="reveal"><summary>What exactly does Bridgistic do?</summary><div class="faq-body">Bridgistic adds a policy-controlled MCP bridge to WordPress. Compatible AI clients call structured tools through a dedicated connection key; the WordPress plugin verifies authentication, scopes and safety rules before an operation runs.</div></details>
-          <details class="reveal"><summary>Are unlimited schedules, advanced snapshots and audit export included today?</summary><div class="faq-body">Without a license, no. The free plugin includes up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, those three open on that site. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Cloud Agent credits are not part of the license. The <a href="/features">feature guide</a> and the <a href="/docs">setup docs</a> describe the current behavior.</div></details>
+          <details class="reveal"><summary>Are unlimited schedules, advanced snapshots and audit export included today?</summary><div class="faq-body">Without a license, no. The free plugin includes 5,000 AI requests per month per site, up to 3 scheduled playbooks, up to 50 snapshots and a 90-day on-screen audit log. After you activate the key from your purchase email, the request cap is removed and those three open on that site. The skills marketplace is live at <a href="https://marketplace.bridgistic.app/">marketplace.bridgistic.app</a>. Cloud Agent credits are not part of the license. The <a href="/features">feature guide</a> and the <a href="/docs">setup docs</a> describe the current behavior.</div></details>
           <details class="reveal"><summary>Do I give Claude, ChatGPT or Codex my WordPress admin password?</summary><div class="faq-body">No. Bridgistic creates its own scoped key ID and secret for the connection. Local requests are HMAC-signed, and the WordPress administrator password is not the integration credential.</div></details>
           <details class="reveal"><summary>Which permission preset should I use first?</summary><div class="faq-body">Start with <strong>Read-only</strong>. Move to Content Manager or Safe Admin only when the workflow requires writes. Developer Mode exposes the highest-risk tools and should be reserved for sites you fully control.</div></details>
           <details class="reveal"><summary>Can I require approval before the AI changes my site?</summary><div class="faq-body">Yes. Keys can require approval for writes or destructive operations. Pending actions appear in <strong>Bridgistic → Approvals</strong> so a human can allow or deny them.</div></details>
@@ -1733,7 +1761,7 @@ Bridgistic Cloud is currently a public beta.</pre>
           <span class="eyebrow"><span class="dot"></span> Publisher</span>
           <h2>Who publishes Bridgistic.</h2>
         </div>
-        <p>Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, United States. The free WordPress plugin is licensed GPL-2.0-or-later and the source is public on GitHub. Support and refunds go to support@wpistic.com.</p>
+        <p>Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, United States. The free WordPress plugin is licensed GPL-2.0-or-later and the source is public on GitHub. Support and refunds: <a href="mailto:support@bridgistic.app">support@bridgistic.app</a>. General and sales: <a href="mailto:hello@bridgistic.app">hello@bridgistic.app</a>. See the <a href="/support">support page</a>.</p>
         <p>Checkout is handled securely by Stripe. WordPressistic LLC is the seller, and taxes are shown at checkout. The security model on this site describes the controls in the current release: signed requests, scoped keys, approvals, snapshots and an audit log. It is not a claim that an independent third-party audit is complete. Bridgistic Cloud is a public beta. Local mode is the recommended default where the client supports it.</p>
       </div>
     </section>
@@ -1767,7 +1795,7 @@ Bridgistic Cloud is currently a public beta.</pre>
         <p>A local-first MCP bridge for giving AI assistants controlled, auditable and reversible access to WordPress.</p>
       </div>
       <div class="footer-col"><h3>Product</h3><a href="#how">How it works</a><a href="#security">Security</a><a href="/features">Feature guide</a><a href="/docs">Docs</a><a href="#pricing">Pricing</a><a href="https://dashboard.bridgistic.app/">Dashboard</a></div>
-      <div class="footer-col"><h3>Resources</h3><a href="https://github.com/Wordpressistic/bridgistic" target="_blank" rel="noopener">GitHub</a><a href="__BRIDGISTIC_RELEASE_PAGE__" target="_blank" rel="noopener">Releases</a><a href="https://github.com/Wordpressistic/bridgistic/issues" target="_blank" rel="noopener">Support</a><a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/SECURITY.md" target="_blank" rel="noopener">Security</a><a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/REPO-STRUCTURE.md" target="_blank" rel="noopener">Repo structure</a><a href="/sitemap.html">Sitemap</a></div>
+      <div class="footer-col"><h3>Resources</h3><a href="https://github.com/Wordpressistic/bridgistic" target="_blank" rel="noopener">GitHub</a><a href="__BRIDGISTIC_RELEASE_PAGE__" target="_blank" rel="noopener">Releases</a><a href="/support">Support</a><a href="https://github.com/Wordpressistic/bridgistic/issues" target="_blank" rel="noopener">GitHub Issues</a><a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/SECURITY.md" target="_blank" rel="noopener">Security</a><a href="https://github.com/Wordpressistic/bridgistic/blob/main/docs/REPO-STRUCTURE.md" target="_blank" rel="noopener">Repo structure</a><a href="/sitemap.html">Sitemap</a></div>
       <div class="footer-col"><h3>Ecosystem</h3><a href="https://wpistic.com/" target="_blank" rel="noopener">WPistic</a><a href="https://wordpressistic.com/" target="_blank" rel="noopener">WordPressistic</a><a href="https://wpistic.com/pricing" target="_blank" rel="noopener">Plans</a></div>
       <div class="footer-col footer-legal"><h3>Legal</h3><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/refund-policy">Refund Policy</a><a href="/how-purchases-work">How purchases work</a></div>
     </div>

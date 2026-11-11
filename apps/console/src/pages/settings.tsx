@@ -81,7 +81,7 @@ export function Billing() {
           </div>
           <a href="https://pay.bridgistic.app/" target="_blank" rel="noreferrer"><Btn variant="gold">{paidUnlock.unlocked ? "Add licenses" : "Upgrade"}</Btn></a>
         </div>
-        <p className="mt-3 text-xs text-navy/50">7-day refund guarantee via support@wpistic.com. Prices in USD, taxes calculated at checkout.</p>
+        <p className="mt-3 text-xs text-navy/50">7-day refund guarantee via support@bridgistic.app. Prices in USD, taxes calculated at checkout.</p>
       </Card>
     </>
   );
