@@ -7,6 +7,8 @@ import { dashboardUrlFor, isMarketplaceHost } from "./lib/hosts";
 import { SignIn, SignUp } from "./pages/auth";
 import { Overview, Sites, Keys, Approvals, AuditLog, Snapshots, Usage, LicensePage } from "./pages/workspace";
 import { Posts, Media, SiteUsers, Plugins, Options, FilesScreen, DatabaseScreen } from "./pages/content";
+import { Actions } from "./pages/actions";
+import { Automations } from "./pages/automations";
 import { Playbooks, Schedules, Memory, WooCommerce } from "./pages/automation";
 import { AgentHub, AgentPage } from "./pages/agents";
 import { MarketDirectory, ProHub, SkillDetail } from "./pages/marketplace";
@@ -118,6 +120,8 @@ export default function App() {
                   <Route path="/files" element={<FilesScreen />} />
                   <Route path="/database" element={<DatabaseScreen />} />
                   <Route path="/playbooks" element={<Playbooks />} />
+                  <Route path="/actions" element={<Actions />} />
+                  <Route path="/automations" element={<Automations />} />
                   <Route path="/schedules" element={<Schedules />} />
                   <Route path="/memory" element={<Memory />} />
                   <Route path="/woocommerce" element={<WooCommerce />} />

@@ -35,6 +35,9 @@ import {
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
 import { handleAppsumoRedeem, handleAppsumoWebhook, seedMarketplaceCode } from "../lib/appsumo.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
+import { catalogForClient, listActionRuns, runAction } from "../lib/actions.ts";
+import { listAgentRuns, listAgents, runAgent } from "../lib/agents.ts";
+import { chat, type ChatMessage } from "../lib/ai.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
 import { oauthCallback, oauthProviders, oauthStart, type OAuthEnv } from "../lib/oauth.ts";
 import { handlePasswordForgot, handlePasswordReset, handleVerifyConfirm, handleVerifyResend, isEmailVerified, sendVerification, unverifiedResponse } from "../lib/email-auth.ts";
@@ -96,6 +99,9 @@ interface Env {
   LICENSE_SERVICE_TOKEN?: string;
   APPSUMO_WEBHOOK_SECRET?: string;
   OPENROUTER_KEY?: string;
+  AI_GATEWAY_URL?: string;
+  AI_GATEWAY_TOKEN?: string;
+  AI_GATEWAY_MODEL?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -390,6 +396,58 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     await db.prepare("DELETE FROM sites WHERE id = ?").bind(siteId).run();
     await audit(db, user.email, "site.disconnect", site.url);
     return Response.json({ ok: true });
+  }
+
+  // ── Actions: catalog-driven operations on a connected site ─────────────────
+  // The catalog lives server-side (lib/actions.ts) so the browser can only run
+  // what exists, and every attempted call lands in action_runs.
+  if (path === "/api/actions" && method === "GET") return Response.json({ actions: catalogForClient() });
+
+  if (path === "/api/actions/run" && method === "POST") {
+    const body = await request.json<{ site_id?: string; action?: string; params?: Record<string, unknown> }>();
+    const outcome = await runAction(env, user, body);
+    if (!outcome.ok) {
+      return Response.json(
+        { error: outcome.error, message: outcome.message, run_id: outcome.run_id, duration_ms: outcome.duration_ms },
+        { status: outcome.status }
+      );
+    }
+    return Response.json({ ok: true, status: outcome.status, data: outcome.data, run_id: outcome.run_id, duration_ms: outcome.duration_ms });
+  }
+
+  if (path === "/api/actions/runs" && method === "GET") {
+    const requested = Number(url.searchParams.get("limit") ?? 0);
+    return Response.json({
+      runs: await listActionRuns(db, user.id, {
+        siteId: url.searchParams.get("site_id") ?? "",
+        limit: Number.isFinite(requested) && requested > 0 ? requested : undefined,
+      }),
+    });
+  }
+
+  // ── Agents: the AI registry ────────────────────────────────────────────────
+  if (path === "/api/agents" && method === "GET") return Response.json({ agents: await listAgents(db, user.id) });
+
+  if (path === "/api/agents/runs" && method === "GET") {
+    const requested = Number(url.searchParams.get("limit") ?? 0);
+    return Response.json({
+      runs: await listAgentRuns(db, user.id, {
+        slug: url.searchParams.get("slug") ?? "",
+        limit: Number.isFinite(requested) && requested > 0 ? requested : undefined,
+      }),
+    });
+  }
+
+  if (seg[1] === "agents" && seg.length === 4 && seg[3] === "run" && method === "POST") {
+    const body = await request.json<{ site_id?: string; params?: Record<string, unknown> }>();
+    const outcome = await runAgent(env, user, seg[2] ?? "", body);
+    if (!outcome.ok) {
+      return Response.json(
+        { error: outcome.error, message: outcome.message, run_id: outcome.run_id, duration_ms: outcome.duration_ms },
+        { status: outcome.status }
+      );
+    }
+    return Response.json({ ok: true, output: outcome.output, model: outcome.model, provider: outcome.provider, run_id: outcome.run_id, duration_ms: outcome.duration_ms });
   }
 
   // ── Agency team ────────────────────────────────────────────────────────────
@@ -804,42 +862,14 @@ async function aiGenerate(request: Request, env: Env, user: User): Promise<Respo
   const body = await request.json<{ prompt?: string; system?: string }>();
   const prompt = String(body.prompt ?? "").trim();
   if (!prompt) return Response.json({ error: "empty_prompt", message: "Write a prompt first." }, { status: 400 });
-  const settingsAi = (await getSetting(env.DB, "ai")) as { openrouter_key?: string; openai_model?: string } | null;
-  const apiKey = settingsAi?.openrouter_key || env.OPENROUTER_KEY || "";
-  if (!apiKey) {
-    return Response.json(
-      { error: "ai_not_configured", message: "No AI provider key is configured yet. Set it in Platform admin → AI configuration." },
-      { status: 503 }
-    );
-  }
-  const model = settingsAi?.openai_model || "openai/gpt-4o-mini";
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60_000);
-  try {
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1200,
-        messages: [
-          ...(body.system ? [{ role: "system", content: String(body.system) }] : []),
-          { role: "user", content: prompt },
-        ],
-      }),
-      signal: controller.signal,
-    });
-    const json = (await upstream.json()) as { choices?: { message?: { content?: string } }[]; error?: { message?: string } };
-    if (!upstream.ok) {
-      return Response.json({ error: "ai_upstream", message: json.error?.message ?? `The AI provider returned HTTP ${upstream.status}.` }, { status: 502 });
-    }
-    await audit(env.DB, user.email, "ai.generate", model);
-    return Response.json({ ok: true, text: json.choices?.[0]?.message?.content ?? "", model });
-  } catch {
-    return Response.json({ error: "ai_unreachable", message: "Could not reach the AI provider." }, { status: 502 });
-  } finally {
-    clearTimeout(timer);
-  }
+  const messages: ChatMessage[] = [
+    ...(body.system ? [{ role: "system" as const, content: String(body.system) }] : []),
+    { role: "user", content: prompt },
+  ];
+  const result = await chat(env, messages, { maxTokens: 1200 });
+  if (!result.ok) return Response.json({ error: result.error, message: result.message }, { status: result.status });
+  await audit(env.DB, user.email, "ai.generate", result.model);
+  return Response.json({ ok: true, text: result.text, model: result.model });
 }
 
 // ── Platform admin ───────────────────────────────────────────────────────────
