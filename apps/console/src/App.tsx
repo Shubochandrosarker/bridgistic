@@ -32,6 +32,13 @@ import {
 } from "./pages/admin";
 
 
+function HostTitle() {
+  useEffect(() => {
+    document.title = isMarketplaceHost(window.location.hostname) ? "Bridgistic Skills" : "Bridgistic Console";
+  }, []);
+  return null;
+}
+
 function RedirectToDashboard({ suffix }: { suffix?: string }) {
   const location = useLocation();
   const target = suffix
@@ -75,6 +82,7 @@ function RootRoute() {
 export default function App() {
   return (
     <SessionProvider>
+      <HostTitle />
       <Routes>
         <Route path="/signin" element={isMarketplaceHost(window.location.hostname) ? <RedirectToDashboard suffix="/sign-in" /> : <SignIn />} />
         <Route path="/signup" element={isMarketplaceHost(window.location.hostname) ? <RedirectToDashboard suffix="/sign-in" /> : <SignUp />} />
