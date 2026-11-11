@@ -12,10 +12,17 @@
  *   plugins/toggle   plugin, state
  *   options          name, value
  *   woo/products     name, sku, description, status, regular_price, stock_status
+ *   woo/orders       page, per_page, status, customer_id, after
  *   woo/orders/{id}/status   status, note
+ *   permalinks       structure, category_base, tag_base
  *
- * Cache and permalink operations are deliberately absent: the plugin exposes no
- * route for either, and a button that cannot work is worse than no button.
+ * The read-only WooCommerce routes (products, orders, customers, inventory and
+ * the sales summary) are catalogued too, so an assistant can answer "what is in
+ * this store" without being granted db:read or php:execute.
+ *
+ * Cache and permalink writes go through the plugin's Guard like every other
+ * mutation, so a site that requires approval answers pending_approval and the
+ * run is logged as queued.
  *
  * All calls go through functions/lib/wp.ts. Nothing here signs or sends a
  * request on its own — the catalog decides what, wp.ts decides how.
@@ -49,10 +56,16 @@ export interface ActionDef {
   label: string;
   description: string;
   method: ActionMethod;
-  /** Path parameters, taken from `params` and never sent in the body. */
+  /** Parameters consumed by `route` (path or query); never sent in the body. */
   routeParams?: string[];
   route: (params: Record<string, string>) => string;
   fields: FormField[];
+  /**
+   * Reshapes form values into the request body when the plugin expects a
+   * different shape (e.g. a preset select plus a free-text override). Defaults
+   * to echoing every declared field that is not a route parameter.
+   */
+  bodyFor?: (params: Record<string, string>) => Record<string, unknown>;
   /** Overwrites or deletes site state: the UI warns, the run log keeps the record. */
   destructive?: boolean;
 }
@@ -63,6 +76,28 @@ const STATUS_OPTIONS = [
   { value: "publish", label: "Published" },
   { value: "private", label: "Private" },
 ];
+
+const PERMALINK_OPTIONS = [
+  { value: "/%postname%/", label: "Post name" },
+  { value: "/%year%/%monthnum%/%day%/%postname%/", label: "Day and name" },
+  { value: "/%year%/%monthnum%/%postname%/", label: "Month and name" },
+  { value: "/archives/%post_id%/", label: "Numeric" },
+  { value: "/%post_id%/", label: "Post ID" },
+];
+
+const WOO_STOCK_OPTIONS = [
+  { value: "instock", label: "In stock" },
+  { value: "outofstock", label: "Out of stock" },
+  { value: "onbackorder", label: "On backorder" },
+];
+
+/** Only the query values that were actually filled, URL-encoded. */
+function queryString(params: Record<string, string>): string {
+  const parts = Object.entries(params)
+    .filter(([, value]) => value !== "")
+    .map(([name, value]) => `${name}=${encodeURIComponent(value)}`);
+  return parts.length > 0 ? `?${parts.join("&")}` : "";
+}
 
 export const ACTIONS: ActionDef[] = [
   // ── Content ───────────────────────────────────────────────────────────────
@@ -115,6 +150,7 @@ export const ACTIONS: ActionDef[] = [
     label: "List media",
     description: "Read the media library, newest first.",
     method: "GET",
+    routeParams: ["per_page"],
     route: (p) => `media?per_page=${p.per_page ?? "20"}`,
     fields: [{ name: "per_page", label: "Items", type: "number", default: "20", hint: "1–100" }],
   },
@@ -178,6 +214,7 @@ export const ACTIONS: ActionDef[] = [
     label: "Read option",
     description: "Read one allow-listed WordPress option.",
     method: "GET",
+    routeParams: ["name"],
     route: (p) => `options?name=${encodeURIComponent(p.name ?? "")}`,
     fields: [{ name: "name", label: "Option name", required: true, placeholder: "blogname" }],
   },
@@ -194,7 +231,99 @@ export const ACTIONS: ActionDef[] = [
       { name: "value", label: "Value", type: "textarea", required: true },
     ],
   },
+  {
+    id: "cache.flush",
+    domain: "site",
+    label: "Flush cache",
+    description: "Clear the site's page and object cache so the next request rebuilds it. Safe to repeat; nothing is permanently deleted.",
+    method: "POST",
+    route: () => "cache/flush",
+    fields: [],
+  },
+  {
+    id: "permalinks.get",
+    domain: "site",
+    label: "Read permalink settings",
+    description: "Read the current permalink structure and the category and tag bases.",
+    method: "GET",
+    route: () => "permalinks",
+    fields: [],
+  },
+  {
+    id: "permalinks.update",
+    domain: "site",
+    label: "Update permalinks",
+    description:
+      "Change the permalink structure or the category/tag base. Every existing URL changes shape, so old links, feeds and shared URLs may stop resolving.",
+    method: "POST",
+    route: () => "permalinks",
+    destructive: true,
+    // The select offers presets; the free-text field wins when it is filled.
+    // The plugin validates the final structure against its own whitelist.
+    bodyFor: (p) => {
+      const structure = (p.custom || p.structure || "").trim();
+      const body: Record<string, unknown> = {};
+      if (structure) body.structure = structure;
+      if (p.category_base) body.category_base = p.category_base;
+      if (p.tag_base) body.tag_base = p.tag_base;
+      return body;
+    },
+    fields: [
+      {
+        name: "structure",
+        label: "Structure",
+        type: "select",
+        options: PERMALINK_OPTIONS,
+        hint: "A preset. To use your own pattern, fill the field below instead.",
+      },
+      {
+        name: "custom",
+        label: "Custom structure",
+        placeholder: "/%category%/%postname%/",
+        hint: "Overrides the preset. Must contain %post_id% or %postname%.",
+      },
+      { name: "category_base", label: "Category base", placeholder: "category", hint: "Leave empty to keep the current base." },
+      { name: "tag_base", label: "Tag base", placeholder: "tag", hint: "Leave empty to keep the current base." },
+    ],
+  },
   // ── WooCommerce ───────────────────────────────────────────────────────────
+  {
+    id: "woo.list-products",
+    domain: "woo",
+    label: "List products",
+    description: "Read products newest first, with price, stock and status. Filter by search term, status, stock or category.",
+    method: "GET",
+    routeParams: ["page", "per_page", "search", "status", "stock_status", "category"],
+    route: (p) => `woo/products${queryString(p)}`,
+    fields: [
+      { name: "page", label: "Page", type: "number", default: "1" },
+      { name: "per_page", label: "Per page", type: "number", default: "20", hint: "1–100" },
+      { name: "search", label: "Search", placeholder: "hoodie" },
+      {
+        name: "status",
+        label: "Product status",
+        type: "select",
+        options: [
+          { value: "publish", label: "Published" },
+          { value: "draft", label: "Draft" },
+          { value: "pending", label: "Pending review" },
+          { value: "private", label: "Private" },
+        ],
+      },
+      { name: "stock_status", label: "Stock", type: "select", options: WOO_STOCK_OPTIONS },
+      { name: "category", label: "Category", placeholder: "clothing", hint: "Category slug." },
+    ],
+  },
+  {
+    id: "woo.get-product",
+    domain: "woo",
+    label: "Product detail",
+    description: "Read one product: descriptions, prices, categories, attributes and every variation's stock.",
+    method: "GET",
+    routeParams: ["id"],
+    route: (p) => `woo/products/${p.id}`,
+    fields: [{ name: "id", label: "Product ID", type: "number", required: true }],
+  },
   {
     id: "woo.create-product",
     domain: "woo",
@@ -236,6 +365,37 @@ export const ACTIONS: ActionDef[] = [
     ],
   },
   {
+    id: "woo.list-orders",
+    domain: "woo",
+    label: "List orders",
+    description: "Read orders newest first with totals, status and customer. Filter by status, customer or creation date.",
+    method: "GET",
+    routeParams: ["page", "per_page", "status", "customer_id", "after"],
+    route: (p) => `woo/orders${queryString(p)}`,
+    fields: [
+      { name: "page", label: "Page", type: "number", default: "1" },
+      { name: "per_page", label: "Per page", type: "number", default: "20", hint: "1–100" },
+      {
+        name: "status",
+        label: "Statuses",
+        placeholder: "processing,completed",
+        hint: "Comma-separated. Empty returns every status; the store drops statuses it does not define.",
+      },
+      { name: "customer_id", label: "Customer ID", type: "number", hint: "Only this customer's orders." },
+      { name: "after", label: "Created on or after", placeholder: "2026-01-01", hint: "A date or ISO timestamp." },
+    ],
+  },
+  {
+    id: "woo.get-order",
+    domain: "woo",
+    label: "Order detail",
+    description: "Read one order: line items, totals, shipping, tax, customer note and payment method title.",
+    method: "GET",
+    routeParams: ["id"],
+    route: (p) => `woo/orders/${p.id}`,
+    fields: [{ name: "id", label: "Order ID", type: "number", required: true }],
+  },
+  {
     id: "woo.order-status",
     domain: "woo",
     label: "Change order status",
@@ -250,11 +410,58 @@ export const ACTIONS: ActionDef[] = [
       { name: "note", label: "Order note", type: "textarea", hint: "Recorded alongside the change." },
     ],
   },
+  {
+    id: "woo.list-customers",
+    domain: "woo",
+    label: "List customers",
+    description: "Read customer accounts newest first with order count and lifetime spend. Search by name or email.",
+    method: "GET",
+    routeParams: ["page", "per_page", "search"],
+    route: (p) => `woo/customers${queryString(p)}`,
+    fields: [
+      { name: "page", label: "Page", type: "number", default: "1" },
+      { name: "per_page", label: "Per page", type: "number", default: "20", hint: "1–100" },
+      { name: "search", label: "Search", placeholder: "name or email" },
+    ],
+  },
+  {
+    id: "woo.get-customer",
+    domain: "woo",
+    label: "Customer detail",
+    description: "Read one customer: order count, lifetime spend, billing/shipping country and last order date.",
+    method: "GET",
+    routeParams: ["id"],
+    route: (p) => `woo/customers/${p.id}`,
+    fields: [{ name: "id", label: "Customer ID", type: "number", required: true }],
+  },
+  {
+    id: "woo.inventory",
+    domain: "woo",
+    label: "Inventory status",
+    description: "Read stock health: out-of-stock products and everything at or below the low-stock threshold.",
+    method: "GET",
+    routeParams: ["low_stock_threshold", "limit"],
+    route: (p) => `woo/inventory${queryString(p)}`,
+    fields: [
+      { name: "low_stock_threshold", label: "Low stock threshold", type: "number", hint: "Defaults to the store's own low-stock amount." },
+      { name: "limit", label: "Max rows", type: "number", default: "50", hint: "1–100" },
+    ],
+  },
+  {
+    id: "woo.sales-summary",
+    domain: "woo",
+    label: "Sales summary",
+    description: "Read revenue, order count, average order value and top products for a period (processing, completed and on-hold orders).",
+    method: "GET",
+    routeParams: ["days"],
+    route: (p) => `woo/sales-summary${queryString(p)}`,
+    fields: [{ name: "days", label: "Days back", type: "number", default: "30", hint: "1–365" }],
+  },
 ];
 
 /** What the browser gets: no route functions, no server-only fields. */
-export function catalogForClient(): Array<Omit<ActionDef, "route" | "routeParams">> {
-  return ACTIONS.map(({ route: _route, routeParams: _routeParams, ...rest }) => rest);
+export function catalogForClient(): Array<Omit<ActionDef, "route" | "routeParams" | "bodyFor">> {
+  return ACTIONS.map(({ route: _route, routeParams: _routeParams, bodyFor: _bodyFor, ...rest }) => rest);
 }
 
 const MAX_STRING = 100_000;
@@ -322,8 +529,12 @@ export function prepareAction(actionId: string, raw: unknown): PrepareResult {
   const params = collected.values;
   const body: Record<string, unknown> = {};
   const routeParams = new Set(def.routeParams ?? []);
-  for (const [name, value] of Object.entries(params)) {
-    if (!routeParams.has(name)) body[name] = value;
+  if (def.bodyFor) {
+    Object.assign(body, def.bodyFor(params));
+  } else {
+    for (const [name, value] of Object.entries(params)) {
+      if (!routeParams.has(name)) body[name] = value;
+    }
   }
   if (def.method === "GET" && Object.keys(body).length > 0) {
     return bad(400, "invalid_params", `${def.label} takes its values in the URL, not the body.`);
