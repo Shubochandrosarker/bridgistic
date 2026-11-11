@@ -47,6 +47,8 @@ fi
 printf 'bridgistic.app\n' > "$OUT/CNAME"
 cp assets/* "$OUT/assets/"
 cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html "$OUT/"
+mkdir -p "$OUT/redeem"
+cp redeem/index.html "$OUT/redeem/index.html"
 
 # Regenerate sitemap.xml, robots.txt, llms.txt and llms-full.txt from the pages.
 node build-seo.mjs --source . --out "$OUT"
@@ -60,7 +62,9 @@ append_marketplace() {
 - [Bridgistic Skills](https://marketplace.bridgistic.app/): a public directory of 100 free instruction skills for AI agents under @wordpressistic. No account needed to browse; a free account unlocks downloads.
 - Install a skill: `bridgistic skills install @wordpressistic/{slug}` or `npx skills add https://marketplace.bridgistic.app/wordpressistic/{slug}`. Every skill page also offers a copy-as-prompt tab.
 - The Pro collection: 30 battle-tested production skills (agent operations, market intelligence, document pipelines, research automation) reserved for Bridgistic Pro license holders. Free skills are never paywalled; Pro skills are never listed publicly.
-- Console: https://admin.bridgistic.app/ — account dashboard and platform admin (sites, keys, approvals, licenses, AI routing).
+- Customer dashboard: https://dashboard.bridgistic.app/ — sites, licenses, billing, playbooks and account settings.
+- Skills marketplace: https://marketplace.bridgistic.app/ — public skill directory. Sign-in sends customers to the dashboard.
+- AppSumo redeem: https://bridgistic.app/redeem/
 EOF
   cat >> "$OUT/llms-full.txt" <<'EOF'
 
@@ -68,7 +72,8 @@ EOF
 - Public directory: https://marketplace.bridgistic.app/ — 100 free skills under @wordpressistic, browsable without an account.
 - Install: bridgistic skills install @wordpressistic/{slug} or npx skills add https://marketplace.bridgistic.app/wordpressistic/{slug}.
 - Pro collection: 30 production skills exclusive to Bridgistic Pro license holders (agent ops, market intelligence, documents, research automation).
-- Console: https://admin.bridgistic.app/ (account dashboard + platform admin). Sessions are shared across dashboard., admin. and marketplace. subdomains.
+- Customer dashboard: https://dashboard.bridgistic.app/. The owner console at admin.bridgistic.app is not a customer feature.
+- AppSumo redeem: https://bridgistic.app/redeem/.
 EOF
 }
 append_marketplace

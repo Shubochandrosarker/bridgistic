@@ -2,4 +2,4 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.paddle.com https://*.paddle.com; frame-src https://*.paddle.com https://checkout.stripe.com; connect-src 'self' https://api.wpistic.com https://*.paddle.com; style-src 'self' 'unsafe-inline' https://*.paddle.com; img-src 'self' data: https://*.paddle.com
+  Content-Security-Policy: default-src 'self'; script-src 'self'; frame-src https://checkout.stripe.com; connect-src 'self' https://api.wpistic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:

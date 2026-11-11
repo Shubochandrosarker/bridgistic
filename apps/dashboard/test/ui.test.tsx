@@ -14,9 +14,10 @@ class RO { observe() {} unobserve() {} disconnect() {} }
 const at = (path: string, mode?: "demo") => render(<MemoryRouter initialEntries={[path]}><StoreProvider initialMode={mode}><App /></StoreProvider></MemoryRouter>);
 
 describe("dashboard", () => {
-  it("redirects to sign-in without a session", () => {
+  it("waits for the session check, then shows sign-in without a session", async () => {
     at("/");
-    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByText("Loading your dashboard…")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
   });
   it("labels demo mode on every screen", async () => {
     at("/snapshots", "demo");

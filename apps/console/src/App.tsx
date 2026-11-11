@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SessionProvider, useSession } from "./lib/session";
 import { Shell } from "./components/shell";
 import { Spinner } from "./components/ui";
+import { dashboardUrlFor, isMarketplaceHost } from "./lib/hosts";
 import { SignIn, SignUp } from "./pages/auth";
 import { Overview, Sites, Keys, Approvals, AuditLog, Snapshots, Usage, LicensePage } from "./pages/workspace";
 import { Posts, Media, SiteUsers, Plugins, Options, FilesScreen, DatabaseScreen } from "./pages/content";
@@ -28,6 +30,18 @@ import {
   AdminAi,
   AdminSettings,
 } from "./pages/admin";
+
+
+function RedirectToDashboard({ suffix }: { suffix?: string }) {
+  const location = useLocation();
+  const target = suffix
+    ? dashboardUrlFor(suffix, location.search, location.hash)
+    : dashboardUrlFor(location.pathname, location.search, location.hash);
+  useEffect(() => {
+    window.location.replace(target);
+  }, [target]);
+  return <Spinner label="Taking you to your dashboard…" />;
+}
 
 function RequireAuth({ children, staff = false }: { children: React.ReactNode; staff?: boolean }) {
   const { loading, user } = useSession();
@@ -62,8 +76,8 @@ export default function App() {
   return (
     <SessionProvider>
       <Routes>
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route path="/signin" element={isMarketplaceHost(window.location.hostname) ? <RedirectToDashboard suffix="/sign-in" /> : <SignIn />} />
+        <Route path="/signup" element={isMarketplaceHost(window.location.hostname) ? <RedirectToDashboard suffix="/sign-in" /> : <SignUp />} />
         {/* Public marketplace — anonymous visitors browse; gated actions ask for an account. */}
         <Route path="/marketplace" element={<MarketDirectory />} />
         <Route path="/pro" element={<ProHub />} />
@@ -75,6 +89,9 @@ export default function App() {
         <Route
           path="*"
           element={
+            isMarketplaceHost(window.location.hostname) ? (
+              <RedirectToDashboard />
+            ) : (
             <RequireAuth>
               <Shell>
                 <Routes>
@@ -121,6 +138,7 @@ export default function App() {
                 </Routes>
               </Shell>
             </RequireAuth>
+            )
           }
         />
         <Route

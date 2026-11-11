@@ -10,6 +10,8 @@
  *   /api/ai/generate                website-agent generation via the stored AI key
  *   /api/admin/*                    platform admin (owner/staff only)
  *   /api/webhooks/paddle            purchase webhook (when the secret is set)
+ *   /api/webhooks/appsumo           AppSumo license webhook (when the secret is set)
+ *   /api/appsumo/redeem             signed-in AppSumo code redemption
  */
 
 import { hashPassword, verifyPassword, randomHex, encryptSecret, decryptSecret } from "../lib/crypto.ts";
@@ -32,6 +34,7 @@ import {
   type User,
 } from "../lib/auth.ts";
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
+import { handleAppsumoRedeem, handleAppsumoWebhook, seedMarketplaceCode } from "../lib/appsumo.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
 import { oauthCallback, oauthProviders, oauthStart, type OAuthEnv } from "../lib/oauth.ts";
@@ -93,6 +96,7 @@ interface Env {
   LICENSE_SERVICE_TOKEN?: string;
   PADDLE_WEBHOOK_SECRET?: string;
   PADDLE_API_KEY?: string;
+  APPSUMO_WEBHOOK_SECRET?: string;
   OPENROUTER_KEY?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -183,6 +187,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 
   // ── Paddle webhook ─────────────────────────────────────────────────────────
   if (path === "/api/webhooks/paddle" && method === "POST") return paddleWebhook(request, env);
+  if (path === "/api/webhooks/appsumo" && method === "POST") return handleAppsumoWebhook(request, env);
 
   // ── Marketplace (public reads) ─────────────────────────────────────────────
   if (seg[1] === "market") return marketRoutes(request, env, seg, method, url);
@@ -247,6 +252,8 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
 
   // Everything below needs an account.
   const user = await requireUser(db, request);
+
+  if (path === "/api/appsumo/redeem" && method === "POST") return handleAppsumoRedeem(request, env, user);
 
   if (path === "/api/me" && method === "GET") {
     const orgs = await userOrgs(db, user.id);
@@ -870,6 +877,20 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
 async function adminRoutes(request: Request, env: Env, seg: string[], method: string, url: URL, user: User): Promise<Response> {
   const db = env.DB;
   const id = seg[3];
+
+  if (seg[2] === "marketplace-codes" && method === "GET") {
+    const { results } = await db
+      .prepare("SELECT id, marketplace, code_hint, tier, site_limit, status, owner_email, license_id, created_at, redeemed_at FROM marketplace_codes ORDER BY created_at DESC LIMIT 200")
+      .all();
+    return Response.json({ codes: results ?? [] });
+  }
+  if (seg[2] === "marketplace-codes" && method === "POST") {
+    const body = await request.json<{ code?: string; tier?: number }>();
+    const code = String(body.code ?? "").trim();
+    if (code.length < 6) return Response.json({ error: "invalid_code", message: "Enter a code of at least 6 characters." }, { status: 400 });
+    const row = await seedMarketplaceCode(db, { code, tier: body.tier }, user.email);
+    return Response.json({ ok: true, id: row.id, hint: row.code_hint, tier: row.tier, site_limit: row.site_limit, status: row.status });
+  }
 
   if (seg[2] === "stats" && method === "GET") {
     const count = async (sql: string) => (await db.prepare(sql).first<{ n: number }>())?.n ?? 0;

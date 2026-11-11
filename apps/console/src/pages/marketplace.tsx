@@ -61,9 +61,8 @@ function MarketHeader({ signedIn }: { signedIn: boolean }) {
           <Link to="/" className="text-white/70 hover:text-white">Directory</Link>
           <Link to="/pro" className="text-white/70 hover:text-white">Pro</Link>
           <a href="https://bridgistic.app/#pricing" className="hidden text-white/70 hover:text-white sm:block">Pricing</a>
-          <a href="https://admin.bridgistic.app/" className="hidden text-white/70 hover:text-white sm:block">Console</a>
           {signedIn ? (
-            <a href="/installed" className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white hover:bg-white/15">My account</a>
+            <a href="https://dashboard.bridgistic.app/" className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white hover:bg-white/15">My account</a>
           ) : (
             <a href="https://dashboard.bridgistic.app/sign-in" className="rounded-full bg-[#C9A227] px-3.5 py-1.5 font-semibold text-[#05070D] hover:brightness-110">Sign in</a>
           )}
