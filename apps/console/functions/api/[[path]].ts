@@ -108,7 +108,21 @@ interface Env {
   MAIL_REPLY_TO?: string;
   HOSTINGER_MAIL_TOKEN?: string;
   HOSTINGER_MAILBOX_ID?: string;
+  PLUGINS?: R2Bucket;
 }
+
+// -- Plugin distribution manifest (sanitized: fixed keys, no user input) ----
+const PLUGIN_MANIFEST = {
+  latest: {
+    version: "1.5.11",
+    key: "bridgistic-wordpress-plugin-1.5.11.zip",
+    filename: "bridgistic-wordpress-plugin-1.5.11.zip",
+    size: 1289341,
+  },
+  github: "https://github.com/Wordpressistic/bridgistic/releases/latest",
+  download_path: "/api/plugin/download",
+};
+
 
 async function route(request: Request, env: Env, path: string, url: URL): Promise<Response> {
   const db = env.DB;
@@ -116,6 +130,31 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   const seg = path.split("/").filter(Boolean);
 
   if (path === "/api/health" && method === "GET") return Response.json({ ok: true, service: "bridgistic-console" });
+
+  // -- Plugin distribution (R2 stream, sanitized) ----------------------------
+  if (path === "/api/plugin/versions" && method === "GET") {
+    const user = await currentUser(db, request);
+    if (!user) return Response.json({ error: "signin_required", message: "Sign in to download the plugin." }, { status: 401 });
+    return Response.json({ plugin: PLUGIN_MANIFEST });
+  }
+
+  if (path === "/api/plugin/download" && method === "GET") {
+    const user = await currentUser(db, request);
+    if (!user) return Response.json({ error: "signin_required", message: "Sign in to download the plugin." }, { status: 401 });
+    if (!env.PLUGINS) return Response.json({ error: "storage_unavailable", message: "Plugin storage is not configured." }, { status: 503 });
+    const object = await env.PLUGINS.get(PLUGIN_MANIFEST.latest.key);
+    if (!object) return Response.json({ error: "not_found", message: "Release artifact missing." }, { status: 404 });
+    await audit(db, user.email, "plugin.download", "v" + PLUGIN_MANIFEST.latest.version);
+    return new Response(object.body, {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${PLUGIN_MANIFEST.latest.filename}"`,
+        "Content-Length": String(object.size),
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex",
+      },
+    });
+  }
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   if (path === "/api/auth/signup" && method === "POST") {
