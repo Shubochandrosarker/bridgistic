@@ -61,6 +61,12 @@ paths = [
 # string — not the file — because it is a fixed, deliberately-malformed
 # envelope used to prove `isEnvelope` rejects it, and it is 20 characters long.
 # Matching on the value keeps the scanner live on every other line of that file.
+#
+# SUMO-TIER2-ABCDEF is an invented AppSumo license code used by
+# apps/console/test/appsumo.test.ts to prove the webhook -> redeem flow. It was
+# never issued by AppSumo and redeems nothing. It is allowlisted by exact value
+# for the same reason as above: it is already in history (merge ca518bb).
 regexes = [
   '''v2\.aes256gcm\.short\.x''',
+  '''SUMO-TIER2-ABCDEF''',
 ]
