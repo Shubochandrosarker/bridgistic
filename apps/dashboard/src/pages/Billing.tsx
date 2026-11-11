@@ -20,7 +20,7 @@ export function Billing() {
     }
     if (s.manage.type === "paddle_portal") {
       if (s.manage.url) window.open(s.manage.url, "_blank", "noopener");
-      else setErr("Open the link in your Paddle receipt email to manage this subscription.");
+      else setErr("Open the link in your receipt email to manage this subscription.");
       return;
     }
     setBusy(true);
@@ -75,7 +75,7 @@ export function Billing() {
               <div className="mt-5">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50">Invoices</h3>
                 {s.invoices.length === 0 ? (
-                  <p className="mt-2 text-sm text-navy/60">{s.billing_provider === "license" ? `This license was issued directly. Email ${SUPPORT_EMAIL} for a receipt.` : s.billing_provider === "paddle" ? "Paddle emailed your invoices for this legacy purchase." : "No invoices yet."}</p>
+                  <p className="mt-2 text-sm text-navy/60">{s.billing_provider === "license" ? `This license was issued directly. Email ${SUPPORT_EMAIL} for a receipt.` : s.billing_provider === "paddle" ? "Invoices for this legacy purchase were emailed to you." : "No invoices yet."}</p>
                 ) : (
                   <ul className="mt-2 divide-y divide-navy/5 text-sm">
                     {s.invoices.map((inv) => (

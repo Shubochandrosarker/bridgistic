@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 export async function makeD1(): Promise<D1Database> {
   const SQL = await initSqlJs();
   const db = new SQL.Database();
-  for (const f of ["0001_schema.sql", "0002_site_connections.sql", "0003_billing_provider.sql", "0004_marketplace_codes.sql", "0005_email_verification.sql"]) db.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), "utf8"));
+  for (const f of ["0001_schema.sql", "0002_site_connections.sql", "0003_billing_provider.sql", "0004_marketplace_codes.sql", "0005_email_verification.sql", "0006_billing_provider_stripe_default.sql", "0007_retire_lifetime_plan.sql", "0008_billing_provider_license.sql"]) db.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), "utf8"));
   const stmt = (sql: string, params: unknown[] = []) => ({
     bind: (...p: unknown[]) => stmt(sql, p),
     async first<T>() {

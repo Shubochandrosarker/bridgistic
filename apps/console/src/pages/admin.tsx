@@ -50,7 +50,7 @@ export function AdminOverview() {
         <Stat label="Plans" value={byPlan.map((p) => `${p.plan}:${p.n}`).join(" ") || "—"} sub="active by plan" />
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <QuickCard title="Sell" body="Stripe is the default checkout. Paddle remains optional. Issue or review licenses here." to="/admin/licenses" link="Licenses" />
+        <QuickCard title="Sell" body="Stripe is the checkout. Issue or review licenses here." to="/admin/licenses" link="Licenses" />
         <QuickCard title="AI routing" body="Set the OpenAI-compatible endpoint, model and OpenRouter key the website agents use." to="/admin/ai" link="AI configuration" />
       </div>
     </>
@@ -187,7 +187,7 @@ export function AdminUsers() {
                 title={u.billing_synced_at ? `Synced ${fmtDate(String(u.billing_synced_at))}` : "Not synced yet (refreshes when the user opens Billing)"}
                 className={`rounded px-1.5 py-0.5 text-xs font-semibold ${String(u.billing_provider) === "stripe" ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"}`}
               >
-                {String(u.billing_provider ?? "paddle") === "stripe" ? "Stripe" : "Paddle"}
+                {String(u.billing_provider ?? "") === "stripe" ? "Stripe" : "Legacy"}
               </span>
             </Td>
             <Td>{String(u.org_count ?? 0)}</Td>
@@ -417,17 +417,19 @@ export function AdminReports() {
     api.get<Row>("/api/admin/stats").then(setStats).catch(() => setStats({}));
   }, []);
   if (!stats) return <Spinner />;
+  const byPlan = (stats.by_plan as { plan: string; n: number }[] | undefined) ?? [];
+  const paidLicenses = byPlan.filter((p) => p.plan !== "free").reduce((n, p) => n + Number(p.n || 0), 0);
   return (
     <>
       <PageHead title="Reports" sub="Commercial snapshot from the ledger." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Lifetime value sold" value={`$${(((Number(stats.licenses_active) || 0) * 69)).toFixed(2)}`} sub="at LTD price" />
+        <Stat label="Pro licenses" value={String(paidLicenses)} sub="active, paid plans" />
         <Stat label="Active licenses" value={String(stats.licenses_active)} />
         <Stat label="Marketplace installs" value={String(stats.installs)} />
         <Stat label="Skills" value={String(stats.skills)} />
       </div>
       <Card className="mt-4 p-4 text-sm text-navy/60">
-        Stripe is the default gateway for new checkout flows. Paddle remains available for customers who choose it; both providers feed the same license ledger.
+        Stripe is the gateway for every new checkout. Legacy pre-Stripe purchases feed the same license ledger and stay readable for history and refunds.
       </Card>
     </>
   );

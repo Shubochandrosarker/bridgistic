@@ -286,7 +286,7 @@ export async function listMySites(
   }
 }
 
-/** Claim a license by raw key (Paddle email may differ from the account email). */
+/** Claim a license by raw key (the purchase email may differ from the account email). */
 export async function claimLicense(env: SitesEnv, user: { id: string; email: string }, rawKey: string, fetchImpl: Fetch = fetch): Promise<{ ok: true; key_mask: string; plan: string; source: string } | { ok: false; status: number; error: string; message: string }> {
   const key = rawKey.trim();
   if (!key || key.length > 200) return { ok: false, status: 400, error: "invalid_key", message: "Enter a valid license key." };

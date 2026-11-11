@@ -10,7 +10,7 @@ const USER = { id: "u1", email: "owner@example.com" };
 function fakeWpistic() {
   const calls: { url: string; body: any; headers: any }[] = [];
   const licenses: any[] = [
-    { id: "lic-paddle", key_hash: "", key_mask: "WPI-…ABCD", product: "bridgistic", plan: "pro", status: "active", effective_status: "active", max_activations: 3, expires_at: "2099-01-01T00:00:00Z", owner_email: "paddle-buyer@other.com", activations: [] as any[] },
+    { id: "lic-legacy", key_hash: "", key_mask: "WPI-…ABCD", product: "bridgistic", plan: "pro", status: "active", effective_status: "active", max_activations: 3, expires_at: "2099-01-01T00:00:00Z", owner_email: "legacy-buyer@other.com", activations: [] as any[] },
   ];
   const mode = { validate401: null as null | { code: string; message: string } };
   const fetchImpl = (async (url: string, init: any) => {
@@ -47,10 +47,10 @@ let wp: ReturnType<typeof fakeWpistic>;
 beforeEach(async () => {
   env = { DB: await makeD1(), SECRET_ENCRYPTION_KEY: ENC, LICENSE_SERVICE_TOKEN: "svc-token" };
   wp = fakeWpistic();
-  wp.licenses[0].key_hash = await sha256Hex("WPI-PADDLE-KEY");
+  wp.licenses[0].key_hash = await sha256Hex("WPI-LEGACY-KEY");
 });
 
-const activateBody = (domain: string) => ({ key: "WPI-PADDLE-KEY", domain, site_url: `https://${domain}`, installation_uuid: domain, dashboard_key: { key_id: `wpk_${domain}`, secret: `secret-${domain}` } });
+const activateBody = (domain: string) => ({ key: "WPI-LEGACY-KEY", domain, site_url: `https://${domain}`, installation_uuid: domain, dashboard_key: { key_id: `wpk_${domain}`, secret: `secret-${domain}` } });
 
 describe("plugin proxy to api.wpistic.com", () => {
   it("strips dashboard_key, passes the signed body through unchanged, and stores one pairing per activation", async () => {
@@ -113,11 +113,11 @@ describe("revoked token (401) handling", () => {
 });
 
 describe("/api/me/sites and claiming", () => {
-  it("a buyer whose Paddle email differs sees nothing until they claim the key, then every site", async () => {
+  it("a buyer whose purchase email differs sees nothing until they claim the key, then every site", async () => {
     await proxyActivate(env, activateBody("a.test"), null, wp.fetchImpl);
     await proxyActivate(env, activateBody("b.test"), null, wp.fetchImpl);
     expect((await listMySites(env, USER, wp.fetchImpl)).sites).toHaveLength(0);
-    const claim = await claimLicense(env, USER, "WPI-PADDLE-KEY", wp.fetchImpl);
+    const claim = await claimLicense(env, USER, "WPI-LEGACY-KEY", wp.fetchImpl);
     expect(claim.ok).toBe(true);
     const out = await listMySites(env, USER, wp.fetchImpl);
     expect(out.unlocked).toBe(true);
@@ -163,7 +163,7 @@ describe("/api/me/sites and claiming", () => {
 
 describe("legacy console-issued BRG- keys keep working", () => {
   it("local activate writes a per-activation pairing; deactivate removes it; claim reassigns ownership", async () => {
-    await env.DB.prepare("INSERT INTO licenses (id, key, plan, site_limit, owner_email) VALUES ('L1','BRG-AAAA-BBBB','lifetime',1,'paddle@else.com')").run();
+    await env.DB.prepare("INSERT INTO licenses (id, key, plan, site_limit, owner_email) VALUES ('L1','BRG-AAAA-BBBB','lifetime',1,'legacy@else.com')").run();
     const res = await activateLicense(env as never, { key: "BRG-AAAA-BBBB", domain: "c.test", site_url: "https://c.test", installation_uuid: "i", dashboard_key: { key_id: "wpk_c", secret: "sc" } } as never);
     const body = await res.json<any>();
     expect(body.success).toBe(true);

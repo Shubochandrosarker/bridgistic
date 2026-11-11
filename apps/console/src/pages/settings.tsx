@@ -70,7 +70,7 @@ export function Billing() {
   const { paidUnlock, org } = useSession();
   return (
     <>
-      <PageHead title="Billing" sub="Stripe is the default checkout; Paddle remains optional." />
+      <PageHead title="Billing" sub="Stripe handles every new subscription; invoices and renewals live here." />
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>
