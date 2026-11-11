@@ -86,3 +86,36 @@ commit-bound production approval and is not the normal release path.
 - Disable scheduler triggers/consumers first during an execution incident, then
   revoke affected credentials, preserve logs and audit rows, and follow the
   incident runbook once Phase 8 supplies it.
+
+## Manual deploy without GitHub Actions (2026-11-11)
+
+GitHub Actions can be unavailable (for example, an account billing lock makes
+every CI job fail in ~2 seconds with "The job was not started because your
+account is locked due to a billing issue"). Those red checks say nothing about
+the code. Run the same gates locally and deploy the Pages projects directly:
+
+```bash
+scripts/manual-deploy/bridgistic-deploy.sh --dry-run   # gates + builds + diff against live
+scripts/manual-deploy/bridgistic-deploy.sh             # deploy site, dashboard, pay, console from origin/main
+scripts/manual-deploy/bridgistic-deploy.sh --status    # live production deployment per project
+scripts/manual-deploy/bridgistic-deploy.sh --smoke     # live smoke tests only
+scripts/manual-deploy/bridgistic-deploy.sh --rollback <site|dashboard|pay|console> <deployment-id>
+```
+
+It needs `CLOUDFLARE_API_TOKEN` (Pages:Edit) and `CLOUDFLARE_ACCOUNT_ID`. Every
+run appends the pre-deploy production deployment id of each project to
+`logs/rollback-ledger.txt` before it deploys.
+
+| Host | Pages project | Built from |
+| --- | --- | --- |
+| bridgistic.app, www | bridgistic-site | `site/build.sh` (never the repo root) |
+| dashboard.bridgistic.app, app (301) | bridgistic-dashboard | `apps/dashboard` |
+| pay.bridgistic.app | bridgistic-pay | `apps/pay` |
+| admin.bridgistic.app, marketplace.bridgistic.app | bridgistic-console | `apps/console` |
+
+**bridgistic-site Git integration:** the project has no build command and no
+output directory, so a push to `main` uploaded the whole repository root as the
+production site (`/features` 404, `/package.json` public). Production
+auto-deploys from Git are therefore paused for `bridgistic-site`; preview
+deployments still run. Deploy the site with the script above. Re-enable
+production auto-deploys only after the project builds `site/` in Cloudflare.
