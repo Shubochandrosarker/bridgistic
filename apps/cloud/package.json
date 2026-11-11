@@ -1,0 +1,35 @@
+{
+  "name": "bridgistic-cloud",
+  "version": "1.5.3",
+  "private": true,
+  "description": "mcp.bridgistic.app - hosted, multi-tenant MCP relay for Bridgistic. Paste one URL into Claude (or any MCP-capable client); OAuth handles the rest.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "d1:migrate:local": "wrangler d1 execute bridgistic-cloud --local --file=migrations/0001_init.sql",
+    "d1:migrate:remote": "wrangler d1 execute bridgistic-cloud --remote --file=migrations/0001_init.sql",
+    "test": "tsx --test test/*.test.ts",
+    "test:crypto": "tsx --test test/crypto.test.ts",
+    "test:pkce": "tsx --test test/pkce.test.ts",
+    "test:tenant-registry": "tsx --test test/tenant-registry.test.ts",
+    "test:tenants-db": "tsx --test test/tenants-db.test.ts",
+    "test:signer": "tsx --test test/signer.test.ts",
+    "test:wp-oauth-client": "tsx --test test/wp-oauth-client.test.ts",
+    "test:default-handler": "tsx --test test/default-handler.test.ts"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.10.3",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "agents": "^0.28.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260903.1",
+    "@types/node": "^26.4.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.151.0"
+  }
+}
