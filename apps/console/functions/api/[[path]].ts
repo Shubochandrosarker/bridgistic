@@ -101,6 +101,11 @@ interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   PLATFORM_OWNER_EMAIL?: string;
+  CF_EMAIL_API_TOKEN?: string;
+  CF_EMAIL_ACCOUNT_ID?: string;
+  MAIL_FROM?: string;
+  MAIL_FROM_NAME?: string;
+  MAIL_REPLY_TO?: string;
   HOSTINGER_MAIL_TOKEN?: string;
   HOSTINGER_MAILBOX_ID?: string;
 }
