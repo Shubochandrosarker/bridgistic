@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, LoaderCircle, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Layout.tsx";
 import { signIn, signUp } from "../lib/account.ts";
 import { useStore } from "../lib/store.tsx";
@@ -81,7 +81,7 @@ export function SignIn() {
     <div className="grid min-h-screen lg:grid-cols-2 bg-ivory">
       {/* Left panel — brand */}
       <div className="relative hidden overflow-hidden bg-navy p-10 text-ivory lg:flex lg:flex-col lg:justify-between">
-        <img src="https://admin.bridgistic.app/brand/icon.png" alt="" className="mb-8 h-12 w-12" /><Logo dark />
+        <img src="https://bridgistic.app/assets/bridgistic-icon-240.png" alt="" className="mb-8 h-12 w-12" /><Logo dark />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -163,6 +163,9 @@ export function SignIn() {
                 required
               />
             </label>
+            {mode === "signin" && (
+              <p className="text-right text-xs"><Link to="/forgot-password" className="font-medium text-navy/70 underline hover:text-navy">Forgot password?</Link></p>
+            )}
             <button
               type="submit"
               disabled={busy || !email || !password}

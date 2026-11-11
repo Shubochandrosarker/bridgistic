@@ -11,6 +11,7 @@ export interface User {
   role: "owner" | "admin" | "member";
   status: "active" | "disabled";
   created_at: string;
+  email_verified_at?: string | null;
 }
 
 export interface Org {

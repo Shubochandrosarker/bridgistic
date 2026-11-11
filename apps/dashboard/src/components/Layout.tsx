@@ -3,6 +3,7 @@ import { LogOut, Menu, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useStore } from "../lib/store.tsx";
+import { resendVerification } from "../lib/account.ts";
 import { NAV } from "./nav.ts";
 
 export function Logo({ dark = false }: { dark?: boolean }) {
@@ -69,9 +70,9 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         </div>
       ) : (
-        <a href="https://admin.bridgistic.app/signin" className="mt-auto flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
+        <NavLink to="/sign-in" className="mt-auto flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
           <UserRound className="h-4 w-4" aria-hidden />Sign in to Bridgistic
-        </a>
+        </NavLink>
       )}
       <button onClick={handleSignOut} className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-ivory/60 hover:text-ivory">
         <LogOut className="h-4 w-4" aria-hidden />{mode === "demo" ? "Leave demo" : "Sign out"}
@@ -80,14 +81,26 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function VerifyEmailBanner({ email }: { email: string }) {
+  const [state, setState] = useState<string | null>(null);
+  return (
+    <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-gold/15 px-4 py-2 text-center text-sm text-navy">
+      <span>Confirm <b>{email}</b> to unlock the licenses, billing and sites bought with it. Check your inbox.</span>
+      <button type="button" className="font-semibold underline" onClick={async () => setState((await resendVerification()).message)}>Resend link</button>
+      {state && <span className="text-navy/70">{state === "Done." ? "Sent. Check your inbox." : state}</span>}
+    </div>
+  );
+}
+
 export function Layout() {
-  const { mode } = useStore();
+  const { mode, account } = useStore();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   return (
     <div className="min-h-screen bg-ivory">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Skip to content</a>
       {mode === "demo" && <DemoBanner />}
+      {mode !== "demo" && account && account.email_verified === false && <VerifyEmailBanner email={account.email} />}
       <div className="flex">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 lg:block"><Sidebar /></aside>
         <AnimatePresence>

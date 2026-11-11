@@ -79,7 +79,7 @@ export function ConnectForm({ onDone }: { onDone?: () => void }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label><span className="label">Site URL</span><input className="input" value={f.siteUrl} onChange={set("siteUrl")} placeholder="https://example.com (not needed with a license key)" inputMode="url" aria-invalid={!!urlErr} />{urlErr && <span className="mt-1 block text-xs text-red-800">{urlErr}</span>}</label>
         <label><span className="label">Name (optional)</span><input className="input" value={f.alias} onChange={set("alias")} placeholder="Client store" /></label>
-        <label><span className="label">License key or Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} placeholder="BRG-LTD-… (license) or wpk_… (key)" autoComplete="off" aria-invalid={!!keyErr} />{keyErr && <span className="mt-1 block text-xs text-red-800">{keyErr}</span>}</label>
+        <label><span className="label">License key or Key ID</span><input required className="input font-mono" value={f.keyId} onChange={set("keyId")} placeholder="BRG-… (license) or wpk_… (key)" autoComplete="off" aria-invalid={!!keyErr} />{keyErr && <span className="mt-1 block text-xs text-red-800">{keyErr}</span>}</label>
         <label><span className="label">Key secret <span className="font-normal text-navy/40">(leave empty with a license key)</span></span><input type="password" className="input font-mono" value={f.secret} onChange={set("secret")} placeholder="wps_…" autoComplete="off" /></label>
       </div>
       {err && <div className="rounded-xl ring-1 ring-red-800/20"><ErrorState error={err} /></div>}

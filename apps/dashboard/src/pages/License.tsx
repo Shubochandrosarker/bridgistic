@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { KeyRound, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
 import { useState } from "react";
 import { Badge, Card, ErrorState, PageHeader, Skeleton } from "../components/ui.tsx";
-import { ACCOUNT_URL, LICENSE_API, PAY_URL } from "../lib/config.ts";
+import { Link } from "react-router-dom";
+import { PAY_URL } from "../lib/config.ts";
 import { ApiError } from "../lib/api/errors.ts";
 import type { LicenseStatus } from "../lib/api/types.ts";
 import { fmtTime } from "../lib/format.ts";
@@ -61,18 +62,18 @@ export function License() {
             {err && <ErrorState error={err} />}
           </Card>
           <Card delay={0.05}>
-            <h2 className="text-sm font-semibold">Lifetime Deal</h2>
-            <p className="mt-1 text-3xl font-semibold">$69 <span className="text-sm font-normal text-navy/55">one time</span></p>
-            <p className="mt-2 text-sm text-navy/65">Lifetime use with all future updates included. One payment of $69.</p>
-            <a href={PAY_URL} className="btn-primary mt-4 w-full justify-center">View the offer</a>
-            <a href={ACCOUNT_URL} className="mt-3 block text-center text-xs text-navy/55 underline">Manage licenses at WPistic</a>
+            <h2 className="text-sm font-semibold">Bridgistic Pro</h2>
+            <p className="mt-1 text-3xl font-semibold">$12 <span className="text-sm font-normal text-navy/55">per month</span></p>
+            <p className="mt-2 text-sm text-navy/65">Or $99 per year. Snapshots, exports and Pro skills on up to 3 sites. Cancel anytime.</p>
+            <a href={PAY_URL} className="btn-primary mt-4 w-full justify-center">See plans</a>
+            <Link to="/billing" className="mt-3 block text-center text-xs text-navy/55 underline">Manage billing</Link>
           </Card>
         </div>)}
       <Card>
         <h2 className="text-sm font-semibold">How activation works</h2>
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-navy/70">
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-navy/70 [overflow-wrap:anywhere]">
           <li>The dashboard asks the plugin to activate (POST bridgistic/v1/license/activate, scope license:manage).</li>
-          <li>The plugin sends the key with its domain and installation ID to {LICENSE_API}/activate.</li>
+          <li>The plugin sends the key with its domain and installation ID to the Bridgistic license server.</li>
           <li>The server returns an activation token and a verification key. The plugin stores them; the raw key is not stored.</li>
           <li>Every later status is HMAC-signed by the server and verified by the plugin before it is trusted.</li>
         </ol>

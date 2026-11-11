@@ -13,6 +13,8 @@ export interface Account {
   email: string;
   name: string;
   role: string;
+  /** False until a password signup confirms its inbox. Absent on old caches. */
+  email_verified?: boolean;
 }
 
 export function loadAccount(): Account | null {
@@ -30,7 +32,7 @@ function saveAccount(account: Account | null): void {
 
 interface ApiResponse {
   ok?: boolean;
-  user?: Account;
+  user?: Account & { email_verified?: boolean };
   error?: string;
   message?: string;
 }
@@ -48,7 +50,7 @@ export async function refreshAccount(): Promise<Account | null> {
       saveAccount(null);
       return null;
     }
-    const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role };
+    const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role, email_verified: json.user.email_verified !== false };
     saveAccount(account);
     return account;
   } catch {
@@ -69,7 +71,7 @@ export async function signIn(email: string, password: string): Promise<Account> 
   });
   const json = (await res.json().catch(() => null)) as ApiResponse | null;
   if (!res.ok || !json?.user) throw new Error(json?.message ?? "Email or password is incorrect.");
-  const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role };
+  const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role, email_verified: json.user.email_verified !== false };
   saveAccount(account);
   return account;
 }
@@ -84,7 +86,7 @@ export async function signUp(email: string, password: string, name: string): Pro
   });
   const json = (await res.json().catch(() => null)) as ApiResponse | null;
   if (!res.ok || !json?.user) throw new Error(json?.message ?? "Sign up failed.");
-  const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role };
+  const account: Account = { email: json.user.email, name: json.user.name, role: json.user.role, email_verified: json.user.email_verified !== false };
   saveAccount(account);
   return account;
 }
@@ -105,3 +107,24 @@ export async function signOutAccount(): Promise<void> {
   }
   saveAccount(null);
 }
+
+async function post(path: string, body: unknown): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch(`${CONSOLE_API}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json().catch(() => null)) as ApiResponse | null;
+    return { ok: res.ok, message: json?.message ?? (res.ok ? "Done." : "Something went wrong. Try again.") };
+  } catch {
+    return { ok: false, message: "Network error. Check your connection and try again." };
+  }
+}
+
+export const resendVerification = () => post("/api/auth/verify/resend", {});
+export const confirmEmail = (token: string) => post("/api/auth/verify", { token });
+export const requestPasswordReset = (email: string) => post("/api/auth/password/forgot", { email });
+export const resetPassword = (token: string, password: string) => post("/api/auth/password/reset", { token, password });

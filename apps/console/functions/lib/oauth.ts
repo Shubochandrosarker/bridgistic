@@ -163,6 +163,14 @@ export async function oauthCallback(request: Request, env: OAuthEnv, provider: s
     await db.prepare("INSERT INTO audit (id, actor, action, target, detail) VALUES (?, ?, 'user.oauth_signup', ?, ?)").bind(crypto.randomUUID(), profile.email, profile.email, provider).run();
   }
   if (user.status !== "active") return fail("account_disabled");
+  // The provider verified this email. An unverified password account with the
+  // same email may have been created by someone else: verify it, drop its
+  // password and sign out its other sessions so only the inbox owner remains.
+  const verified = await db.prepare("SELECT email_verified_at FROM users WHERE id = ?").bind(user.id).first<{ email_verified_at: string | null }>();
+  if (!verified?.email_verified_at) {
+    await db.prepare("UPDATE users SET email_verified_at = datetime('now'), password_hash = CASE WHEN password_hash = 'oauth' THEN password_hash ELSE 'oauth' END WHERE id = ?").bind(user.id).run();
+    await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id).run();
+  }
 
   // Staff land on the console (their root routes to the master dashboard);
   // every non-staff account lands on the member dashboard, and an explicit

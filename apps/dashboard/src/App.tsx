@@ -11,6 +11,7 @@ import { License } from "./pages/License.tsx";
 import { Overview } from "./pages/Overview.tsx";
 import { ComingSoon, Roadmap } from "./pages/Roadmap.tsx";
 import { SignIn } from "./pages/SignIn.tsx";
+import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AuthPages.tsx";
 import { Sites } from "./pages/Sites.tsx";
 import { Snapshots } from "./pages/Snapshots.tsx";
 import { Usage } from "./pages/Usage.tsx";
@@ -37,6 +38,9 @@ export function App() {
   return (
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {!signedIn && <Route path="/sites" element={<Layout />}><Route index element={<Sites />} /></Route>}
       <Route element={signedIn ? <Layout /> : <Navigate to="/sign-in" replace />}>
         <Route index element={<Overview />} />

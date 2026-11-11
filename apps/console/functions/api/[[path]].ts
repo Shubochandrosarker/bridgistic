@@ -38,6 +38,7 @@ import { handleAppsumoRedeem, handleAppsumoWebhook, seedMarketplaceCode } from "
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { gunzipSync, zipSync, type Zippable } from "fflate";
 import { oauthCallback, oauthProviders, oauthStart, type OAuthEnv } from "../lib/oauth.ts";
+import { handlePasswordForgot, handlePasswordReset, handleVerifyConfirm, handleVerifyResend, isEmailVerified, sendVerification, unverifiedResponse } from "../lib/email-auth.ts";
 
 /** Skills whose file payload exceeded D1's statement limit are stored gzipped with a `gz:` prefix. */
 function parseFiles(raw: string): { path: string; size: number; text: string }[] {
@@ -103,6 +104,8 @@ interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   PLATFORM_OWNER_EMAIL?: string;
+  HOSTINGER_MAIL_TOKEN?: string;
+  HOSTINGER_MAILBOX_ID?: string;
 }
 
 async function route(request: Request, env: Env, path: string, url: URL): Promise<Response> {
@@ -134,8 +137,10 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     await db.prepare("INSERT INTO orgs (id, name, plan, owner_user_id) VALUES (?, ?, ?, ?)").bind(orgId, orgName, isOwner ? "platform" : "free", id).run();
     await db.prepare("INSERT INTO memberships (org_id, user_id, role) VALUES (?, ?, 'owner')").bind(orgId, id).run();
     await audit(db, email, "user.signup", email, isOwner ? "owner claim" : "self signup");
+    if (isOwner) await db.prepare("UPDATE users SET email_verified_at = datetime('now') WHERE id = ?").bind(id).run();
+    const verification = isOwner ? { sent: false } : await sendVerification(env, { id, email });
     const sessionId = await createSession(db, id);
-    return jsonWithCookie({ ok: true, user: { id, email, name, role } }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
+    return jsonWithCookie({ ok: true, user: { id, email, name, role, email_verified: isOwner }, verification_sent: verification.sent }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
 
   if (path === "/api/auth/signin" && method === "POST") {
@@ -146,8 +151,12 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       return Response.json({ error: "invalid_credentials", message: "Email or password is incorrect." }, { status: 401 });
     }
     const sessionId = await createSession(db, row.id);
-    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role } }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
+    return jsonWithCookie({ ok: true, user: { id: row.id, email: row.email, name: row.name, role: row.role, email_verified: isEmailVerified(row as unknown as User) } }, sessionCookies(sessionId, undefined, sharedCookieDomain(url.hostname)));
   }
+
+  if (path === "/api/auth/verify" && method === "POST") return handleVerifyConfirm(env, request);
+  if (path === "/api/auth/password/forgot" && method === "POST") return handlePasswordForgot(env, request);
+  if (path === "/api/auth/password/reset" && method === "POST") return handlePasswordReset(env, request);
 
   if (path === "/api/auth/signout" && method === "POST") {
     await destroySession(db, request);
@@ -211,6 +220,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     const pairedSiteId = String(body.site_id ?? "").trim();
     if (pairedSiteId) {
       const user = await requireUser(db, request);
+      if (!isEmailVerified(user)) return unverifiedResponse();
       const license = await db.prepare("SELECT id, owner_email, status, expires_at, site_connection FROM licenses WHERE id = ?").bind(pairedSiteId).first<{ id: string; owner_email: string; status: string; expires_at: string | null; site_connection: string }>();
       const ownerAccess = user.role === "owner" || user.role === "admin";
       if (!license || (license.owner_email.toLowerCase() !== user.email.toLowerCase() && !ownerAccess)) {
@@ -253,12 +263,18 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   // Everything below needs an account.
   const user = await requireUser(db, request);
 
+  if (path === "/api/auth/verify/resend" && method === "POST") return handleVerifyResend(env, user);
+  // Licenses, billing and paired sites are matched by email: only an account
+  // that proved it owns the inbox may see or use them.
+  const EMAIL_ENTITLED = new Set(["/api/me/sites", "/api/me/billing", "/api/me/billing/portal", "/api/me/resolve-license", "/api/me/site-connections"]);
+  if (EMAIL_ENTITLED.has(path) && !isEmailVerified(user)) return unverifiedResponse();
+
   if (path === "/api/appsumo/redeem" && method === "POST") return handleAppsumoRedeem(request, env, user);
 
   if (path === "/api/me" && method === "GET") {
     const orgs = await userOrgs(db, user.id);
     const unlock = await paidUnlock(db, user);
-    return Response.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role }, orgs, paid_unlock: unlock }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, email_verified: isEmailVerified(user) }, orgs, paid_unlock: unlock }, { headers: { "Cache-Control": "no-store" } });
   }
 
   // Account-owned license activations are the source of truth for the
@@ -533,6 +549,7 @@ async function billingPortal(request: Request, env: Env, user: User): Promise<Re
 
 /** Paid marketplace unlock: an active Bridgistic license assigned to this email. */
 async function paidUnlock(db: D1Database, user: User): Promise<{ unlocked: boolean; plan: string | null }> {
+  if (!isEmailVerified(user)) return { unlocked: false, plan: null };
   const row = await db
     .prepare("SELECT plan FROM licenses WHERE owner_email = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?) LIMIT 1")
     .bind(user.email, new Date().toISOString())
@@ -553,6 +570,7 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
   // A BRG- license key resolves to the licensed site's auto-paired key —
   // customers paste the one code they have.
   if (keyId.startsWith("BRG-")) {
+    if (!isEmailVerified(user)) return unverifiedResponse();
     const license = await env.DB.prepare("SELECT owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ owner_email: string; status: string; site_connection: string }>();
     const staff = user.role === "owner" || user.role === "admin";
     if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });

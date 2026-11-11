@@ -30,13 +30,37 @@ function parseFiles(raw: string): SkillFile[] {
 
 const WELL_KNOWN = new Set(["agent-skills", "skills"]);
 
+/**
+ * The SPA shell ships one <title> for every host. Crawlers that do not run
+ * JavaScript saw "Bridgistic Console" on the public marketplace, and the
+ * private owner console was indexable. Fix both at the edge.
+ */
+async function decorate(response: Response, url: URL): Promise<Response> {
+  if (url.hostname === "admin.bridgistic.app") {
+    const out = new Response(response.body, response);
+    out.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return out;
+  }
+  if (url.hostname !== "marketplace.bridgistic.app" || !(response.headers.get("content-type") ?? "").includes("text/html")) return response;
+  const title = "Bridgistic Skills · Free AI agent skills for WordPress and beyond";
+  const description = "Browse 100 free instruction skills for AI agents from @wordpressistic. Install with one command or copy as a prompt. Bridgistic Pro unlocks 30 production skills.";
+  const canonical = `https://marketplace.bridgistic.app${url.pathname === "/" ? "/" : url.pathname}`;
+  return new HTMLRewriter()
+    .on("title", { element(el) { el.setInnerContent(title); } })
+    .on('meta[name="description"]', { element(el) { el.setAttribute("content", description); } })
+    .on("head", { element(el) { el.append(`<link rel="canonical" href="${canonical}" /><meta property="og:title" content="${title}" /><meta property="og:description" content="${description}" /><meta property="og:url" content="${canonical}" />`, { html: true }); } })
+    .transform(response);
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
-  if (context.request.method !== "GET" && context.request.method !== "HEAD") return context.next();
-  const match = new URL(context.request.url).pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/(\.well-known\/.*)$/);
-  if (!match || match[1] === "api") return context.next();
+  const url = new URL(context.request.url);
+  const pass = async () => decorate(await context.next(), url);
+  if (context.request.method !== "GET" && context.request.method !== "HEAD") return pass();
+  const match = url.pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/(\.well-known\/.*)$/);
+  if (!match || match[1] === "api") return pass();
   const [, handle, slug, tail] = match;
   const rest = tail.split("/").filter(Boolean).map(decodeURIComponent);
-  if (!WELL_KNOWN.has(rest[1] ?? "")) return context.next();
+  if (!WELL_KNOWN.has(rest[1] ?? "")) return pass();
 
   const notFound = () => Response.json({ error: "not_found" }, { status: 404 });
   const item = await context.env.DB.prepare("SELECT slug, description, handle, tier, files FROM skills WHERE slug = ? AND handle = ?")

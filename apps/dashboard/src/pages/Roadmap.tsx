@@ -7,7 +7,7 @@ const AREAS = ["Addons", "Advanced tools", "Specialised agent", "Platform"] as c
 export function Roadmap() {
   return (
     <div>
-      <PageHeader title="Roadmap" description="What we plan to build next. None of this is available yet, and no dates are promised. Lifetime Deal holders receive these updates when they ship." />
+      <PageHeader title="Roadmap" description="What we plan to build next. None of this is available yet, and no dates are promised. Pro subscribers receive these updates when they ship." />
       <div className="grid gap-6 lg:grid-cols-2">
         {AREAS.map((a, ai) => (
           <section key={a} aria-labelledby={`r-${ai}`}>

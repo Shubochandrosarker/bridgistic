@@ -91,7 +91,7 @@ export class DemoClient implements BridgisticClient {
   wooSalesSummary() { return wait({ period: "last 30 days (sample)", orders: 42, net_sales: "1,284.50", currency: "USD" }); }
   license() { return wait(license); }
   activateLicense(key: string) {
-    license = { connected: true, status: "active", plan: "lifetime", key_mask: key.slice(0, 6) + "…" + key.slice(-4), expires_at: null, validated_at: new Date().toISOString(), domain: "demo.example", entitlements: { "bridgistic.plan": "lifetime" } };
+    license = { connected: true, status: "active", plan: "pro", key_mask: key.slice(0, 6) + "…" + key.slice(-4), expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(), validated_at: new Date().toISOString(), domain: "demo.example", entitlements: { "bridgistic.plan": "pro" } };
     return wait(license, 700);
   }
   deactivateLicense() { license = { ...license, connected: false, status: "free", plan: "free", key_mask: null }; return wait(license); }
