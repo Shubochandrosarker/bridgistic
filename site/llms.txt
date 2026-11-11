@@ -2,12 +2,13 @@
 
 > Bridgistic is a WordPress plugin and local MCP bridge from WordPressistic LLC. It lets Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients act on WordPress through signed, scoped requests, with approvals, snapshots and an audit log. The administrator password is not the credential.
 
-Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@wpistic.com. The free plugin is GPL-2.0-or-later and the source is public. Checkout is handled securely by Stripe and WordPressistic LLC is the seller. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-11-11.
+Bridgistic is published by WordPressistic LLC, doing business as WPistic, at 1209 Mountain Road PL NE, STE N, Albuquerque, NM 87110, US. Support: support@bridgistic.app. General and sales: hello@bridgistic.app. The free plugin is GPL-2.0-or-later and the source is public. Checkout is handled securely by Stripe and WordPressistic LLC is the seller. This file is rebuilt from the live pages whenever the site is built. Content date: 2026-11-11.
 
 ## Pages
 - [Bridgistic: Safe AI Control for WordPress via MCP](https://bridgistic.app/): Connect Claude, ChatGPT, Codex, Gemini, Cursor and other MCP clients to WordPress with signed requests, scoped access, approvals, snapshots, rollback and audit logs.
 - [Feature guide](https://bridgistic.app/features): Every Bridgistic feature: what ships today in the free and Pro plans, plus the separate roadmap for future releases.
 - [Docs](https://bridgistic.app/docs): Install Bridgistic, create a Read-only key, and connect Claude, Codex, Gemini or ChatGPT. WordPress 6.4+ and PHP 8.0+.
+- [Support](https://bridgistic.app/support): Bridgistic support: setup help, license and AppSumo redemption, billing and refunds, and security reports. Email support@bridgistic.app.
 - [Terms of Service](https://bridgistic.app/terms): Terms for the Bridgistic plugin, Bridgistic Pro, the dashboard and the relay.
 - [Privacy Policy](https://bridgistic.app/privacy): What Bridgistic, its dashboard, relay and the WPistic license server store and send.
 - [Refund Policy](https://bridgistic.app/refund-policy): Refunds for Bridgistic Pro monthly and yearly purchases.

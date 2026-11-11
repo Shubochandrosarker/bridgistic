@@ -66,7 +66,7 @@ fi
 
 printf 'bridgistic.app\n' > "$OUT/CNAME"
 cp assets/* "$OUT/assets/"
-cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html 404.html "$OUT/"
+cp terms.html privacy.html refund-policy.html how-purchases-work.html features.html docs.html support.html 404.html "$OUT/"
 mkdir -p "$OUT/redeem"
 cp redeem/index.html "$OUT/redeem/index.html"
 

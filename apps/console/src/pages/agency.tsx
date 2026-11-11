@@ -109,7 +109,7 @@ export function AgencyDeals() {
         </Card>
       </div>
       <Card className="mt-4 p-4 text-xs text-navy/50">
-        White-label and Cloud Agent credits are excluded from the lifetime deal. 7-day refund guarantee via support@wpistic.com.
+        White-label and Cloud Agent credits are excluded from the lifetime deal. 7-day refund guarantee via support@bridgistic.app.
       </Card>
     </>
   );

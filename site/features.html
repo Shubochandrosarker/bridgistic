@@ -69,7 +69,7 @@
   <header class="top">
     <div class="wrap top-in">
       <a class="brand" href="/"><img src="/assets/bridgistic-icon.png" alt="" width="28" height="28" /><b class="word">Bridg<span>istic</span></b></a>
-      <nav class="top-nav" aria-label="Site"><a href="/#pricing">Pricing</a><a href="/docs">Docs</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
+      <nav class="top-nav" aria-label="Site"><a href="/#pricing">Pricing</a><a href="/docs">Docs</a><a href="/support">Support</a><a href="https://dashboard.bridgistic.app/">Dashboard</a>
         <button class="theme" type="button" id="themeToggle" aria-label="Switch colour theme">Theme</button></nav>
     </div>
   </header>
@@ -79,6 +79,7 @@
       <a href="#schedules">Schedules</a>
       <a href="#snapshots">Snapshots</a>
       <a href="#audit">Audit log</a>
+      <a href="#allowance">Allowance</a>
       <a href="#paid">Roadmap</a>
       <a href="#plans">Plans</a>
     </nav>
@@ -102,6 +103,13 @@
           <article class="card" id="woo"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>WooCommerce tools</h2><p>Commerce tools use the same key, scopes and approval rules. They are not a separate plan.</p><p><a href="/#features">Feature grid</a></p></article>
           <article class="card" id="multisite"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Multi-site connections</h2><p>A local client can keep several sites in one connections file and call them by alias.</p><p><a href="/docs#clients">Connect a client</a></p></article>
           <article class="card" id="health"><span class="scan" aria-hidden="true"></span><span class="status ship">Shipping</span><h2>Health check and setup export</h2><p>Health Check looks at REST, permalinks and signing. Export Package builds a setup zip for a client. That export is not an audit-log download.</p><p><a href="/docs#install">Install</a></p></article>
+        </div>
+      </section>
+
+      <section id="allowance"><h2>Monthly AI-request allowance</h2>
+        <div class="cards">
+          <article class="card"><span class="status ship">Free</span><h2>5,000 AI requests per month</h2><p>From plugin 1.5.11, the free plugin includes 5,000 signed AI requests per site each calendar month (UTC), counted in one site-wide meter. Request 5,001 stops with HTTP 402 <code>bridgistic_free_limit_reached</code> until the 1st, with a message pointing to Pro.</p></article>
+          <article class="card"><span class="status live">With a license</span><h2>No monthly cap</h2><p>When the license link reports active, trialing, or grace, the monthly cap is skipped. Requests are still counted so the Settings panel can show usage.</p></article>
         </div>
       </section>
 
@@ -135,18 +143,29 @@
         </div>
       </section>
 
-      <section id="plans"><h2>Plans, unchanged</h2>
+      <section id="plans"><h2>Plans and limits</h2>
+        <table class="plan-table" style="width:100%;border-collapse:collapse;margin:10px 0 14px;font-size:14px">
+          <thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--line)">Limit</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--line)">Free</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--line)">Pro</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:8px;border-bottom:1px solid var(--line)">AI requests per month, per site</td><td style="padding:8px;border-bottom:1px solid var(--line)">5,000 (resets on the 1st, UTC)</td><td style="padding:8px;border-bottom:1px solid var(--line)">No monthly cap</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid var(--line)">Active scheduled playbooks</td><td style="padding:8px;border-bottom:1px solid var(--line)">3</td><td style="padding:8px;border-bottom:1px solid var(--line)">Unlimited</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid var(--line)">Manual snapshots kept</td><td style="padding:8px;border-bottom:1px solid var(--line)">50</td><td style="padding:8px;border-bottom:1px solid var(--line)">No cap</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid var(--line)">Audit log export</td><td style="padding:8px;border-bottom:1px solid var(--line)">Not included</td><td style="padding:8px;border-bottom:1px solid var(--line)">Included</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid var(--line)">On-screen audit log</td><td style="padding:8px;border-bottom:1px solid var(--line)">90 days</td><td style="padding:8px;border-bottom:1px solid var(--line)">90 days</td></tr>
+          </tbody>
+        </table>
+        <p>The monthly allowance applies from plugin 1.5.11. It counts every signed request from an AI client (local MCP, Claude Desktop extension, Bridgistic Cloud) and every scheduled run, shared by all keys on the site. The Bridgistic dashboard and the usage lookup do not count. When it runs out, requests stop with HTTP 402 and a message that names the reset date and the upgrade link; administrators also see a notice in WP Admin. Usage is shown under Bridgistic → Settings → Plan &amp; usage.</p>
         <p>Free is $0, with no license key. Pro is $12 a month or $99 a year for <strong>1 license · 3 sites</strong>. Every purchase has a 7-day refund guarantee. Checkout is handled securely by Stripe. Full terms: <a href="/terms">Terms</a>, <a href="/refund-policy">Refunds</a>, <a href="/how-purchases-work">How purchases work</a>.</p>
         <p>WordPress itself is documented at <a href="https://wordpress.org/documentation/">wordpress.org/documentation</a>. Bridgistic needs WordPress 6.4 or newer and PHP 8.0 or newer.</p>
       </section>
 
-      <section><h2>Publisher</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address><p>Support: <a href="mailto:support@wpistic.com">support@wpistic.com</a>. Company site: <a href="https://wordpressistic.com/">wordpressistic.com</a>.</p></section>
+      <section><h2>Publisher</h2><address class="company">WordPressistic LLC<br>1209 Mountain Road PL NE, STE N<br>Albuquerque, NM 87110, US</address><p>Support: <a href="mailto:support@bridgistic.app">support@bridgistic.app</a>. Company site: <a href="https://wordpressistic.com/">wordpressistic.com</a>.</p></section>
     </article>
   </main>
   <footer class="foot">
     <div class="wrap foot-in">
       <span>© 2026 WordPressistic LLC. Bridgistic is licensed GPL-2.0-or-later.</span>
-      <nav aria-label="Legal"><a href="/">Home</a><a href="/docs">Docs</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/sitemap.html">Sitemap</a></nav>
+      <nav aria-label="Legal"><a href="/">Home</a><a href="/docs">Docs</a><a href="/support">Support</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/sitemap.html">Sitemap</a></nav>
     </div>
   </footer>
   <script>document.getElementById('themeToggle').addEventListener('click',function(){var r=document.documentElement;var n=r.getAttribute('data-theme')==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('bridgistic-theme',n);}catch(e){}});</script>
