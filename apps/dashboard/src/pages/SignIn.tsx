@@ -56,8 +56,8 @@ export function SignIn() {
   const done = () => nav(sessionStorage.getItem("bridgistic.returnTo") ?? "/", { replace: true });
 
   useEffect(() => {
-    if (!authLoading && account) done();
-  }, [account, authLoading]);
+    if (!authLoading && account) nav(sessionStorage.getItem("bridgistic.returnTo") ?? "/", { replace: true });
+  }, [account, authLoading, nav]);
 
   const submit = async () => {
     setBusy(true);
