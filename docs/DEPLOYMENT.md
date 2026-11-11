@@ -113,9 +113,11 @@ run appends the pre-deploy production deployment id of each project to
 | pay.bridgistic.app | bridgistic-pay | `apps/pay` |
 | admin.bridgistic.app, marketplace.bridgistic.app | bridgistic-console | `apps/console` |
 
-**bridgistic-site Git integration:** the project has no build command and no
-output directory, so a push to `main` uploaded the whole repository root as the
-production site (`/features` 404, `/package.json` public). Production
-auto-deploys from Git are therefore paused for `bridgistic-site`; preview
-deployments still run. Deploy the site with the script above. Re-enable
-production auto-deploys only after the project builds `site/` in Cloudflare.
+**bridgistic-site Git integration:** until 2026-11-11 the project had no build
+command and no output directory, so a push to `main` uploaded the whole
+repository root as the production site. It now builds only `site/`: root
+directory `site`, build command `bash build.sh dist`, output `dist`.
+`site/build.sh` falls back to the public GitHub API with curl when `gh` is not
+installed (as in the Pages build image); set `GITHUB_TOKEN` in the Pages build
+env if anonymous rate limits ever bite. Production auto-deploy is re-enabled
+only after a preview built this way is verified.

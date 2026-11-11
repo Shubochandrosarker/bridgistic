@@ -1,7 +1,7 @@
-/** Billing page data: GET /api/me/billing on the console (Paddle or Stripe, one shape). */
+/** Billing page data: GET /api/me/billing on the console (Stripe, or a directly issued license; "paddle" only for legacy rows). */
 import { ACCOUNT_URL } from "./config.ts";
 
-export type BillingProvider = "paddle" | "stripe";
+export type BillingProvider = "paddle" | "stripe" | "license";
 export interface BillingInvoice { id: string; amount_paid: number; amount_due: number; currency: string; status: string; pdf_url: string | null; hosted_invoice_url: string | null; created_at: string; paid_at: string | null }
 export interface BillingSubscription {
   billing_provider: BillingProvider;
@@ -16,7 +16,7 @@ export interface BillingSubscription {
   ends_at: string | null;
   cancel_at_period_end: boolean;
   invoices: BillingInvoice[];
-  manage: { type: "paddle_portal"; url: string | null } | { type: "stripe_portal" };
+  manage: { type: "paddle_portal"; url: string | null } | { type: "stripe_portal" } | { type: "support" };
 }
 export interface BillingSummary { billing_provider: BillingProvider | null; subscriptions: BillingSubscription[]; upstream_error: boolean }
 
@@ -60,4 +60,5 @@ export function renewalLine(s: Pick<BillingSubscription, "status" | "renews_at" 
   return s.renews_at ? `Renews ${fmt(s.renews_at)}` : "Active";
 }
 
-export const PROVIDER_LABEL: Record<BillingProvider, string> = { paddle: "Paddle", stripe: "Stripe" };
+export const PROVIDER_LABEL: Record<BillingProvider, string> = { paddle: "Paddle (legacy)", stripe: "Stripe", license: "Bridgistic (direct license)" };
+export const SUPPORT_EMAIL = "support@bridgistic.app";

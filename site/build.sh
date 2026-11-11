@@ -6,29 +6,44 @@
 #
 #   ./build.sh [out-dir]        (default: dist)
 #
-# Requires: gh (authenticated), sed, node. Placeholder tokens in index.html
-# are filled from the newest published plugin release; crawl files are
-# regenerated from the live pages so a content edit cannot ship stale SEO.
+# Requires: curl, sed, node (gh is used when it is installed and signed in).
+# Placeholder tokens in index.html are filled from the newest published plugin
+# release; crawl files are regenerated from the pages so SEO cannot go stale.
+#
+# Runs unchanged in Cloudflare Pages (project bridgistic-site: root directory
+# "site", build command "bash build.sh dist", output "dist"), where gh is not
+# available: release data then comes from the public GitHub API with curl
+# (set GITHUB_TOKEN in the Pages build env to avoid anonymous rate limits).
 set -euo pipefail
 
 OUT="${1:-dist}"
 REPO="Wordpressistic/bridgistic"
-TAG="${BRIDGISTIC_RELEASE_TAG:-$(gh api repos/Wordpressistic/bridgistic/releases/latest --jq .tag_name)}"
+
+# gh_json <api-path>: GitHub REST JSON via gh when signed in, else via curl.
+gh_json() {
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    gh api "$1"
+  else
+    curl -fsSL -H "Accept: application/vnd.github+json" \
+      ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} "https://api.github.com/$1"
+  fi
+}
+# js <expr>: evaluate expr against JSON on stdin (bound to `j`), print the result.
+js() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const v=('"$1"');process.stdout.write(v==null?"null":String(v))})'; }
+
+TAG="${BRIDGISTIC_RELEASE_TAG:-$(gh_json "repos/$REPO/releases/latest" | js 'j.tag_name')}"
 VERSION="${TAG#v}"
-DOWNLOAD="https://github.com/Wordpressistic/bridgistic/releases/download/$TAG"
-PAGE="https://github.com/Wordpressistic/bridgistic/releases/tag/$TAG"
+DOWNLOAD="https://github.com/$REPO/releases/download/$TAG"
+PAGE="https://github.com/$REPO/releases/tag/$TAG"
 # Asset names vary between releases (v1.5.10 ships a versioned zip and no .mcpb),
 # so resolve the real download URLs instead of assuming fixed file names.
-PLUGIN_ZIP_URL="${BRIDGISTIC_PLUGIN_ZIP_URL:-$(gh api "repos/$REPO/releases/tags/$TAG" --jq '[.assets[] | select(.name | test("^bridgistic-wordpress-plugin.*\\.zip$"))][0].browser_download_url')}"
-MCPB_URL="${BRIDGISTIC_MCPB_URL:-$(gh api "repos/$REPO/releases?per_page=30" --jq '[.[] | select(.draft | not) | .assets[] | select(.name == "bridgistic.mcpb")][0].browser_download_url')}"
+PLUGIN_ZIP_URL="${BRIDGISTIC_PLUGIN_ZIP_URL:-$(gh_json "repos/$REPO/releases/tags/$TAG" | js '(j.assets.find(a=>/^bridgistic-wordpress-plugin.*\.zip$/.test(a.name))||{}).browser_download_url')}"
+MCPB_URL="${BRIDGISTIC_MCPB_URL:-$(gh_json "repos/$REPO/releases?per_page=30" | js '((j.filter(r=>!r.draft).flatMap(r=>r.assets)).find(a=>a.name==="bridgistic.mcpb")||{}).browser_download_url')}"
 if [ -z "$PLUGIN_ZIP_URL" ] || [ "$PLUGIN_ZIP_URL" = "null" ] || [ -z "$MCPB_URL" ] || [ "$MCPB_URL" = "null" ]; then
   echo "Could not resolve plugin zip or .mcpb download URL for $TAG" >&2
   exit 1
 fi
 COMMIT="${SITE_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
-PADDLE_CLIENT_TOKEN="${PADDLE_CLIENT_TOKEN:-}"
-PADDLE_ENV="${PADDLE_ENV:-production}"
-PADDLE_PRICE_LIFETIME="${PADDLE_PRICE_LIFETIME:-}"
 OFFER_STATUS_URL="${OFFER_STATUS_URL:-/api/offer-status}"
 
 echo "Building site with Bridgistic $TAG"
@@ -43,9 +58,6 @@ sed -e "s#__BRIDGISTIC_RELEASE_VERSION__#$VERSION#g" \
     -e "s#__BRIDGISTIC_PLUGIN_ZIP_URL__#$PLUGIN_ZIP_URL#g" \
     -e "s#__BRIDGISTIC_MCPB_URL__#$MCPB_URL#g" \
     -e "s#__BRIDGISTIC_SITE_COMMIT__#$COMMIT#g" \
-    -e "s#__BRIDGISTIC_PADDLE_CLIENT_TOKEN__#$PADDLE_CLIENT_TOKEN#g" \
-    -e "s#__BRIDGISTIC_PADDLE_ENV__#$PADDLE_ENV#g" \
-    -e "s#__BRIDGISTIC_PADDLE_PRICE_LIFETIME__#$PADDLE_PRICE_LIFETIME#g" \
     -e "s#__BRIDGISTIC_OFFER_STATUS_URL__#$OFFER_STATUS_URL#g" \
     index.html > "$OUT/index.html"
 

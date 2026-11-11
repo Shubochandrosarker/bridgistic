@@ -31,7 +31,7 @@ export interface BillingInvoice {
 }
 
 export interface BillingAccount {
-  billing_provider: "paddle" | "stripe";
+  billing_provider: "paddle" | "stripe" | "license";
   subscription_id: string;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
@@ -45,11 +45,11 @@ export interface BillingAccount {
   ends_at: string | null;
   cancel_at_period_end: boolean;
   invoices: BillingInvoice[];
-  manage: { type: "paddle_portal"; url: string | null } | { type: "stripe_portal" };
+  manage: { type: "paddle_portal"; url: string | null } | { type: "stripe_portal" } | { type: "support" };
 }
 
 export interface BillingSummary {
-  billing_provider: "paddle" | "stripe" | null;
+  billing_provider: "paddle" | "stripe" | "license" | null;
   subscriptions: BillingAccount[];
   upstream_error: boolean;
 }
