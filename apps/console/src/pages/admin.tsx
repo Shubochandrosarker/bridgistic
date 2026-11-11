@@ -362,7 +362,7 @@ export function AdminLicenses() {
           <div className="space-y-3">
             <Field label="Plan">
               <select className={inputClass} value={plan} onChange={(e) => { setPlan(e.target.value); setSiteLimit(e.target.value === "lifetime" ? "1" : "5"); }}>
-                <option value="lifetime">lifetime ($69 LTD)</option>
+                <option value="lifetime">lifetime (AppSumo / legacy)</option>
                 <option value="monthly">monthly ($12)</option>
                 <option value="yearly">yearly ($99)</option>
               </select>
