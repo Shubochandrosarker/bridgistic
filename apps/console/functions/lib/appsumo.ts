@@ -8,17 +8,14 @@ import { issueLicense, maskKey, type LicenseRow } from "./licenses.ts";
 
 export const APPSUMO_SITE_LIMITS: Record<number, number> = { 1: 1, 2: 3, 3: 5 };
 
-export type MarketplaceCodeRow = {
-  id: string;
-  marketplace: string;
+export type AppsumoCodeRow = {
   code_hash: string;
-  code_hint: string;
-  tier: number;
+  plan: string;
   site_limit: number;
   status: string;
-  owner_email: string;
   license_id: string | null;
-  external_id: string;
+  redeemed_by_user_id: string | null;
+  redeemed_at: string | null;
 };
 
 export function normalizeAppsumoCode(code: string): string {
@@ -75,27 +72,25 @@ export function parseAppsumoEvent(body: Record<string, unknown>): { event: strin
 export async function upsertPendingCode(
   db: D1Database,
   input: { code: string; tier: number; marketplace?: string; externalId?: string }
-): Promise<MarketplaceCodeRow> {
+): Promise<AppsumoCodeRow> {
   const hash = await hashRedemptionCode(input.code);
-  const existing = await db.prepare("SELECT * FROM marketplace_codes WHERE code_hash = ?").bind(hash).first<MarketplaceCodeRow>();
-  const tier = tierFromUnknown(input.tier);
-  const siteLimit = siteLimitForTier(tier);
+  const existing = await db.prepare("SELECT * FROM appsumo_redemption_codes WHERE code_hash = ?").bind(hash).first<AppsumoCodeRow>();
+  const siteLimit = siteLimitForTier(tierFromUnknown(input.tier));
   if (existing) {
-    if (existing.status === "pending") {
-      await db.prepare("UPDATE marketplace_codes SET tier = ?, site_limit = ? WHERE id = ?").bind(tier, siteLimit, existing.id).run();
-      return { ...existing, tier, site_limit: siteLimit };
+    if (existing.status === "available") {
+      await db.prepare("UPDATE appsumo_redemption_codes SET site_limit = ? WHERE code_hash = ?").bind(siteLimit, hash).run();
+      return { ...existing, site_limit: siteLimit };
     }
     return existing;
   }
-  const id = crypto.randomUUID();
   await db
     .prepare(
-      `INSERT INTO marketplace_codes (id, marketplace, code_hash, code_hint, tier, site_limit, status, external_id)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
+      `INSERT INTO appsumo_redemption_codes (code_hash, plan, site_limit, status)
+       VALUES (?, 'lifetime', ?, 'available')`
     )
-    .bind(id, input.marketplace ?? "appsumo", hash, codeHint(input.code), tier, siteLimit, input.externalId ?? "")
+    .bind(hash, siteLimit)
     .run();
-  return (await db.prepare("SELECT * FROM marketplace_codes WHERE id = ?").bind(id).first<MarketplaceCodeRow>()) as MarketplaceCodeRow;
+  return (await db.prepare("SELECT * FROM appsumo_redemption_codes WHERE code_hash = ?").bind(hash).first<AppsumoCodeRow>()) as AppsumoCodeRow;
 }
 
 export async function handleAppsumoWebhook(request: Request, env: { DB: D1Database; APPSUMO_WEBHOOK_SECRET?: string }): Promise<Response> {
@@ -108,11 +103,11 @@ export async function handleAppsumoWebhook(request: Request, env: { DB: D1Databa
 
   const lookupKey = parsed.prevLicenseKey || parsed.licenseKey;
   const hash = await hashRedemptionCode(lookupKey);
-  const row = await env.DB.prepare("SELECT * FROM marketplace_codes WHERE code_hash = ?").bind(hash).first<MarketplaceCodeRow>();
+  const row = await env.DB.prepare("SELECT * FROM appsumo_redemption_codes WHERE code_hash = ?").bind(hash).first<AppsumoCodeRow>();
 
   if (parsed.event === "refund" || parsed.event === "deactivate" || parsed.event === "deactivated") {
     if (row) {
-      await env.DB.prepare("UPDATE marketplace_codes SET status = 'refunded' WHERE id = ?").bind(row.id).run();
+      await env.DB.prepare("UPDATE appsumo_redemption_codes SET status = 'refunded' WHERE code_hash = ?").bind(row.code_hash).run();
       if (row.license_id) {
         await env.DB.prepare("UPDATE licenses SET status = 'revoked', notes = notes || ' · AppSumo refunded' WHERE id = ? AND status = 'active'").bind(row.license_id).run();
       }
@@ -124,7 +119,7 @@ export async function handleAppsumoWebhook(request: Request, env: { DB: D1Databa
     const tier = parsed.tier;
     const siteLimit = siteLimitForTier(tier);
     if (row) {
-      await env.DB.prepare("UPDATE marketplace_codes SET tier = ?, site_limit = ? WHERE id = ?").bind(tier, siteLimit, row.id).run();
+      await env.DB.prepare("UPDATE appsumo_redemption_codes SET site_limit = ? WHERE code_hash = ?").bind(siteLimit, row.code_hash).run();
       if (row.license_id) {
         await env.DB.prepare("UPDATE licenses SET site_limit = ? WHERE id = ?").bind(siteLimit, row.license_id).run();
       }
@@ -149,7 +144,7 @@ export async function handleAppsumoRedeem(
     return Response.json({ error: "invalid_code", message: "Enter the AppSumo code exactly as shown in your AppSumo account." }, { status: 400 });
   }
   const hash = await hashRedemptionCode(code);
-  const row = await env.DB.prepare("SELECT * FROM marketplace_codes WHERE code_hash = ?").bind(hash).first<MarketplaceCodeRow>();
+  const row = await env.DB.prepare("SELECT * FROM appsumo_redemption_codes WHERE code_hash = ?").bind(hash).first<AppsumoCodeRow>();
   if (!row) {
     return Response.json({ error: "invalid_code", message: "This marketplace code is not recognized. Check it against your AppSumo account, or write to support@bridgistic.app." }, { status: 400 });
   }
@@ -157,7 +152,7 @@ export async function handleAppsumoRedeem(
     return Response.json({ error: "redemption_unavailable", message: "This AppSumo code is no longer active." }, { status: 409 });
   }
   if (row.status === "redeemed") {
-    if (row.owner_email.toLowerCase() !== user.email.toLowerCase()) {
+    if (row.redeemed_by_user_id && row.redeemed_by_user_id !== user.id) {
       return Response.json({ error: "redemption_already_used", message: "This marketplace code has already been redeemed." }, { status: 409 });
     }
     const license = row.license_id
@@ -165,6 +160,9 @@ export async function handleAppsumoRedeem(
       : null;
     if (!license) {
       return Response.json({ error: "license_missing", message: "This code was redeemed but the license could not be loaded. Email support@bridgistic.app." }, { status: 500 });
+    }
+    if (license.owner_email.toLowerCase() !== user.email.toLowerCase()) {
+      return Response.json({ error: "redemption_already_used", message: "This marketplace code has already been redeemed." }, { status: 409 });
     }
     return Response.json({
       ok: true,
@@ -176,20 +174,20 @@ export async function handleAppsumoRedeem(
 
   const org = await env.DB.prepare("SELECT org_id FROM memberships WHERE user_id = ? AND role = 'owner' LIMIT 1").bind(user.id).first<{ org_id: string }>();
   const license = await issueLicense(env.DB, {
-    plan: "lifetime",
+    plan: row.plan || "lifetime",
     ownerEmail: user.email,
-    siteLimit: row.site_limit || siteLimitForTier(row.tier),
+    siteLimit: row.site_limit || 1,
     orgId: org?.org_id ?? null,
-    notes: `AppSumo tier ${row.tier} · hint …${row.code_hint}`,
+    notes: `AppSumo ${row.plan || "lifetime"} · ${row.site_limit} site(s)`,
     expiresAt: null,
   });
   const updated = await env.DB
     .prepare(
-      `UPDATE marketplace_codes
-       SET status = 'redeemed', owner_email = ?, license_id = ?, redeemed_at = datetime('now')
-       WHERE id = ? AND status = 'pending'`
+      `UPDATE appsumo_redemption_codes
+       SET status = 'redeemed', license_id = ?, redeemed_by_user_id = ?, redeemed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       WHERE code_hash = ? AND status = 'available'`
     )
-    .bind(user.email, license.id, row.id)
+    .bind(license.id, user.id, row.code_hash)
     .run();
   if (!updated.meta || (updated.meta as { changes?: number }).changes === 0) {
     return Response.json({ error: "redemption_race", message: "The marketplace code could not be redeemed; retry safely." }, { status: 409 });
@@ -197,7 +195,7 @@ export async function handleAppsumoRedeem(
   if (org?.org_id) {
     await env.DB.prepare("UPDATE orgs SET plan = 'lifetime' WHERE id = ?").bind(org.org_id).run();
   }
-  await audit(env.DB, user.email, "appsumo.redeemed", maskKey(license.key), `tier ${row.tier}`);
+  await audit(env.DB, user.email, "appsumo.redeemed", maskKey(license.key), `limit ${license.site_limit}`);
   return Response.json({
     ok: true,
     repeated: false,
@@ -210,8 +208,8 @@ export async function seedMarketplaceCode(
   db: D1Database,
   input: { code: string; tier?: number; marketplace?: string },
   actorEmail: string
-): Promise<MarketplaceCodeRow> {
+): Promise<AppsumoCodeRow> {
   const row = await upsertPendingCode(db, { code: input.code, tier: tierFromUnknown(input.tier), marketplace: input.marketplace });
-  await audit(db, actorEmail, "admin.marketplace_code.seed", `…${row.code_hint}`, `tier ${row.tier}`);
+  await audit(db, actorEmail, "admin.marketplace_code.seed", codeHint(input.code), `limit ${row.site_limit}`);
   return row;
 }

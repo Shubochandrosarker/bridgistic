@@ -880,7 +880,7 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
 
   if (seg[2] === "marketplace-codes" && method === "GET") {
     const { results } = await db
-      .prepare("SELECT id, marketplace, code_hint, tier, site_limit, status, owner_email, license_id, created_at, redeemed_at FROM marketplace_codes ORDER BY created_at DESC LIMIT 200")
+      .prepare("SELECT substr(code_hash,1,8) AS hash_prefix, plan, site_limit, status, license_id, redeemed_by_user_id, created_at, redeemed_at FROM appsumo_redemption_codes ORDER BY created_at DESC LIMIT 200")
       .all();
     return Response.json({ codes: results ?? [] });
   }
@@ -889,7 +889,7 @@ async function adminRoutes(request: Request, env: Env, seg: string[], method: st
     const code = String(body.code ?? "").trim();
     if (code.length < 6) return Response.json({ error: "invalid_code", message: "Enter a code of at least 6 characters." }, { status: 400 });
     const row = await seedMarketplaceCode(db, { code, tier: body.tier }, user.email);
-    return Response.json({ ok: true, id: row.id, hint: row.code_hint, tier: row.tier, site_limit: row.site_limit, status: row.status });
+    return Response.json({ ok: true, site_limit: row.site_limit, status: row.status });
   }
 
   if (seg[2] === "stats" && method === "GET") {

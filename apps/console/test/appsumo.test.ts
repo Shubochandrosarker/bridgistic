@@ -135,7 +135,8 @@ describe("AppSumo webhook and redeem", () => {
     );
     expect(missing.status).toBe(400);
     const seeded = await seedMarketplaceCode(db, { code: "SUPPORT-SEED-CODE", tier: 1 }, "owner@bridgistic.app");
-    expect(seeded.code_hint).toBe("CODE");
+    expect(seeded.status).toBe("available");
+    expect(seeded.site_limit).toBe(1);
     const redeemed = await handleAppsumoRedeem(
       new Request("https://admin.bridgistic.app/api/appsumo/redeem", {
         method: "POST",
