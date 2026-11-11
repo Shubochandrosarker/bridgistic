@@ -120,10 +120,10 @@ interface Env {
 // -- Plugin distribution manifest (sanitized: fixed keys, no user input) ----
 const PLUGIN_MANIFEST = {
   latest: {
-    version: "1.5.11",
-    key: "bridgistic-wordpress-plugin-1.5.11.zip",
-    filename: "bridgistic-wordpress-plugin-1.5.11.zip",
-    size: 1289341,
+    version: "1.5.12",
+    key: "bridgistic-wordpress-plugin-1.5.12.zip",
+    filename: "bridgistic-wordpress-plugin-1.5.12.zip",
+    size: 1296007,
   },
   github: "https://github.com/Wordpressistic/bridgistic/releases/latest",
   download_path: "/api/plugin/download",
