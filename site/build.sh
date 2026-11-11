@@ -44,7 +44,6 @@ if [ -z "$PLUGIN_ZIP_URL" ] || [ "$PLUGIN_ZIP_URL" = "null" ] || [ -z "$MCPB_URL
   exit 1
 fi
 COMMIT="${SITE_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
-OFFER_STATUS_URL="${OFFER_STATUS_URL:-/api/offer-status}"
 
 echo "Building site with Bridgistic $TAG"
 
@@ -58,7 +57,6 @@ sed -e "s#__BRIDGISTIC_RELEASE_VERSION__#$VERSION#g" \
     -e "s#__BRIDGISTIC_PLUGIN_ZIP_URL__#$PLUGIN_ZIP_URL#g" \
     -e "s#__BRIDGISTIC_MCPB_URL__#$MCPB_URL#g" \
     -e "s#__BRIDGISTIC_SITE_COMMIT__#$COMMIT#g" \
-    -e "s#__BRIDGISTIC_OFFER_STATUS_URL__#$OFFER_STATUS_URL#g" \
     index.html > "$OUT/index.html"
 
 if grep -Eq '__BRIDGISTIC_[A-Z_]+__' "$OUT/index.html"; then

@@ -56,7 +56,7 @@ export function Billing() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-soft text-teal"><CreditCard className="h-6 w-6" aria-hidden /></div>
                   <div>
                     <p className="text-lg font-semibold">
-                      Bridgistic {s.plan_name} <span className="text-sm font-normal text-navy/60">{fmtMoney(s.amount, s.currency)} {cadence(s.interval)}</span>
+                      Bridgistic {s.plan_name} {s.amount > 0 && <span className="text-sm font-normal text-navy/60">{fmtMoney(s.amount, s.currency)} {cadence(s.interval)}</span>}
                     </p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-navy/65">
                       <Badge tone={s.status}>{s.status.replace("_", " ")}</Badge>
