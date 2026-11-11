@@ -46,11 +46,12 @@ for (let i = 0; i < all.length; i += CHUNK) {
   chunkIndex += 1;
 }
 
+// Pricing as sold today: Free, or Pro at $12/month or $99/year (apps/pay).
+// The $69 Lifetime Deal was retired on 2026-11-11 and is no longer seeded.
 const plans = [
   ["free", "Free", 0, 0, 0, 1, 1, "active"],
   ["monthly", "Monthly", 12, 0, 0, 5, 3, "active"],
   ["yearly", "Yearly", 0, 99, 0, 5, 3, "active"],
-  ["lifetime", "Lifetime", 0, 0, 69, 1, 1, "active"],
 ];
 const planSql = plans
   .map(

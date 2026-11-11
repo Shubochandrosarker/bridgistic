@@ -34,9 +34,9 @@ describe("billing page backend", () => {
     expect(billingApiBase({ ...env, WPISTIC_SERVICE_API: "http://127.0.0.1:8799/api/v1/service/licenses/" })).toBe("http://127.0.0.1:8799/api/v1/service/billing");
   });
 
-  it("new accounts default to Paddle in D1", async () => {
+  it("new accounts default to Stripe in D1", async () => {
     const row = await env.DB.prepare("SELECT billing_provider FROM users WHERE id = ?").bind(USER.id).first<{ billing_provider: string }>();
-    expect(row?.billing_provider).toBe("paddle");
+    expect(row?.billing_provider).toBe("stripe");
   });
 
   it("Stripe account: current subscription first, provider + stripe ids cached in D1", async () => {
@@ -52,7 +52,7 @@ describe("billing page backend", () => {
     expect(row.billing_synced_at).toBeTruthy();
   });
 
-  it("Paddle account gets the Paddle portal link (fallback from env)", async () => {
+  it("legacy pre-Stripe account keeps its portal link (retirement-only fallback from env)", async () => {
     const r = await billingSummary(env, USER, fake([{ ...paddleAcct, status: "active" }]).fetchImpl);
     expect(r.billing_provider).toBe("paddle");
     expect(r.subscriptions[0].manage).toEqual({ type: "paddle_portal", url: "https://paddle.example/portal" });

@@ -2,7 +2,7 @@
 -- api.wpistic.com is the single license issuer. The console keeps only:
 --   * one pairing row per site activation (the plugin's auto-paired dashboard key,
 --     encrypted at rest), written on activate/validate, deleted on deactivate;
---   * license claims: a user proved they hold a key (Paddle email != account email).
+--   * license claims: a user proved they hold a key (the purchase email != account email).
 -- The legacy single-slot licenses.site_connection column stays for rollback but is
 -- no longer written; its pairings are copied below.
 

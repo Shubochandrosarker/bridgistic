@@ -436,7 +436,7 @@ export function LicensePage() {
                 <a href="/admin/licenses"><Btn>Open license management</Btn></a>
                 <a href="/admin/sync-logs"><Btn variant="ghost">View sync logs</Btn></a>
               </div>
-              <p className="mt-3 text-xs text-navy/50">Workspace plan: <b className="capitalize">{org?.plan ?? "platform"}</b> · Stripe is the default customer checkout; Paddle remains optional and both providers issue through the same license ledger.</p>
+              <p className="mt-3 text-xs text-navy/50">Workspace plan: <b className="capitalize">{org?.plan ?? "platform"}</b> · Billing runs through Stripe; legacy pre-Stripe purchases still resolve through the same license ledger.</p>
             </>
           ) : (
             <>

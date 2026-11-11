@@ -1,5 +1,9 @@
 # Bridgistic licensing via the existing WPistic license server
 
+> **Status (2026-11-11):** Stripe is the only live gateway. Paddle is retired and is
+> kept only as read-only history — anything below that describes a Paddle checkout is
+> the pre-switch flow and is no longer how a licence is sold.
+
 Found in: `Shubochandrosarker/wpistic` → `wpistic-platform/docs/API_SPECIFICATION.md`, `apps/api/src/modules/billing/paddle-service.ts`, `database/migrations/20260908000019_paddle_catalog.sql`; the removed 1.3.x client is in `Wordpressistic/bridgistic@ffe2f92:wordpress-plugin/bridgistic/includes/sdk/` (`LicenseManager.php`, `Api/WpisticApi.php`, `Security/HmacVerifier.php`). Live check 2026-10-16: `POST https://api.wpistic.com/api/v1/licenses/validate` answers with a zod validation error (server up); `GET /health` 200.
 
 ## API (base `https://api.wpistic.com/api/v1`)
@@ -18,17 +22,17 @@ Signature: `signature = HMAC-SHA256(verification_key, canonical_json(payload min
 Activation is bound to a site's domain + installation id, so the **site** activates, not the browser:
 dashboard License screen → signed `POST bridgistic/v1/license/activate` (plugin PR Wordpressistic/bridgistic#8, scope `license:manage`) → plugin calls `/licenses/activate`, verifies the signature, stores token + verification key in a non-autoloaded option, returns a masked status. Validate and deactivate work the same way.
 
-## Purchase → license (existing flow)
-pay.wpistic.com opens a Paddle overlay (`Paddle.Checkout.open`, `customData.source`). The WPistic webhook (`transaction.completed`) resolves the org (customData `organization_id`, else customer email, else creates one), maps each line item's Paddle price via the `prices` table (`paddle_price_id`), and issues the license. **A one-time price is treated as lifetime when its `prices.interval` is NULL** (`isLifetime = price.interval === null`). An unmapped Paddle price fails the webhook with `unknown_paddle_price`.
+## Purchase → license
+`apps/pay` posts `{plan, email}` to `api.wpistic.com/api/v1/checkout/stripe/session`; Stripe collects the payment and the WPistic Stripe webhook (`/v1/webhooks/stripe`, idempotent by event id) resolves the org, maps the Stripe price to a `plans`/`prices` row and issues the licence. Pro bills monthly or yearly; no price is treated as lifetime any more.
 
-## What Shuvo must create for the $29.99 Lifetime Deal (nothing was created)
-1. Paddle (live), on the existing product "Bridgistic Pro" or a new "Bridgistic" product: **one-time price, USD 29.99, no billing cycle, no trial**, name "Lifetime Deal". Copy its `pri_…` id.
-2. WPistic DB: a `plans` row for product `bridgistic`, e.g. slug `lifetime` with the entitlements it should carry, and a `prices` row `(plan_id, paddle_price_id = <pri_…>, amount 2999, currency USD, interval NULL, trial_days 0, status active)`. A migration in the wpistic repo, like `20260908000019_paddle_catalog.sql`, is the clean way.
-3. Cloudflare Pages env for pay.bridgistic.app: `VITE_PADDLE_CLIENT_TOKEN` (same public client token as pay.wpistic.com), `VITE_PADDLE_ENV=production`, `VITE_PADDLE_PRICE_LIFETIME=<pri_…>`. Until set, the buy button stays disabled.
-4. Paddle approved-domain list: add pay.bridgistic.app to the checkout's approved domains (Paddle → Checkout settings). That is a Paddle setting; Shuvo does it.
+### Legacy Paddle flow (retired 2026-11-11, history only)
+Before the switch pay.wpistic.com opened a Paddle overlay (`Paddle.Checkout.open`, `customData.source`). The WPistic webhook (`transaction.completed`) resolved the org (customData `organization_id`, else customer email, else creates one), mapped each line item's Paddle price via the `prices` table (`paddle_price_id`), and issued the license. **A one-time price was treated as lifetime when its `prices.interval` is NULL** (`isLifetime = price.interval === null`), and an unmapped Paddle price failed the webhook with `unknown_paddle_price`. This stays documented because the 90-day tail — receipts, invoices and refunds — still refers to it.
+
+## Obsolete: the one-time Lifetime Deal setup
+This section used to describe creating a Paddle one-time price for the Lifetime Deal. Paddle and the Lifetime Deal both retired on 2026-11-11, so there is nothing left to create and no `VITE_PADDLE_*` build variable to set. Pro is sold as a Stripe subscription at $12/month or $99/year (see `apps/pay`).
 
 ## Still missing
 - Scheduled re-validation and `/licenses/refresh` token rotation in the plugin (1.3.x had it).
-- Plan entitlements for "lifetime" are undefined. The plugin gates nothing on a license today (free-only policy kept).
+- Plan entitlements: Pro is defined by the Stripe price upstream; the old "lifetime" slug no longer applies. The plugin gates nothing on a license today (free-only policy kept).
 - Org-level license views in dashboard.bridgistic.app need the hosted API (BR-007) or a WPistic dashboard token.
 - PLAT-17 (symmetric `verification_key`) is still open per WPISTIC-INTEROP.md; the hosted API must not trust ecosystem keys before it is settled.

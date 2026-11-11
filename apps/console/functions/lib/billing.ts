@@ -1,8 +1,13 @@
 /**
- * Billing page backend: one shape for Paddle- and Stripe-billed accounts.
- * api.wpistic.com is the source of truth (it issues licenses for both gateways);
- * the console proxies with the server-to-server LICENSE_SERVICE_TOKEN and caches
- * the account's provider in D1 (users.billing_provider) for the admin list.
+ * Billing page backend: one shape for Stripe-billed accounts and legacy rows.
+ * api.wpistic.com is the source of truth (it issues every license) and the console
+ * proxies with the server-to-server LICENSE_SERVICE_TOKEN, caching the account's
+ * provider in D1 (users.billing_provider) for the admin list.
+ *
+ * Retirement note: Paddle is gone from the product surface (2026-11-11). The
+ * 'paddle' provider value and its portal link below are kept read-only so pre-Stripe
+ * accounts can still see history and open refunds during the 90-day tail; new
+ * accounts never take that path. Delete both once the tail has run out.
  */
 import { DEFAULT_WPISTIC_SERVICE_API } from "./sites.ts";
 
@@ -14,7 +19,7 @@ export interface BillingEnv {
   /** Override for the billing service base; defaults to WPISTIC_SERVICE_API's sibling /service/billing. */
   WPISTIC_BILLING_API?: string;
   LICENSE_SERVICE_TOKEN?: string;
-  /** Paddle customer portal link (fallback when api.wpistic.com sends none). */
+  /** Retirement-only: portal link for legacy pre-Stripe rows when api.wpistic.com sends none. */
   PADDLE_CUSTOMER_PORTAL_URL?: string;
 }
 

@@ -4,7 +4,12 @@
 -- round-trip per row; refreshed on every /api/me/billing read.
 -- Additive + idempotent-by-runner (D1 migrations run once). Rollback: the columns
 -- are unused by older code; SQLite >= 3.35 can DROP COLUMN if needed.
-ALTER TABLE users ADD COLUMN billing_provider TEXT NOT NULL DEFAULT 'paddle' CHECK (billing_provider IN ('paddle', 'stripe'));
+--
+-- Historical: this file shipped with DEFAULT 'paddle', when Paddle was the only
+-- gateway. Paddle is retired (2026-11-11), so fresh installs default to 'stripe'
+-- here; databases that already ran the old version are corrected by
+-- 0006_billing_provider_stripe_default.sql.
+ALTER TABLE users ADD COLUMN billing_provider TEXT NOT NULL DEFAULT 'stripe' CHECK (billing_provider IN ('paddle', 'stripe'));
 ALTER TABLE users ADD COLUMN stripe_customer_id TEXT;
 ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT;
 ALTER TABLE users ADD COLUMN billing_synced_at TEXT;

@@ -60,5 +60,5 @@ export function renewalLine(s: Pick<BillingSubscription, "status" | "renews_at" 
   return s.renews_at ? `Renews ${fmt(s.renews_at)}` : "Active";
 }
 
-export const PROVIDER_LABEL: Record<BillingProvider, string> = { paddle: "Paddle (legacy)", stripe: "Stripe", license: "Bridgistic (direct license)" };
+export const PROVIDER_LABEL: Record<BillingProvider, string> = { paddle: "a legacy purchase", stripe: "Stripe", license: "Bridgistic (direct license)" };
 export const SUPPORT_EMAIL = "support@bridgistic.app";

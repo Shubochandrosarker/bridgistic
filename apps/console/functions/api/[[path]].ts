@@ -517,7 +517,7 @@ async function billingSummary(db: D1Database, env: Env, user: User): Promise<Res
   ).bind(user.email).all<{ id: string; plan: string; status: string; notes: string; issued_at: string; expires_at: string | null }>();
   const subscriptions = (results ?? []).map((row) => {
     // Stripe is the only payment provider. Anything else (manual issue, AppSumo,
-    // migrated Paddle-era keys) is a directly issued license with no portal.
+    // keys migrated from the retired gateway) is a directly issued license with no portal.
     const provider = /stripe/i.test(row.notes) ? "stripe" : "license";
     const plan = row.plan === "monthly" ? { interval: "month", amount: 1200 } : row.plan === "yearly" ? { interval: "year", amount: 9900 } : { interval: "lifetime", amount: 0 }; // lifetime is no longer sold (AppSumo/legacy): no price to show
     return {
