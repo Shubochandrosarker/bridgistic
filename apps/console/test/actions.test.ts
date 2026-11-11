@@ -44,8 +44,9 @@ describe("actions catalog", () => {
     expect([...domains].sort()).toEqual(["content", "media", "plugins", "site", "woo"]);
     expect(ACTIONS.map((a) => a.id)).toContain("content.create-post");
     expect(ACTIONS.map((a) => a.id)).toContain("plugins.toggle");
-    // Cache and permalinks have no plugin route, so they must not appear here.
-    expect(ACTIONS.some((a) => /cache|permalink/i.test(a.id))).toBe(false);
+    expect(ACTIONS.map((a) => a.id)).toContain("cache.flush");
+    expect(ACTIONS.map((a) => a.id)).toContain("permalinks.update");
+    expect(ACTIONS.map((a) => a.id)).toContain("woo.list-orders");
   });
 
   it("ships no handlers to the browser", () => {
@@ -73,6 +74,88 @@ describe("actions catalog", () => {
     if (!prepared.ok) return;
     expect(prepared.prepared.route).toBe("posts/42");
     expect(prepared.prepared.body).toEqual({ title: "New title" });
+  });
+
+  it("maps the cache and permalink actions to the plugin routes", () => {
+    const flush = prepareAction("cache.flush", {});
+    expect(flush.ok).toBe(true);
+    if (!flush.ok) return;
+    expect(flush.prepared.def.method).toBe("POST");
+    expect(flush.prepared.route).toBe("cache/flush");
+    expect(flush.prepared.body).toEqual({});
+
+    const read = prepareAction("permalinks.get", {});
+    expect(read.ok).toBe(true);
+    if (!read.ok) return;
+    expect(read.prepared.def.method).toBe("GET");
+    expect(read.prepared.route).toBe("permalinks");
+    expect(read.prepared.body).toBeUndefined();
+  });
+
+  it("lets the custom permalink structure override the preset", () => {
+    const preset = prepareAction("permalinks.update", { structure: "/%postname%/", category_base: "topics" });
+    expect(preset.ok).toBe(true);
+    if (!preset.ok) return;
+    expect(preset.prepared.route).toBe("permalinks");
+    expect(preset.prepared.body).toEqual({ structure: "/%postname%/", category_base: "topics" });
+
+    const custom = prepareAction("permalinks.update", {
+      structure: "/%postname%/",
+      custom: "/%category%/%postname%/",
+      tag_base: "tagged",
+    });
+    expect(custom.ok).toBe(true);
+    if (!custom.ok) return;
+    expect(custom.prepared.body).toEqual({ structure: "/%category%/%postname%/", tag_base: "tagged" });
+
+    expect(prepareAction("permalinks.update", { structure: "/not-a-preset/" })).toMatchObject({
+      ok: false,
+      error: "invalid_param",
+    });
+  });
+
+  it("maps every WooCommerce read action to its controller route", () => {
+    const cases: Array<{ id: string; params: Record<string, string>; route: string; method: "GET" | "POST" }> = [
+      { id: "woo.list-products", params: {}, route: "woo/products", method: "GET" },
+      {
+        id: "woo.list-products",
+        params: { search: "hoodie", status: "publish", stock_status: "instock", category: "clothing" },
+        route: "woo/products?search=hoodie&status=publish&stock_status=instock&category=clothing",
+        method: "GET",
+      },
+      { id: "woo.get-product", params: { id: "9" }, route: "woo/products/9", method: "GET" },
+      { id: "woo.list-orders", params: {}, route: "woo/orders", method: "GET" },
+      {
+        id: "woo.list-orders",
+        params: { page: "2", per_page: "10", status: "processing,completed", customer_id: "5", after: "2026-01-01" },
+        route: "woo/orders?page=2&per_page=10&status=processing%2Ccompleted&customer_id=5&after=2026-01-01",
+        method: "GET",
+      },
+      { id: "woo.get-order", params: { id: "42" }, route: "woo/orders/42", method: "GET" },
+      { id: "woo.list-customers", params: { search: "jane doe" }, route: "woo/customers?search=jane%20doe", method: "GET" },
+      { id: "woo.get-customer", params: { id: "3" }, route: "woo/customers/3", method: "GET" },
+      { id: "woo.inventory", params: { limit: "25" }, route: "woo/inventory?limit=25", method: "GET" },
+      { id: "woo.sales-summary", params: { days: "7" }, route: "woo/sales-summary?days=7", method: "GET" },
+    ];
+
+    for (const { id, params, route, method } of cases) {
+      const prepared = prepareAction(id, params);
+      expect(prepared.ok, `${id} with ${JSON.stringify(params)}`).toBe(true);
+      if (!prepared.ok) continue;
+      expect(prepared.prepared.def.method).toBe(method);
+      expect(prepared.prepared.route).toBe(route);
+      expect(prepared.prepared.body).toBeUndefined();
+      // A GET carries every field in the URL, so none may fall through to a body.
+      expect(prepared.prepared.def.routeParams).toEqual(prepared.prepared.def.fields.map((f) => f.name));
+    }
+  });
+
+  it("refuses malformed filters on the WooCommerce read actions", () => {
+    expect(prepareAction("woo.get-order", {})).toMatchObject({ ok: false, error: "missing_param" });
+    expect(prepareAction("woo.list-orders", { page: "0" })).toMatchObject({ ok: false, error: "invalid_param" });
+    expect(prepareAction("woo.list-orders", { customer_id: "jane" })).toMatchObject({ ok: false, error: "invalid_param" });
+    expect(prepareAction("woo.list-products", { stock_status: "gone" })).toMatchObject({ ok: false, error: "invalid_param" });
+    expect(prepareAction("woo.sales-summary", { days: "0" })).toMatchObject({ ok: false, error: "invalid_param" });
   });
 });
 
@@ -133,6 +216,38 @@ describe("POST /api/actions/run backend", () => {
     expect(outcome.status).toBe("queued");
     const row = await db.prepare("SELECT status FROM action_runs").first<{ status: string }>();
     expect(row?.status).toBe("queued");
+  });
+
+  it("keeps a destructive permalink change behind the approval queue", async () => {
+    const { calls, fetchImpl } = siteFetch({ ok: true, data: { status: "pending_approval", approval_id: "ap_9" } });
+    const outcome = await runAction(
+      { DB: db, SECRET_ENCRYPTION_KEY: SECRET_KEY },
+      USER,
+      { site_id: SITE.id, action: "permalinks.update", params: { structure: "/%postname%/" } },
+      fetchImpl
+    );
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.status).toBe("queued");
+    expect(calls[0].url).toBe("https://shop.example.com/wp-json/bridgistic/v1/permalinks");
+    expect(calls[0].method).toBe("POST");
+    expect(JSON.parse(String(calls[0].body))).toEqual({ structure: "/%postname%/" });
+  });
+
+  it("sends a WooCommerce read's filters in the URL, with no body", async () => {
+    const { calls, fetchImpl } = siteFetch({ ok: true, data: { items: [], total: 0 } });
+    const outcome = await runAction(
+      { DB: db, SECRET_ENCRYPTION_KEY: SECRET_KEY },
+      USER,
+      { site_id: SITE.id, action: "woo.list-orders", params: { status: "processing", per_page: "5" } },
+      fetchImpl
+    );
+
+    expect(outcome.ok).toBe(true);
+    expect(calls[0].url).toBe("https://shop.example.com/wp-json/bridgistic/v1/woo/orders?per_page=5&status=processing");
+    expect(calls[0].method).toBe("GET");
+    expect(calls[0].body).toBeNull();
   });
 
   it("does not log a run that never left the server", async () => {
