@@ -1,0 +1,19 @@
+-- 0007_retire_lifetime_plan — neutralise the retired $69 Lifetime Deal plan row
+-- (2026-11-11).
+--
+-- The Lifetime Deal stopped being sold, and seed-registry.mjs no longer seeds the
+-- `lifetime` row. That alone does not clean an already-seeded database: the seed is
+-- INSERT … ON CONFLICT, so it can only write rows it still lists, and it never
+-- deletes or edits the ones it dropped. Production therefore keeps a
+-- `lifetime`/`Lifetime` row at $69 with status 'active', which Admin → Plans renders
+-- as a live, editable price (admin.tsx: the One-time $ input plus a 'good' badge for
+-- status 'active').
+--
+-- The row itself stays: licenses/orgs rows still carry plan = 'lifetime' for AppSumo
+-- and legacy accounts, and joins/history must keep working. Only the price and the
+-- sellable status are neutralised.
+--
+-- Idempotent by value — the UPDATE is keyed on the slug and writes constant values,
+-- so a re-run changes nothing. D1's migration runner also records applied files, so
+-- it will not re-execute this one on its own.
+UPDATE plans SET price_onetime = 0, status = 'retired' WHERE slug = 'lifetime';

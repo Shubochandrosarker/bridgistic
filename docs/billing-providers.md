@@ -11,8 +11,10 @@ accounts that bought before the switch (invoices, receipts and refunds, 90-day t
 | Pro yearly | $99 / year | the same, billed annually |
 
 The $69 Lifetime Deal (and the earlier $29.99 one-time price) went with Paddle.
-`apps/pay` sells the two Pro tiers only, and the plan rows the console serves are
-seeded from `apps/console/scripts/seed-registry.mjs`.
+`apps/pay` sells the two Pro tiers only, and fresh databases get the three live plan
+rows from `apps/console/scripts/seed-registry.mjs`. A database seeded before the
+retirement keeps its `lifetime` row — the seed can only upsert the rows it still
+lists — so `migrations/0007_retire_lifetime_plan.sql` neutralises it in place.
 
 api.wpistic.com remains the only license issuer. The wpistic design note
 (`wpistic-platform/docs/billing-providers.md`) still documents the two-gateway
@@ -23,8 +25,8 @@ column that records which gateway an account's history came from.
 
 | App | Role |
 |---|---|
-| `apps/pay` | Static checkout page for the two Pro tiers. `functions/api/stripe-checkout.js` posts `{plan, email}` to `api.wpistic.com/api/v1/checkout/stripe/session`; return URLs are pinned to the page's origin, Stripe Tax is on, and no Stripe key ever reaches the browser. Paddle is gone from the page, its copy and its tests. |
-| `apps/console` | D1 `0003_billing_provider.sql` adds `users.billing_provider` (DEFAULT `'stripe'`) plus `stripe_customer_id`, `stripe_subscription_id` and `billing_synced_at`; `0006_billing_provider_stripe_default.sql` moves databases that ran the original `'paddle'` default onto `'stripe'` without touching rows. `GET /api/me/billing` and `POST /api/me/billing/portal` proxy wpistic `/api/v1/service/billing/{summary,portal}` with `LICENSE_SERVICE_TOKEN`. Admin → Users shows Billing as Stripe or Legacy. |
+| `apps/pay` | Static checkout page for the two Pro tiers. `functions/api/stripe-checkout.js` posts `{product, plan, success_url, cancel_url, source}` — no email; Stripe Checkout collects it — to `api.wpistic.com/api/v1/checkout/stripe/session`; return URLs are pinned to the page's origin, Stripe Tax is on, and no Stripe key ever reaches the browser. Paddle is gone from the page, its copy and its tests. |
+| `apps/console` | D1 `0003_billing_provider.sql` adds `users.billing_provider` (DEFAULT `'stripe'`) plus `stripe_customer_id`, `stripe_subscription_id` and `billing_synced_at`; `0006_billing_provider_stripe_default.sql` moves databases that ran the original `'paddle'` default onto `'stripe'` without touching rows; `0007_retire_lifetime_plan.sql` zeroes the seeded `lifetime` plan row and marks it `retired`; `0008_billing_provider_license.sql` widens the provider CHECK to `('paddle', 'stripe', 'license')` so directly issued licenses can be cached. `GET /api/me/billing` and `POST /api/me/billing/portal` proxy wpistic `/api/v1/service/billing/{summary,portal}` with `LICENSE_SERVICE_TOKEN`. Admin → Users shows Billing as Stripe or Legacy. |
 | `apps/dashboard` | A Billing page at `/billing` for Stripe subscriptions (plan, status, renewal, invoices). Manage opens a Stripe billing_portal session; pre-switch rows keep their receipt link or fall back to the portal URL the billing service sends. |
 
 ## Env
@@ -38,7 +40,8 @@ column that records which gateway an account's history came from.
 
 - `billing_provider` still accepts `'paddle'`: accounts that bought before the switch
   keep the value, and the billing summary keeps resolving their portal link so they
-  can see history and open a refund.
+  can see history and open a refund. `'license'` is the third value, for licenses
+  issued directly with no gateway (manual issue, AppSumo); both are read-only.
 - That path is read-only. Nothing new may write `'paddle'`; new accounts are created
   with `'stripe'`.
 - Drop the `'paddle'` value, the `PADDLE_CUSTOMER_PORTAL_URL` fallback and the legacy

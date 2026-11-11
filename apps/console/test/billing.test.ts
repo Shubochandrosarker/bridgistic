@@ -58,6 +58,14 @@ describe("billing page backend", () => {
     expect(r.subscriptions[0].manage).toEqual({ type: "paddle_portal", url: "https://paddle.example/portal" });
   });
 
+  it("caches a directly issued license's 'license' provider (0008 widens the CHECK)", async () => {
+    const { fetchImpl } = fake([{ ...stripeAcct, billing_provider: "license", subscription_id: "s2", manage: { type: "support" } }]);
+    const r = await billingSummary(env, USER, fetchImpl);
+    expect(r.billing_provider).toBe("license");
+    const row = await env.DB.prepare("SELECT billing_provider FROM users WHERE id = ?").bind(USER.id).first<{ billing_provider: string }>();
+    expect(row?.billing_provider).toBe("license");
+  });
+
   it("upstream failure is reported, not thrown; no token = not configured", async () => {
     expect((await billingSummary(env, USER, fake([], 500).fetchImpl)).upstream_error).toBe(true);
     expect((await billingSummary({ ...env, LICENSE_SERVICE_TOKEN: undefined }, USER, fake([]).fetchImpl)).upstream_error).toBe(true);
