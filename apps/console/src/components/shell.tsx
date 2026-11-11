@@ -40,6 +40,7 @@ import {
   Users,
   Wrench,
   X,
+  Zap,
 } from "lucide-react";
 import { useSession } from "../lib/session";
 
@@ -82,6 +83,8 @@ const DASHBOARD_NAV: NavGroup[] = [
   {
     label: "Automation",
     items: [
+      { to: "/actions", label: "Actions", icon: <Zap size={15} /> },
+      { to: "/automations", label: "Automations", icon: <Bot size={15} /> },
       { to: "/playbooks", label: "Playbooks", icon: <Layers size={15} /> },
       { to: "/schedules", label: "Schedules", icon: <Calendar size={15} /> },
       { to: "/memory", label: "Memory", icon: <HardDrive size={15} /> },

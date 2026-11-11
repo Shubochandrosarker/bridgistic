@@ -12,6 +12,7 @@
     "deploy": "npm run build && wrangler pages deploy dist --project-name bridgistic-console",
     "deploy:functions": "wrangler pages deploy dist --project-name bridgistic-console",
     "test": "vitest run",
+    "typecheck": "tsc -b && tsc -p tsconfig.functions.json",
     "typecheck:functions": "tsc -p tsconfig.functions.json"
   },
   "dependencies": {

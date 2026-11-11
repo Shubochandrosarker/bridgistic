@@ -102,7 +102,8 @@ export async function callSite(
   secret: string,
   method: "GET" | "POST" | "PUT" | "DELETE",
   route: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  fetchImpl: typeof fetch = fetch
 ): Promise<SiteCallResult> {
   const origin = normalizeSiteUrl(siteUrl);
   const path = sitePath(route);
@@ -113,7 +114,7 @@ export async function callSite(
   const timer = setTimeout(() => controller.abort(), 20_000);
   let response: Response;
   try {
-    response = await fetch(`${origin}${path}`, {
+    response = await fetchImpl(`${origin}${path}`, {
       method,
       headers,
       body: bodyText === "" || method === "GET" ? undefined : bodyText,
