@@ -14,16 +14,21 @@
 #   bridgistic-deploy.sh --smoke               # smoke-test live only
 #   bridgistic-deploy.sh --status              # show live production deployment per project
 #   bridgistic-deploy.sh --rollback <project> <deployment-id>
+#   bridgistic-deploy.sh --only cloud          # MCP Worker bridgistic-cloud (apps/cloud), opt-in only
+#   bridgistic-deploy.sh --rollback cloud <worker-version-id>
 #
 # Credentials (never printed): CLOUDFLARE_API_TOKEN (Pages:Edit) and
 # CLOUDFLARE_ACCOUNT_ID from the environment, or from $BRIDGISTIC_DEPLOY_ENV
 # (default /workspace/deploy/.cf.env, keys CF_PAGES_TOKEN / CF_ACCOUNT_ID).
 #
-# Out of scope on purpose:
-#  * apps/mcp, apps/api, apps/scheduler Workers: not in production (see
-#    docs/DEPLOYMENT.md). Their wrangler configs are dry-run validated only.
-#  * The live MCP Worker `bridgistic-cloud` (mcp.bridgistic.app): its source is
-#    not in this repo. Deploy it from its own checkout with `wrangler deploy`.
+# The MCP Worker `bridgistic-cloud` (apps/cloud, mcp.bridgistic.app) needs
+# Workers-capable credentials: CLOUDFLARE_EMAIL + CLOUDFLARE_API_KEY (Global
+# API Key) or a Workers:Edit CLOUDFLARE_API_TOKEN, read from
+# $BRIDGISTIC_WORKERS_ENV (default /workspace/deploy/.cf-workers.env).
+# It is never part of the default set; name it with --only cloud.
+#
+# Out of scope on purpose: apps/mcp, apps/api, apps/scheduler are not in
+# production (see docs/DEPLOYMENT.md); their configs are dry-run validated only.
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -31,6 +36,7 @@ REPO_URL=${REPO_URL:-https://github.com/Shubochandrosarker/bridgistic.git}
 WORKDIR=${WORKDIR:-/workspace/deploy/bridgistic-main}
 LOGDIR=${LOGDIR:-/workspace/deploy/logs}
 CREDS=${BRIDGISTIC_DEPLOY_ENV:-/workspace/deploy/.cf.env}
+WCREDS=${BRIDGISTIC_WORKERS_ENV:-/workspace/deploy/.cf-workers.env}
 REF=main; ONLY="site,dashboard,pay,console"; MODE=deploy; STRICT_AUDIT=0; SKIP_GATES=0; SKIP_SECRETS=0
 
 declare -A HOSTS=(
@@ -74,6 +80,7 @@ live_id(){ cf "$(API "$1")" | jq -r '.result.canonical_deployment.id // .result.
 
 status(){
   for k in ${ONLY//,/ }; do
+    if [[ $k == cloud ]]; then printf 'cloud\t%s\t(worker version)\n' "$(worker_version)"; continue; fi
     cf "$(API "${PROJECT[$k]}")" | jq -r --arg k "$k" '.result.canonical_deployment as $d | [$k, $d.id, $d.created_on, ($d.deployment_trigger.metadata.commit_hash // "")[0:7], "dirty=" + ($d.deployment_trigger.metadata.commit_dirty|tostring)] | @tsv'
   done
 }
@@ -165,7 +172,37 @@ deploy_one(){
   log "  $p live: $after   rollback: $0 --rollback $k $before"
 }
 
+# Run wrangler for the Worker with Workers credentials only (never the Pages token).
+wr(){ ( set -a; [[ -f "$WCREDS" ]] && . "$WCREDS"; set +a
+        [[ -n "${CLOUDFLARE_API_KEY:-}" ]] && unset CLOUDFLARE_API_TOKEN
+        cd "$WORKDIR/apps/cloud" && ./node_modules/.bin/wrangler "$@" ); }
+worker_version(){ wr deployments status --json 2>/dev/null | jq -r '.versions[0].version_id'; }
+
+build_cloud(){
+  [[ -d "$WORKDIR/apps/cloud" ]] || die "apps/cloud is not in $SHORT"
+  log "build: cloud Worker (own lockfile): npm ci, typecheck, tests, audit, dry-run"
+  ( cd "$WORKDIR/apps/cloud" && npm ci --no-audit --no-fund && npm run typecheck && npm test ) >"$LOGDIR/build-cloud.log" 2>&1 || die "cloud build/test failed (see $LOGDIR/build-cloud.log)"
+  ( cd "$WORKDIR/apps/cloud" && npm audit --audit-level=high ) >"$LOGDIR/audit-cloud.log" 2>&1 || { [[ $STRICT_AUDIT == 1 ]] && die "cloud npm audit (see $LOGDIR/audit-cloud.log)"; log "warn: cloud npm audit has high/critical advisories"; }
+  wr deploy --dry-run --outdir "/tmp/bridgistic-cloud-dry" >"$LOGDIR/dry-cloud.log" 2>&1 || die "cloud wrangler dry-run failed (see $LOGDIR/dry-cloud.log)"
+}
+
+deploy_cloud(){
+  local before after
+  before=$(worker_version); [[ -n $before && $before != null ]] || die "could not read the live bridgistic-cloud version (Workers credentials?)"
+  echo "$(date '+%F %T %Z') bridgistic-cloud before=$before commit=$SHORT" >>"$LOGDIR/rollback-ledger.txt"
+  log "deploy bridgistic-cloud Worker (rollback target version: $before)"
+  wr deploy --message "manual deploy $SHORT (no GitHub Actions)" >"$LOGDIR/deploy-cloud.log" 2>&1 || { tail -20 "$LOGDIR/deploy-cloud.log"; die "Worker deploy failed (live unchanged: $before)"; }
+  after=$(worker_version)
+  echo "$(date '+%F %T %Z') bridgistic-cloud after=$after commit=$SHORT" >>"$LOGDIR/rollback-ledger.txt"
+  log "  bridgistic-cloud live version: $after   rollback: $0 --rollback cloud $before"
+}
+
 rollback(){
+  if [[ $RB_KEY == cloud ]]; then
+    local before; before=$(worker_version)
+    wr rollback "$RB_ID" --message "rollback via bridgistic-deploy.sh" -y
+    echo "$(date '+%F %T %Z') bridgistic-cloud ROLLBACK from=$before to=$RB_ID" >>"$LOGDIR/rollback-ledger.txt"; return
+  fi
   local p=${PROJECT[$RB_KEY]:-}; [[ -n $p ]] || die "unknown project key $RB_KEY (site|dashboard|pay|console)"
   local before; before=$(live_id "$p")
   cf -X POST "$(API "$p")/deployments/$RB_ID/rollback" | jq -r '"rolled back: " + .result.id + " (" + .result.environment + ")"'
@@ -176,16 +213,17 @@ mkdir -p "$LOGDIR"
 case $MODE in
   smoke) smoke; exit $?;;
   status) load_creds; status; exit 0;;
-  rollback) load_creds; rollback; exit 0;;
+  rollback) [[ $RB_KEY == cloud ]] || load_creds; rollback; exit 0;;
 esac
 load_creds
 checkout
 [[ $SKIP_GATES == 1 ]] || gates
 build
+[[ ,$ONLY, == *,cloud,* ]] && build_cloud
 if [[ $MODE == dry ]]; then
-  for k in ${ONLY//,/ }; do "$SCRIPT_DIR/compare-live.sh" "$(dist_of "$k")" "${HOSTS[$k]}" || true; done
+  for k in ${ONLY//,/ }; do [[ $k == cloud ]] && continue; "$SCRIPT_DIR/compare-live.sh" "$(dist_of "$k")" "${HOSTS[$k]}" || true; done
   log "dry run: nothing deployed"; exit 0
 fi
-for k in ${ONLY//,/ }; do deploy_one "$k"; done
+for k in ${ONLY//,/ }; do if [[ $k == cloud ]]; then deploy_cloud; else deploy_one "$k"; fi; done
 sleep 5
 smoke && log "Deployed $SHORT and smoke tests passed." || die "smoke tests failed after deploy — see above; roll back with --rollback (ids in $LOGDIR/rollback-ledger.txt)"

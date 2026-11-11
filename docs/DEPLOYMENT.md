@@ -112,6 +112,7 @@ run appends the pre-deploy production deployment id of each project to
 | dashboard.bridgistic.app, app (301) | bridgistic-dashboard | `apps/dashboard` |
 | pay.bridgistic.app | bridgistic-pay | `apps/pay` |
 | admin.bridgistic.app, marketplace.bridgistic.app | bridgistic-console | `apps/console` |
+| mcp.bridgistic.app, mcp.wpistic.cloud (Worker) | bridgistic-cloud | `apps/cloud` (`--only cloud`, Workers credentials) |
 
 **bridgistic-site Git integration:** the project has no build command and no
 output directory, so a push to `main` uploaded the whole repository root as the
