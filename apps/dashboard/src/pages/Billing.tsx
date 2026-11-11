@@ -1,12 +1,12 @@
 import { CreditCard, ExternalLink, FileText } from "lucide-react";
 import { useState } from "react";
 import { Badge, Card, EmptyState, PageHeader, Skeleton } from "../components/ui.tsx";
-import { cadence, fetchBilling, fmtMoney, openStripePortal, PROVIDER_LABEL, renewalLine, type BillingSubscription } from "../lib/billing.ts";
+import { cadence, fetchBilling, fmtMoney, openStripePortal, PROVIDER_LABEL, renewalLine, SUPPORT_EMAIL, type BillingSubscription } from "../lib/billing.ts";
 import { PAY_URL } from "../lib/config.ts";
 import { fmtTime } from "../lib/format.ts";
 import { useAsync } from "../lib/useAsync.ts";
 
-/** One billing UI for Paddle- and Stripe-billed accounts. Only the "Manage" action differs. */
+/** One billing UI for Stripe-billed accounts and directly issued licenses. Only the "Manage" action differs. */
 export function Billing() {
   const st = useAsync(() => fetchBilling(), []);
   const [busy, setBusy] = useState(false);
@@ -14,6 +14,10 @@ export function Billing() {
 
   const manage = async (s: BillingSubscription) => {
     setErr(null);
+    if (s.manage.type === "support") {
+      window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Bridgistic license " + s.subscription_id)}`;
+      return;
+    }
     if (s.manage.type === "paddle_portal") {
       if (s.manage.url) window.open(s.manage.url, "_blank", "noopener");
       else setErr("Open the link in your Paddle receipt email to manage this subscription.");
@@ -71,7 +75,7 @@ export function Billing() {
               <div className="mt-5">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50">Invoices</h3>
                 {s.invoices.length === 0 ? (
-                  <p className="mt-2 text-sm text-navy/60">{s.billing_provider === "paddle" ? "Paddle emails your invoices. You can also find them in the Paddle portal." : "No invoices yet."}</p>
+                  <p className="mt-2 text-sm text-navy/60">{s.billing_provider === "license" ? `This license was issued directly. Email ${SUPPORT_EMAIL} for a receipt.` : s.billing_provider === "paddle" ? "Paddle emailed your invoices for this legacy purchase." : "No invoices yet."}</p>
                 ) : (
                   <ul className="mt-2 divide-y divide-navy/5 text-sm">
                     {s.invoices.map((inv) => (

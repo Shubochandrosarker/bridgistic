@@ -9,7 +9,6 @@
  *   /api/market/*                   the skills marketplace (public + gated files)
  *   /api/ai/generate                website-agent generation via the stored AI key
  *   /api/admin/*                    platform admin (owner/staff only)
- *   /api/webhooks/paddle            purchase webhook (when the secret is set)
  *   /api/webhooks/appsumo           AppSumo license webhook (when the secret is set)
  *   /api/appsumo/redeem             signed-in AppSumo code redemption
  */
@@ -95,8 +94,6 @@ interface Env {
   ADMIN_SETUP_TOKEN?: string;
   SECRET_ENCRYPTION_KEY?: string;
   LICENSE_SERVICE_TOKEN?: string;
-  PADDLE_WEBHOOK_SECRET?: string;
-  PADDLE_API_KEY?: string;
   APPSUMO_WEBHOOK_SECRET?: string;
   OPENROUTER_KEY?: string;
   GITHUB_CLIENT_ID?: string;
@@ -194,8 +191,6 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   if (path === "/api/v1/licenses/validate" && method === "POST") return validateLicense(env, await request.json());
   if (path === "/api/v1/licenses/deactivate" && method === "POST") return deactivateLicense(db, await request.json());
 
-  // ── Paddle webhook ─────────────────────────────────────────────────────────
-  if (path === "/api/webhooks/paddle" && method === "POST") return paddleWebhook(request, env);
   if (path === "/api/webhooks/appsumo" && method === "POST") return handleAppsumoWebhook(request, env);
 
   // ── Marketplace (public reads) ─────────────────────────────────────────────
@@ -516,7 +511,9 @@ async function billingSummary(db: D1Database, env: Env, user: User): Promise<Res
      ORDER BY issued_at DESC`
   ).bind(user.email).all<{ id: string; plan: string; status: string; notes: string; issued_at: string; expires_at: string | null }>();
   const subscriptions = (results ?? []).map((row) => {
-    const provider = /stripe/i.test(row.notes) ? "stripe" : "paddle";
+    // Stripe is the only payment provider. Anything else (manual issue, AppSumo,
+    // migrated Paddle-era keys) is a directly issued license with no portal.
+    const provider = /stripe/i.test(row.notes) ? "stripe" : "license";
     const plan = row.plan === "monthly" ? { interval: "month", amount: 1200 } : row.plan === "yearly" ? { interval: "year", amount: 9900 } : { interval: "lifetime", amount: 6900 };
     return {
       billing_provider: provider,
@@ -531,7 +528,7 @@ async function billingSummary(db: D1Database, env: Env, user: User): Promise<Res
       ends_at: null,
       cancel_at_period_end: false,
       invoices: [],
-      manage: provider === "stripe" ? { type: "stripe_portal" } : { type: "paddle_portal", url: null },
+      manage: provider === "stripe" ? ({ type: "stripe_portal" } as const) : ({ type: "support" } as const),
     };
   });
   return Response.json({ billing_provider: subscriptions[0]?.billing_provider ?? null, subscriptions, upstream_error: subscriptions.length === 0 }, { headers: { "Cache-Control": "no-store" } });
@@ -799,95 +796,6 @@ async function aiGenerate(request: Request, env: Env, user: User): Promise<Respo
   } finally {
     clearTimeout(timer);
   }
-}
-
-// ── Paddle webhook ───────────────────────────────────────────────────────────
-
-async function paddleWebhook(request: Request, env: Env): Promise<Response> {
-  const raw = await request.text();
-  if (env.PADDLE_WEBHOOK_SECRET) {
-    const sigHeader = request.headers.get("Paddle-Signature") ?? "";
-    const parts = Object.fromEntries(sigHeader.split(";").map((p) => p.split("=") as [string, string]));
-    const ts = parts.ts ?? "";
-    // Reject stale deliveries (replay protection) while tolerating Paddle retries.
-    if (!/^\d+$/.test(ts) || Math.abs(Date.now() / 1000 - Number(ts)) > 86_400) {
-      return Response.json({ error: "stale_timestamp", message: "The webhook timestamp is missing or too old." }, { status: 403 });
-    }
-    const expected = await hmacSha256Hex(env.PADDLE_WEBHOOK_SECRET, `${ts}:${raw}`);
-    if (!parts.h1 || parts.h1 !== expected) {
-      return Response.json({ error: "bad_signature", message: "The webhook signature did not verify." }, { status: 403 });
-    }
-  }
-  let event: { event_type?: string; occurred_at?: string; data?: Record<string, unknown> };
-  try {
-    event = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: "bad_json", message: "The webhook body was not JSON." }, { status: 400 });
-  }
-  const type = String(event.event_type ?? "");
-  const data = event.data ?? {};
-
-  if (type === "subscription.canceled") {
-    const email = await paddleCustomerEmail(env, data);
-    if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
-    const licenses = await env.DB.prepare("SELECT id, key FROM licenses WHERE owner_email = ? AND status = 'active'").bind(email).all<{ id: string; key: string }>();
-    for (const license of licenses.results ?? []) {
-      await env.DB.prepare("UPDATE licenses SET status = 'suspended' WHERE id = ?").bind(license.id).run();
-      await env.DB.prepare("UPDATE activations SET status = 'inactive' WHERE license_id = ?").bind(license.id).run();
-      await syncLog(env.DB, "suspend", maskKey(license.key), "", "Paddle subscription canceled");
-    }
-    await audit(env.DB, "paddle-webhook", "license.suspend", email, `${licenses.results?.length ?? 0} license(s)`);
-    return Response.json({ ok: true, suspended: licenses.results?.length ?? 0 });
-  }
-
-  if (type !== "transaction.completed") return Response.json({ ok: true, ignored: type });
-
-  const email = await paddleCustomerEmail(env, data);
-  if (!email) return Response.json({ error: "no_email", message: "The webhook carried no customer email." }, { status: 400 });
-  const transactionId = String(data.id ?? "");
-  const seen = transactionId ? await env.DB.prepare("SELECT id FROM licenses WHERE notes LIKE ?").bind(`%${transactionId}%`).first() : null;
-  if (seen) return Response.json({ ok: true, duplicate: true });
-  const priceId = String((data.items as { price?: { id?: string } }[] | undefined)?.[0]?.price?.id ?? "");
-  const plan = priceId.includes("01m1ykar8aq033865h68a4b9hh") ? "monthly" : priceId.includes("01m1ykaqyaaeewsbah07akmpka") ? "yearly" : "lifetime";
-  const siteLimit = plan === "lifetime" ? 1 : 5;
-  const expires = plan === "monthly" ? new Date(Date.now() + 31 * 86_400_000).toISOString() : plan === "yearly" ? new Date(Date.now() + 366 * 86_400_000).toISOString() : null;
-  const license = await issueLicense(env.DB, { plan, ownerEmail: email, siteLimit, orgId: null, notes: `Paddle ${type} ${transactionId} ${priceId}`.trim(), expiresAt: expires });
-  await audit(env.DB, "paddle-webhook", "license.issue", email, plan);
-  return Response.json({ ok: true, license: maskKey(license.key) });
-}
-
-/** Buyer email from checkout custom_data, the receipt, or a customer lookup via the API key. */
-async function paddleCustomerEmail(env: Env, data: Record<string, unknown>): Promise<string | null> {
-  const custom = (data.custom_data ?? {}) as Record<string, unknown>;
-  const candidates = [
-    custom.customer_email,
-    custom.email,
-    (data.details as Record<string, unknown> | undefined) &&
-      ((data.details as Record<string, unknown>).receipt as { emails?: string[] } | undefined)?.emails?.[0],
-  ].map((v) => String(v ?? "").trim().toLowerCase());
-  for (const candidate of candidates) {
-    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(candidate)) return candidate;
-  }
-  const customerId = String(data.customer_id ?? "");
-  if (customerId && env.PADDLE_API_KEY) {
-    try {
-      const res = await fetch(`https://api.paddle.com/customers/${encodeURIComponent(customerId)}`, {
-        headers: { Authorization: `Bearer ${env.PADDLE_API_KEY}` },
-      });
-      const json = (await res.json()) as { data?: { email?: string } };
-      const email = String(json.data?.email ?? "").toLowerCase();
-      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return email;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-async function hmacSha256Hex(secret: string, message: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
-  return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ── Platform admin ───────────────────────────────────────────────────────────
