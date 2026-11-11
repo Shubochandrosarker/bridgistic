@@ -132,3 +132,36 @@ jobs:
           CLOUDFLARE_D1_ID_PRODUCTION: 00000000-0000-0000-0000-000000000000
           CLOUDFLARE_KV_OAUTH_STAGING: '00000000000000000000000000000000'
           CLOUDFLARE_KV_OAUTH_PRODUCTION: '00000000000000000000000000000000'
+
+  console:
+    name: Console — audit, typecheck, tests, build
+    runs-on: ubuntu-latest
+    # apps/console is deliberately outside the root npm workspaces (it ships its
+    # own Pages config and wrangler project), so every root gate above skips it.
+    # It therefore gets its own job, installing from its own lockfile.
+    defaults:
+      run:
+        working-directory: apps/console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          # Without this the cache key falls back to the root lockfile, which
+          # does not list the console's dependencies.
+          cache-dependency-path: apps/console/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      # The console's tree is not covered by the `dependencies` job's audit.
+      - name: Audit (console dependency tree)
+        run: npm audit --audit-level=high
+      # `tsc -b` covers src/; the Pages Functions have their own project and are
+      # not part of that build, so they are checked explicitly.
+      - name: Typecheck (app)
+        run: npx tsc -b
+      - name: Typecheck (Pages Functions)
+        run: npm run typecheck:functions
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
