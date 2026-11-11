@@ -90,7 +90,7 @@ smoke(){
   check(){ code=$(curl -s -o /dev/null -L --max-time 25 -w '%{http_code}' "$1"); if [[ $code == "$2" ]]; then echo "  ok   $code $1"; else echo "  FAIL $code (want $2) $1"; fail=1; fi; }
   cb="smoke=$RANDOM"
   log "Smoke tests"
-  for u in / /features /docs /terms /privacy /refund-policy /how-purchases-work /redeem/ /llms.txt /sitemap.xml /robots.txt; do check "https://bridgistic.app$u?$cb" 200; done
+  for u in / /features /docs /terms /privacy /refund-policy /how-purchases-work /support /redeem/ /llms.txt /sitemap.xml /robots.txt; do check "https://bridgistic.app$u?$cb" 200; done
   # The repo root must never be what production serves (BR: site = site/ build only).
   for u in /package.json /README.md /apps/console/wrangler.toml; do check "https://bridgistic.app$u?$cb" 404; done
   for h in https://dashboard.bridgistic.app https://dashboard.bridgistic.app/login https://admin.bridgistic.app https://marketplace.bridgistic.app https://pay.bridgistic.app https://www.bridgistic.app; do check "$h?$cb" 200; done
