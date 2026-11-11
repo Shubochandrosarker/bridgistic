@@ -39,7 +39,17 @@ export function Overview() {
       <PageHead
         title={`Welcome back${org ? `, ${org.name}` : ""}`}
         sub="One console for every site, agent and skill."
-        actions={paidUnlock.unlocked ? <Badge tone="gold">Pro · {paidUnlock.plan}</Badge> : <Link to="/license"><Btn variant="gold" small>Upgrade</Btn></Link>}
+        actions={
+          <div className="flex items-center gap-2">
+            <a
+              href="/api/plugin/download"
+              className="rounded-md border border-navy/20 px-3 py-1.5 text-sm font-semibold text-navy hover:bg-navy/5"
+            >
+              Download WordPress plugin
+            </a>
+            {paidUnlock.unlocked ? <Badge tone="gold">Pro · {paidUnlock.plan}</Badge> : <Link to="/license"><Btn variant="gold" small>Upgrade</Btn></Link>}
+          </div>
+        }
       />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Sites" value={sites.length} sub="connected" />

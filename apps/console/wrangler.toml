@@ -6,3 +6,8 @@ pages_build_output_dir = "dist"
 binding = "DB"
 database_name = "bridgistic-console"
 database_id = "ee54b1a5-944f-4130-962a-a737898819a9"
+
+# Plugin release artifacts (R2). Served only through /api/plugin/download - the bucket is never linked publicly.
+[[r2_buckets]]
+binding = "PLUGINS"
+bucket_name = "bridgistic"
