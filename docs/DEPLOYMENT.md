@@ -11,7 +11,9 @@ working product:
 - The scheduler dispatch plumbing exists, but its queue executor intentionally
   throws. Enabling its cron in production would create retries and DLQ traffic,
   not successful scheduled actions.
-- `apps/dashboard` and `apps/web` contain design notes, not runnable apps.
+- `apps/dashboard` is the runnable customer dashboard. The older design-note
+  wording in this document is retained only for historical context and must
+  not be used as a deployment instruction.
 - BR-016 (signed responses) and BR-020 (snapshot coverage) require upstream
   plugin work or an explicit product decision.
 - Licensing/visibility, security review, production billing, legal documents,
@@ -113,6 +115,25 @@ run appends the pre-deploy production deployment id of each project to
 | pay.bridgistic.app | bridgistic-pay | `apps/pay` |
 | admin.bridgistic.app, marketplace.bridgistic.app | bridgistic-console | `apps/console` |
 | mcp.bridgistic.app, mcp.wpistic.cloud (Worker) | bridgistic-cloud | `apps/cloud` (`--only cloud`, Workers credentials) |
+
+### Dashboard Pages Git integration
+
+The `bridgistic-dashboard` Pages project is connected to the canonical GitHub
+repository `Shubochandrosarker/bridgistic`. Because this is a workspace
+monorepo, its production Git build settings must remain:
+
+- Build command: `npm run build --workspace apps/dashboard`
+- Build output directory: `apps/dashboard/dist`
+- Root directory: repository root (blank)
+- Production branch: `main`
+- Automatic deployments: enabled
+
+The build output includes `apps/dashboard/public/_redirects`, which provides
+the SPA fallback for `/login`, `/options`, and other browser routes. The
+repository-root `functions/_middleware.js` is the Git-integrated copy of the
+legacy `app.bridgistic.app` → `dashboard.bridgistic.app` redirect; the nested
+copy under `apps/dashboard/functions/` remains required by the manual
+`wrangler pages deploy` path.
 
 **bridgistic-site Git integration:** until 2026-11-11 the project had no build
 command and no output directory, so a push to `main` uploaded the whole
