@@ -18,14 +18,14 @@ export async function onRequest(context) {
     return new Response("Storage not configured", { status: 503 });
   }
 
-  const object = await env.PLUGINS.get("bridgistic-wordpress-plugin-1.5.13.zip");
+  const object = await env.PLUGINS.get("bridgistic-wordpress-plugin-1.5.14.zip");
   if (!object) {
     return new Response("Not found", { status: 404 });
   }
 
   const headers = {
     "Content-Type": "application/zip",
-    "Content-Disposition": 'attachment; filename="bridgistic-wordpress-plugin-1.5.13.zip"',
+    "Content-Disposition": 'attachment; filename="bridgistic-wordpress-plugin-1.5.14.zip"',
     "Content-Length": String(object.size),
     "Cache-Control": "public, max-age=300",
     "X-Robots-Tag": "noindex",
