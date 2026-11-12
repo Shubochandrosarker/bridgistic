@@ -135,6 +135,24 @@ legacy `app.bridgistic.app` → `dashboard.bridgistic.app` redirect; the nested
 copy under `apps/dashboard/functions/` remains required by the manual
 `wrangler pages deploy` path.
 
+### Console Pages Git integration
+
+The `bridgistic-console` Pages project is connected to the same canonical
+GitHub repository. Its monorepo settings must remain:
+
+- Root directory: `apps/console`
+- Build command: `npm ci --include=dev && npm run build`
+- Build output directory: `dist` (relative to `apps/console`)
+- Production branch: `main`
+- Automatic deployments: enabled
+
+The project retains its Cloudflare-configured D1 `DB` binding, R2 `PLUGINS`
+binding, and encrypted production secrets. Customer accounts and site work
+belong on `dashboard.bridgistic.app`; `admin.bridgistic.app` remains the
+owner-only platform console. The console does not need an explicit
+`/* /index.html 200` rule: Pages automatically serves the SPA entry point when
+no `404.html` is present, while the API rewrite remains explicit.
+
 **bridgistic-site Git integration:** until 2026-11-11 the project had no build
 command and no output directory, so a push to `main` uploaded the whole
 repository root as the production site. It now builds only `site/`: root
