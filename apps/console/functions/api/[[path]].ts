@@ -291,9 +291,13 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
         if (!parsed) {
           return Response.json({ error: "no_pairing", message: "This site has not published a dashboard pairing yet." }, { status: 404 });
         }
+        try {
+          secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+        } catch {
+          return Response.json({ error: "no_pairing", message: "The stored pairing was written with an older encryption key. In WP Admin → Bridgistic → Premium Features, click Check now to re-pair, then try again." }, { status: 404 });
+        }
         siteUrl = parsed.site_url;
         keyId = parsed.key_id;
-        secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
       }
     }
     siteUrl = normalizeSiteUrl(siteUrl);
@@ -536,7 +540,13 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     if (!parsed || !env.SECRET_ENCRYPTION_KEY) {
       return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
     }
-    return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY) });
+    let secret: string;
+    try {
+      secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing was written with an older encryption key. In WP Admin → Bridgistic → Premium Features, click Check now to re-pair, then try again." }, { status: 404 });
+    }
+    return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret });
   }
 
   // ── Auto-paired sites from license activations ─────────────────────────────
@@ -700,9 +710,13 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
     if (!parsed) {
       return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
     }
+    try {
+      secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
+    } catch {
+      return Response.json({ error: "no_pairing", message: "The stored pairing was written with an older encryption key. In WP Admin → Bridgistic → Premium Features, click Check now to re-pair, then try again." }, { status: 404 });
+    }
     url = parsed.site_url;
     keyId = parsed.key_id;
-    secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
   }
 
   const normalized = normalizeSiteUrl(url);

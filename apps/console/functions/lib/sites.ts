@@ -349,5 +349,11 @@ export async function resolveOwnedSite(env: SitesEnv, user: { id: string; email:
   if (!site) return null;
   const row = await env.DB.prepare("SELECT site_url, key_id, secret_enc FROM site_connections WHERE id = ?").bind(siteId).first<{ site_url: string; key_id: string; secret_enc: string }>();
   if (!row) return null;
-  return { siteUrl: row.site_url, keyId: row.key_id, secret: await decryptSecret(row.secret_enc, env.SECRET_ENCRYPTION_KEY) };
+  try {
+    return { siteUrl: row.site_url, keyId: row.key_id, secret: await decryptSecret(row.secret_enc, env.SECRET_ENCRYPTION_KEY as string) };
+  } catch {
+    // The row was encrypted with a rotated-out key. Treat it as unpaired;
+    // the site re-pushes its key on the next validate (daily or Check now).
+    return null;
+  }
 }
