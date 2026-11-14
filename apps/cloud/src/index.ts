@@ -25,10 +25,11 @@ const provider = new OAuthProvider({
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
-  // Keep the public review path on Dynamic Client Registration. The OpenAI
-  // package declares DCR explicitly; advertising CIMD here makes some review
-  // clients stop after discovery instead of opening registration.
-  clientIdMetadataDocumentEnabled: false,
+  // Advertise CIMD for current MCP clients while retaining the DCR endpoint
+  // below as the compatibility fallback for clients that still use RFC 7591.
+  // OpenAI's review connector supports both paths and prefers CIMD when it is
+  // advertised by the authorization server.
+  clientIdMetadataDocumentEnabled: true,
   resourceMetadata: {
     resource: "https://mcp.bridgistic.app/mcp",
     authorization_servers: ["https://mcp.bridgistic.app"],

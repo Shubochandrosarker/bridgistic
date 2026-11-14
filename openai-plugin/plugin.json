@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bridgistic",
-  "version": "1.5.20",
+  "version": "1.5.21",
   "description": "A scoped remote MCP control plane for authorized WordPress sites.",
   "author": {
     "name": "WordPressistic",
@@ -102,7 +102,7 @@
         "commerce_description": "Bridgistic does not process payments or sell goods inside the MCP connection. WooCommerce tools inspect or manage data only when the connected site grants the relevant scopes."
       },
       "publication": {
-        "release_notes": "OpenAI public-directory package for Bridgistic Cloud 1.5.20. Keeps the explicit DCR review path and read-only default scopes, and pins the production OAuth authorization, token, registration, resource, and non-OIDC endpoints for reliable connector discovery."
+        "release_notes": "OpenAI public-directory package for Bridgistic Cloud 1.5.21. Uses CIMD-preferred OAuth discovery with DCR fallback, explicit production authorization and token endpoints, read-only default scopes, and the production MCP resource metadata."
       }
     }
   }

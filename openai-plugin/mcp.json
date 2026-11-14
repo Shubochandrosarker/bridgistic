@@ -9,13 +9,12 @@
           "auth": {
             "type": "oauth",
             "client": {
-              "mode": "dcr"
+              "mode": "cimd"
             },
             "authorizationUrl": "https://mcp.bridgistic.app/authorize",
             "tokenUrl": "https://mcp.bridgistic.app/token",
             "resource": "https://mcp.bridgistic.app/mcp",
             "authorizationServerBase": "https://mcp.bridgistic.app",
-            "registrationUrl": "https://mcp.bridgistic.app/register",
             "baseScopes": ["site:read", "posts:read"],
             "defaultScopes": ["site:read", "posts:read"],
             "oidcEnabled": false
