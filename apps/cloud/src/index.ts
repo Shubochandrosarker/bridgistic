@@ -25,6 +25,17 @@ const provider = new OAuthProvider({
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
+  // Keep the public review path on Dynamic Client Registration. The OpenAI
+  // package declares DCR explicitly; advertising CIMD here makes some review
+  // clients stop after discovery instead of opening registration.
+  clientIdMetadataDocumentEnabled: false,
+  resourceMetadata: {
+    resource: "https://mcp.bridgistic.app/mcp",
+    authorization_servers: ["https://mcp.bridgistic.app"],
+    scopes_supported: ["site:read", "posts:read"],
+    bearer_methods_supported: ["header"],
+    resource_name: "Bridgistic WordPress MCP",
+  },
   // AI clients hold this and use it directly against WordPress-derived
   // scopes; keep it short so a leaked client-side token has a small window.
   accessTokenTTL: 3600,
@@ -114,9 +125,28 @@ export default {
     // injects internally before dispatching to apiHandler/defaultHandler -
     // it's not a real wrangler.toml binding, so it can't appear on the Env
     // type this top-level fetch actually receives from the runtime.
+    // Some MCP review clients probe the OpenID Connect discovery alias even
+    // when the server advertises OAuth authorization-server metadata. Route
+    // that compatibility path through the provider so the issuer, endpoints,
+    // and supported methods stay generated from one canonical configuration.
+    const isOAuthMetadataRequest =
+      request.method === "GET" &&
+      (url.pathname === "/.well-known/oauth-authorization-server" ||
+        url.pathname === "/.well-known/openid-configuration");
+    const providerRequest =
+      request.method === "GET" && url.pathname === "/.well-known/openid-configuration"
+        ? new Request(new URL("/.well-known/oauth-authorization-server", url), request)
+        : request;
+
     let response: Response;
     try {
-      response = await provider.fetch(request, env as unknown as Parameters<typeof provider.fetch>[1], ctx);
+      response = await provider.fetch(providerRequest, env as unknown as Parameters<typeof provider.fetch>[1], ctx);
+      if (isOAuthMetadataRequest && response.ok) {
+        const metadata = (await response.clone().json()) as Record<string, unknown>;
+        metadata.scopes_supported = ["site:read", "posts:read"];
+        response = new Response(JSON.stringify(metadata), response);
+        response.headers.set("content-type", "application/json");
+      }
     } catch (err) {
       logEvent({
         requestId,

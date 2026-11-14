@@ -1,7 +1,7 @@
 name = "bridgistic-cloud"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 # wpistic.cloud is on this Cloudflare account and mcp.wpistic.cloud already
 # routes to this Worker. Verify the DNS route is active in the dashboard if

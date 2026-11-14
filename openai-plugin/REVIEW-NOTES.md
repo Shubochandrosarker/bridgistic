@@ -7,7 +7,7 @@ contains no credentials and points at the stable hosted MCP origin:
 
 ## Current state
 
-- Package metadata: prepared for version 1.5.15.
+- Package metadata: prepared for version 1.5.19.
 - OAuth: DCR is declared; the hosted server exposes OAuth discovery and PKCE.
 - Default connection scope: `site:read` and `posts:read`.
 - Tool security metadata: emitted from the shared Bridgistic contract catalogue.

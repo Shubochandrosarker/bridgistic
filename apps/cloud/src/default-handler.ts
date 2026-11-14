@@ -255,6 +255,9 @@ export default {
         const denyUrl = new URL(authRequest.redirectUri);
         denyUrl.searchParams.set("error", "access_denied");
         denyUrl.searchParams.set("state", authRequest.state);
+        if (typeof authRequest.issuer === "string") {
+          denyUrl.searchParams.set("iss", authRequest.issuer);
+        }
         return Response.redirect(denyUrl.toString(), 302);
       }
 

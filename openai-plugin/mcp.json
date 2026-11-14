@@ -11,7 +11,7 @@
             "client": {
               "mode": "dcr"
             },
-            "resource": "https://mcp.bridgistic.app",
+            "resource": "https://mcp.bridgistic.app/mcp",
             "registrationUrl": "https://mcp.bridgistic.app/register",
             "baseScopes": ["site:read", "posts:read"],
             "defaultScopes": ["site:read", "posts:read"]
