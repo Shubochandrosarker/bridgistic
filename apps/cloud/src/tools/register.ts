@@ -9,8 +9,14 @@ import { registerSafetyTools } from "./safety.js";
 import { registerIntelTools } from "./intel.js";
 import { registerScheduleTools } from "./schedule.js";
 import { registerWooTools } from "./woo.js";
+import { withOpenAiToolSecurity } from "./openai.js";
 
 export function registerTools(server: McpServer, registry: SiteRegistry): void {
+  // OpenAI and other MCP clients receive the same scope contract as the
+  // WordPress bridge. The proxy also covers the feature-specific registrars
+  // below, so a newly added tool cannot silently omit its auth metadata.
+  server = withOpenAiToolSecurity(server);
+
   // ---- list sites ---------------------------------------------------------
   server.registerTool(
     "bridgistic_list_sites",

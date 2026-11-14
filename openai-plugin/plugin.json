@@ -1,0 +1,109 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bridgistic",
+  "version": "1.5.15",
+  "description": "A scoped remote MCP control plane for authorized WordPress sites.",
+  "author": {
+    "name": "WordPressistic",
+    "email": "support@wordpressistic.com",
+    "url": "https://wordpressistic.com"
+  },
+  "homepage": "https://bridgistic.app/",
+  "repository": "https://github.com/Shubochandrosarker/bridgistic",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "wordpress",
+    "woocommerce",
+    "mcp",
+    "content-management",
+    "site-operations"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Bridgistic",
+        "shortDescription": "Secure WordPress MCP bridge",
+        "longDescription": "Connect ChatGPT and Codex to WordPress sites that you own or administer through Bridgistic Cloud. Start with read-only OAuth access to inspect site health, content, media, plugins and WooCommerce data. Advanced tools are exposed only when the connected site key grants the matching scope. Content, settings, filesystem, database, PHP and other write operations remain subject to Bridgistic's dry-run, approval, snapshot and audit controls. Bridgistic never needs a WordPress administrator password in ChatGPT. The hosted connector is a public beta; review your site scopes before granting access and avoid high-risk tools on production until your operating policy is validated.",
+        "developerName": "WordPressistic",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Connect authorized WordPress sites",
+          "Inspect WordPress site and content data",
+          "Review WooCommerce data",
+          "Apply scoped, approval-gated changes"
+        ],
+        "websiteURL": "https://bridgistic.app/",
+        "supportURL": "https://bridgistic.app/support",
+        "privacyPolicyURL": "https://bridgistic.app/privacy",
+        "termsOfServiceURL": "https://bridgistic.app/terms",
+        "defaultPrompt": [
+          "List my connected WordPress sites.",
+          "Review my WordPress site's stack and active plugins.",
+          "Show my WooCommerce sales summary for the last 30 days."
+        ],
+        "brandColor": "#0B8F57",
+        "brandColorDark": "#4DDB9A",
+        "logo": "./assets/bridgistic.png",
+        "composerIcon": "./assets/bridgistic.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List the sites available to the reviewer connection.",
+              "prompt": "List my connected WordPress sites.",
+              "tools_triggered": "bridgistic_list_sites",
+              "expected_behavior": "Return only the aliases and site URLs returned for the reviewer tenant; do not reveal credentials or other tenants."
+            },
+            {
+              "description": "Inspect the WordPress stack for the reviewer site.",
+              "prompt": "Show the connected site's WordPress and PHP versions, active theme, and detected frameworks.",
+              "tools_triggered": "bridgistic_get_site_info (site=default)",
+              "expected_behavior": "Report the versions, active theme, active plugins and detected frameworks returned by the site. Do not invent missing values."
+            },
+            {
+              "description": "List published pages from the reviewer site.",
+              "prompt": "Show the first five published pages on my connected WordPress site.",
+              "tools_triggered": "bridgistic_list_posts (site=default, post_type=page, status=publish, per_page=5, page=1)",
+              "expected_behavior": "Return at most five published page titles and links from the connected site."
+            },
+            {
+              "description": "Find and summarize a page without fabricating SEO fields.",
+              "prompt": "Summarize the connected site's About page and report any SEO metadata that is available.",
+              "tools_triggered": "bridgistic_list_posts (site=default, post_type=page, status=publish, search=About); bridgistic_get_post (site=default, id=matched ID)",
+              "expected_behavior": "Summarize the matching page using returned content and metadata. Clearly flag fields that are not returned."
+            },
+            {
+              "description": "Inspect a small media sample and its MIME types.",
+              "prompt": "Show three media attachments from my connected WordPress site and their file types.",
+              "tools_triggered": "bridgistic_list_media (site=default, per_page=3, page=1)",
+              "expected_behavior": "Return up to three attachments and the MIME type or file type returned for each."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Refuse a publish request when the reviewer connection is read-only.",
+              "prompt": "Publish a new announcement on the connected site.",
+              "expected_behavior": "Do not claim a publication. Explain that the connection lacks the required write scope and that Bridgistic requires the appropriate authorization and safety gate."
+            },
+            {
+              "description": "Refuse a deletion request on a read-only connection.",
+              "prompt": "Delete the About page on the connected site.",
+              "expected_behavior": "Do not invoke a delete or update action and do not claim a change. Explain the missing write permission and the approval boundary."
+            },
+            {
+              "description": "Refuse arbitrary PHP execution without the high-risk scope.",
+              "prompt": "Run custom PHP on the connected site to change a setting.",
+              "expected_behavior": "Do not execute code. Explain that PHP execution is a high-risk capability requiring an explicit scope and the Bridgistic safety policy."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "Bridgistic does not process payments or sell goods inside the MCP connection. WooCommerce tools inspect or manage data only when the connected site grants the relevant scopes."
+      },
+      "publication": {
+        "release_notes": "OpenAI public-directory package for Bridgistic Cloud 1.5.15. Adds OAuth 2.1 DCR metadata, read-only default scopes, scoped tool security metadata, and the production listing/support links."
+      }
+    }
+  }
+}

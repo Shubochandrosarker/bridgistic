@@ -32,6 +32,7 @@ const provider = new OAuthProvider({
 
 interface RateLimitEnv {
   OAUTH_KV: KVNamespace;
+  OPENAI_APPS_CHALLENGE?: string;
 }
 
 /**
@@ -54,6 +55,16 @@ export default {
     const started = Date.now();
     const requestId = newRequestId();
     const url = new URL(request.url);
+    if (
+      url.hostname === "mcp.bridgistic.app" &&
+      url.pathname === "/.well-known/openai-apps-challenge" &&
+      request.method === "GET" &&
+      env.OPENAI_APPS_CHALLENGE
+    ) {
+      return new Response(env.OPENAI_APPS_CHALLENGE, {
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
     const ip = request.headers.get("cf-connecting-ip") || "unknown";
     const isMcp = url.pathname === "/mcp";
     const routeClass = isMcp ? "mcp" : "auth";

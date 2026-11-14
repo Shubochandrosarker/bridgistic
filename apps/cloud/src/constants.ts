@@ -1,5 +1,5 @@
 export const SERVER_NAME = "bridgistic-mcp-server";
-export const SERVER_VERSION = "1.5.3";
+export const SERVER_VERSION = "1.5.15";
 
 /** WordPress REST namespace the bridge plugin registers. */
 export const WP_NAMESPACE = "bridgistic/v1";

@@ -1,6 +1,6 @@
 {
   "name": "bridgistic-cloud",
-  "version": "1.5.3",
+  "version": "1.5.15",
   "private": true,
   "description": "mcp.bridgistic.app - hosted, multi-tenant MCP relay for Bridgistic. Paste one URL into Claude (or any MCP-capable client); OAuth handles the rest.",
   "type": "module",

@@ -155,6 +155,17 @@ describe("resolveTenantRegistry + registerTools: the full request-flow-to-tool-c
     const listSites = server.tools.find((t) => t.name === "bridgistic_list_sites");
     assert.ok(listSites, "bridgistic_list_sites must be among the registered tools");
 
+    const listSitesConfig = listSites!.config as {
+      _meta?: { securitySchemes?: Array<{ type: string; scopes: string[] }> };
+    };
+    assert.deepEqual(listSitesConfig._meta?.securitySchemes, [{ type: "oauth2", scopes: [] }]);
+
+    const siteInfo = server.tools.find((t) => t.name === "bridgistic_get_site_info");
+    assert.deepEqual(
+      (siteInfo?.config as { _meta?: { securitySchemes?: unknown } })._meta?.securitySchemes,
+      [{ type: "oauth2", scopes: ["site:read"] }]
+    );
+
     const result = (await listSites!.handler()) as { structuredContent: { count: number; sites: Array<{ alias: string; siteUrl: string }> } };
     assert.equal(result.structuredContent.count, 1);
     assert.equal(result.structuredContent.sites[0].siteUrl, "https://example.com");
