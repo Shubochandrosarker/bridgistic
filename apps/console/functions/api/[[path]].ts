@@ -33,6 +33,7 @@ import {
   type User,
 } from "../lib/auth.ts";
 import { activateLicense, deactivateLicense, issueLicense, licenseKey, maskKey, validateLicense, type LicenseRow } from "../lib/licenses.ts";
+import { listMySites, newestLicensePairing, resolveOwnedSite } from "../lib/sites.ts";
 import { handleAppsumoRedeem, handleAppsumoWebhook, seedMarketplaceCode } from "../lib/appsumo.ts";
 import { callSite, keyMask, normalizeSiteUrl, SiteCallError } from "../lib/wp.ts";
 import { catalogForClient, listActionRuns, runAction } from "../lib/actions.ts";
@@ -266,25 +267,33 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     if (pairedSiteId) {
       const user = await requireUser(db, request);
       if (!isEmailVerified(user)) return unverifiedResponse();
-      const license = await db.prepare("SELECT id, owner_email, status, expires_at, site_connection FROM licenses WHERE id = ?").bind(pairedSiteId).first<{ id: string; owner_email: string; status: string; expires_at: string | null; site_connection: string }>();
-      const ownerAccess = user.role === "owner" || user.role === "admin";
-      if (!license || (license.owner_email.toLowerCase() !== user.email.toLowerCase() && !ownerAccess)) {
-        return Response.json({ error: "site_not_found", message: "That connected site is not available to this account." }, { status: 404 });
+      if (!env.SECRET_ENCRYPTION_KEY) {
+        return Response.json({ error: "not_configured", message: "SECRET_ENCRYPTION_KEY is not set on the deployment." }, { status: 503 });
       }
-      if (license.status !== "active" || (license.expires_at && license.expires_at <= new Date().toISOString())) {
-        return Response.json({ error: "license_inactive", message: "This site license is not active." }, { status: 403 });
-      }
-      if (!license.site_connection || !env.SECRET_ENCRYPTION_KEY) {
-        return Response.json({ error: "no_pairing", message: "This site has not published a dashboard pairing yet." }, { status: 404 });
-      }
-      try {
-        const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
-        if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete pairing");
+      // New model: site_id is a site_connections row id (one per activation).
+      const owned = await resolveOwnedSite(env, user, pairedSiteId);
+      if (owned) {
+        siteUrl = owned.siteUrl;
+        keyId = owned.keyId;
+        secret = owned.secret;
+      } else {
+        // Back-compat: cached dashboards may still send the license id. Staff
+        // may also relay to any license by id for support.
+        const license = await db.prepare("SELECT id, owner_email, status, expires_at, site_connection FROM licenses WHERE id = ?").bind(pairedSiteId).first<{ id: string; owner_email: string; status: string; expires_at: string | null; site_connection: string }>();
+        const staff = user.role === "owner" || user.role === "admin";
+        if (!license || (license.owner_email.toLowerCase() !== user.email.toLowerCase() && !staff)) {
+          return Response.json({ error: "site_not_found", message: "That connected site is not available to this account." }, { status: 404 });
+        }
+        if (license.status !== "active" || (license.expires_at && license.expires_at <= new Date().toISOString())) {
+          return Response.json({ error: "license_inactive", message: "This site license is not active." }, { status: 403 });
+        }
+        const parsed = await newestLicensePairing(db, license.id, license.site_connection);
+        if (!parsed) {
+          return Response.json({ error: "no_pairing", message: "This site has not published a dashboard pairing yet." }, { status: 404 });
+        }
         siteUrl = parsed.site_url;
         keyId = parsed.key_id;
         secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
-      } catch {
-        return Response.json({ error: "no_pairing", message: "The stored site pairing is incomplete. Reconnect the site from WordPress." }, { status: 404 });
       }
     }
     siteUrl = normalizeSiteUrl(siteUrl);
@@ -326,39 +335,49 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
   // dashboard site picker. This endpoint deliberately returns metadata only;
   // relay calls resolve the encrypted key server-side by license id.
   if (path === "/api/me/sites" && method === "GET") {
+    // listMySites merges api.wpistic.com activations with the per-activation
+    // site_connections rows; this endpoint is the dashboard's site picker.
+    const my = await listMySites(env, user);
+    const seen = new Set(my.sites.map((s) => s.license_id));
+    // Pre-migration licenses keep their pairing in licenses.site_connection;
+    // surface those too so no licensed site disappears from the picker.
     const { results } = await db.prepare(
       `SELECT l.id, l.key, l.plan, l.status, l.expires_at, l.site_connection,
-              a.domain, a.site_url, a.last_validated_at
+              a.id AS act_id, a.domain, a.site_url, a.last_validated_at
        FROM licenses l
-       LEFT JOIN activations a ON a.license_id = l.id AND a.status = 'active'
+       JOIN activations a ON a.license_id = l.id AND a.status = 'active'
        WHERE lower(l.owner_email) = lower(?) AND l.status = 'active'
          AND (l.expires_at IS NULL OR l.expires_at > ?)
        ORDER BY a.last_validated_at DESC, l.issued_at DESC`
-    ).bind(user.email, new Date().toISOString()).all<{ id: string; key: string; plan: string; status: string; expires_at: string | null; site_connection: string; domain: string | null; site_url: string | null; last_validated_at: string | null }>();
-    const seen = new Set<string>();
-    const sites = (results ?? []).flatMap((row) => {
-      if (!row.site_connection || seen.has(row.id)) return [];
+    ).bind(user.email, new Date().toISOString()).all<{ id: string; key: string; plan: string; status: string; expires_at: string | null; site_connection: string; act_id: string; domain: string | null; site_url: string | null; last_validated_at: string | null }>();
+    const sites = [...my.sites];
+    for (const row of results ?? []) {
+      if (seen.has(row.id) || !row.site_connection) continue;
       try {
         const paired = JSON.parse(row.site_connection) as { site_url?: string; key_id?: string };
         const siteUrl = paired.site_url || row.site_url || (row.domain ? `https://${row.domain}` : "");
-        if (!siteUrl) return [];
+        if (!siteUrl) continue;
         seen.add(row.id);
-        return [{
-          id: row.id,
+        sites.push({
+          id: `legacy:${row.act_id}`,
           site_url: siteUrl,
           domain: row.domain || new URL(siteUrl).hostname,
           status: "activated",
+          license_status: "active",
           plan: row.plan,
           license_mask: maskKey(row.key),
+          license_id: row.id,
+          source: "legacy",
           paired: true,
-          key_id: paired.key_id || null,
+          key_id: paired.key_id ?? null,
           last_validated_at: row.last_validated_at,
-        }];
+          expires_at: row.expires_at,
+        });
       } catch {
-        return [];
+        // corrupt legacy column — skip
       }
-    });
-    return Response.json({ sites }, { headers: { "Cache-Control": "no-store" } });
+    }
+    return Response.json({ sites, licenses: my.licenses, unlocked: my.unlocked, plan: my.plan, upstream_error: my.upstream_error }, { headers: { "Cache-Control": "no-store" } });
   }
 
   if (path === "/api/me/billing" && method === "GET") return billingSummary(db, env, user);
@@ -513,16 +532,11 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
     }
     if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
-    if (!license.site_connection || !env.SECRET_ENCRYPTION_KEY) {
+    const parsed = await newestLicensePairing(db, license.id, license.site_connection);
+    if (!parsed || !env.SECRET_ENCRYPTION_KEY) {
       return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
     }
-    try {
-      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
-      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
-      return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY) });
-    } catch {
-      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
-    }
+    return Response.json({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY) });
   }
 
   // ── Auto-paired sites from license activations ─────────────────────────────
@@ -533,16 +547,21 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
     if (!unlock.unlocked) return Response.json({ connections: [] });
     if (!env.SECRET_ENCRYPTION_KEY) return Response.json({ connections: [] });
     const { results } = await db
-      .prepare("SELECT id, site_connection FROM licenses WHERE owner_email = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)")
+      .prepare(
+        `SELECT sc.site_url, sc.key_id, sc.secret_enc, l.plan
+         FROM site_connections sc
+         JOIN licenses l ON l.id = sc.license_ref
+         WHERE lower(l.owner_email) = lower(?) AND l.status = 'active'
+           AND (l.expires_at IS NULL OR l.expires_at > ?) AND sc.status = 'active'
+         ORDER BY sc.last_validated_at DESC`
+      )
       .bind(user.email, new Date().toISOString())
-      .all<{ id: string; site_connection: string }>();
+      .all<{ site_url: string; key_id: string; secret_enc: string; plan: string }>();
     const connections: { site_url: string; key_id: string; secret: string; plan: string }[] = [];
     for (const row of results ?? []) {
-      if (!row.site_connection) continue;
       try {
-        const parsed = JSON.parse(row.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
-        if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) continue;
-        connections.push({ site_url: parsed.site_url, key_id: parsed.key_id, secret: await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY), plan: unlock.plan ?? "" });
+        if (!row.site_url || !row.key_id || !row.secret_enc) continue;
+        connections.push({ site_url: row.site_url, key_id: row.key_id, secret: await decryptSecret(row.secret_enc, env.SECRET_ENCRYPTION_KEY), plan: row.plan || unlock.plan || "" });
       } catch {
         // corrupt row — skip rather than fail the whole list
       }
@@ -670,25 +689,20 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
   // customers paste the one code they have.
   if (keyId.startsWith("BRG-")) {
     if (!isEmailVerified(user)) return unverifiedResponse();
-    const license = await env.DB.prepare("SELECT owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ owner_email: string; status: string; site_connection: string }>();
+    const license = await env.DB.prepare("SELECT id, owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ id: string; owner_email: string; status: string; site_connection: string }>();
     const staff = user.role === "owner" || user.role === "admin";
     if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
     if (license.owner_email !== user.email && !staff) {
       return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
     }
     if (license.status !== "active") return Response.json({ error: "license_inactive", message: "This license is not active." }, { status: 403 });
-    if (!license.site_connection) {
+    const parsed = await newestLicensePairing(env.DB, license.id, license.site_connection);
+    if (!parsed) {
       return Response.json({ error: "no_pairing", message: "This site has not pushed its dashboard key yet. In WP Admin → Bridgistic → Premium Features, click Check now (plugin 1.5.7+), then try again." }, { status: 404 });
     }
-    try {
-      const parsed = JSON.parse(license.site_connection) as { site_url?: string; key_id?: string; secret_enc?: string };
-      if (!parsed.site_url || !parsed.key_id || !parsed.secret_enc) throw new Error("incomplete");
-      url = parsed.site_url;
-      keyId = parsed.key_id;
-      secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
-    } catch {
-      return Response.json({ error: "no_pairing", message: "The stored pairing is incomplete. Click Check now in WP Admin → Bridgistic → Premium Features, then try again." }, { status: 404 });
-    }
+    url = parsed.site_url;
+    keyId = parsed.key_id;
+    secret = await decryptSecret(parsed.secret_enc, env.SECRET_ENCRYPTION_KEY);
   }
 
   const normalized = normalizeSiteUrl(url);
