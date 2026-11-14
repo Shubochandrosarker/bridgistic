@@ -84,6 +84,37 @@ export async function deletePairingByTokenHash(db: D1Database, tokenHash: string
   await db.prepare("DELETE FROM site_connections WHERE activation_token_hash = ?").bind(tokenHash).run();
 }
 
+/**
+ * Newest active pairing for one console-issued license. site_connections is
+ * the source of truth; the retired licenses.site_connection column is a
+ * fallback for rows written before the per-activation table (migration 0002).
+ * Returns the encrypted row — callers decrypt with SECRET_ENCRYPTION_KEY.
+ */
+export async function newestLicensePairing(
+  db: D1Database,
+  licenseId: string,
+  legacyColumn: string | null
+): Promise<{ site_url: string; key_id: string; secret_enc: string } | null> {
+  const row = await db
+    .prepare(
+      "SELECT site_url, key_id, secret_enc FROM site_connections WHERE license_ref = ? AND status = 'active' ORDER BY last_validated_at DESC LIMIT 1"
+    )
+    .bind(licenseId)
+    .first<{ site_url: string; key_id: string; secret_enc: string }>();
+  if (row && row.site_url && row.key_id && row.secret_enc) return row;
+  if (legacyColumn) {
+    try {
+      const parsed = JSON.parse(legacyColumn) as { site_url?: string; key_id?: string; secret_enc?: string };
+      if (parsed.site_url && parsed.key_id && parsed.secret_enc) {
+        return { site_url: parsed.site_url, key_id: parsed.key_id, secret_enc: parsed.secret_enc };
+      }
+    } catch {
+      // corrupt legacy column — treat as no pairing
+    }
+  }
+  return null;
+}
+
 export async function deletePairing(db: D1Database, id: string): Promise<void> {
   await db.prepare("DELETE FROM site_connections WHERE id = ?").bind(id).run();
 }
