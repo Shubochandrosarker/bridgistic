@@ -278,9 +278,9 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
         secret = owned.secret;
       } else {
         // Back-compat: cached dashboards may still send the license id. Staff
-        // may also relay to any license by id for support.
+        // may also relay to any license by id for support. Owner only.
         const license = await db.prepare("SELECT id, owner_email, status, expires_at, site_connection FROM licenses WHERE id = ?").bind(pairedSiteId).first<{ id: string; owner_email: string; status: string; expires_at: string | null; site_connection: string }>();
-        const staff = user.role === "owner" || user.role === "admin";
+        const staff = user.role === "owner";
         if (!license || (license.owner_email.toLowerCase() !== user.email.toLowerCase() && !staff)) {
           return Response.json({ error: "site_not_found", message: "That connected site is not available to this account." }, { status: 404 });
         }
@@ -531,7 +531,7 @@ async function route(request: Request, env: Env, path: string, url: URL): Promis
       .bind(key)
       .first<{ id: string; owner_email: string; status: string; site_connection: string }>();
     if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
-    const staff = user.role === "owner" || user.role === "admin";
+    const staff = user.role === "owner";
     if (license.owner_email !== user.email && !staff) {
       return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
     }
@@ -700,7 +700,7 @@ async function connectSite(request: Request, env: Env, user: User, orgId: string
   if (keyId.startsWith("BRG-")) {
     if (!isEmailVerified(user)) return unverifiedResponse();
     const license = await env.DB.prepare("SELECT id, owner_email, status, site_connection FROM licenses WHERE key = ?").bind(keyId).first<{ id: string; owner_email: string; status: string; site_connection: string }>();
-    const staff = user.role === "owner" || user.role === "admin";
+    const staff = user.role === "owner";
     if (!license) return Response.json({ error: "license_not_found", message: "This license key was not found." }, { status: 404 });
     if (license.owner_email !== user.email && !staff) {
       return Response.json({ error: "not_your_license", message: "This license belongs to a different Bridgistic account. Sign in with the account that purchased it." }, { status: 403 });
@@ -790,7 +790,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     if (requested === "pro") {
       const user = await currentUser(db, request);
       if (!user) return Response.json({ error: "signin_required", message: "Sign in to see the Pro collection." }, { status: 401 });
-      const staff = user.role === "owner" || user.role === "admin";
+      const staff = user.role === "owner";
       if (!staff && !(await paidUnlock(db, user)).unlocked) {
         return Response.json({ error: "license_required", message: "The Pro collection needs an active Bridgistic license." }, { status: 403 });
       }
@@ -829,7 +829,7 @@ async function marketRoutes(request: Request, env: Env, seg: string[], method: s
     let authorized = item.tier === "free";
     if (!authorized) {
       const user = await currentUser(db, request);
-      if (user) authorized = (await paidUnlock(db, user)).unlocked || user.role === "owner" || user.role === "admin";
+      if (user) authorized = (await paidUnlock(db, user)).unlocked || user.role === "owner";
     } else {
       const user = await currentUser(db, request);
       authorized = Boolean(user);

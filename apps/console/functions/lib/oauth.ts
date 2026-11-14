@@ -175,7 +175,7 @@ export async function oauthCallback(request: Request, env: OAuthEnv, provider: s
   // Staff land on the console (their root routes to the master dashboard);
   // every non-staff account lands on the member dashboard, and an explicit
   // `next` origin (validated against the allowlist) always wins.
-  const landing = returnTo ?? (user.role === "owner" || user.role === "admin" ? new URL(request.url).origin : MEMBER_HOME);
+  const landing = returnTo ?? (user.role === "owner" ? new URL(request.url).origin : MEMBER_HOME);
   const sessionId = await createSession(db, user.id);
   const headers = new Headers({ Location: landing });
   for (const cookie of sessionCookies(sessionId, undefined, sharedCookieDomain(new URL(request.url).hostname))) {

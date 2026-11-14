@@ -19,7 +19,7 @@ export interface EmailAuthEnv extends MailEnv {
 }
 
 export function isEmailVerified(user: Pick<User, "role"> & { email_verified_at?: string | null }): boolean {
-  return Boolean(user.email_verified_at) || user.role === "owner" || user.role === "admin";
+  return Boolean(user.email_verified_at) || user.role === "owner";
 }
 
 export function unverifiedResponse(): Response {
